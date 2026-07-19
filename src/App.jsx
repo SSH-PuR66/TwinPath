@@ -46,6 +46,9 @@ import {
 import NetworkStatus from "./NetworkStatus";
 import { AnimatedMoney } from "./AnimatedMoney";
 import { motion } from "framer-motion";
+import CalendarView from "./CalendarView";
+import FinancialHub from "./FinancialHub";
+
 
 const moneyFormatter = new Intl.NumberFormat("en-US", {
     style: "currency",
@@ -77,6 +80,20 @@ function safeFileName(name) {
 
 function nowDateInput() {
     return new Date().toISOString().slice(0, 10);
+}
+
+function toLocalDateTimeInput(date) {
+    if (!(date instanceof Date) || Number.isNaN(date.getTime())) {
+        return "";
+    }
+
+    const copy = new Date(date);
+    copy.setHours(9, 0, 0, 0);
+
+    const offset = copy.getTimezoneOffset();
+    const local = new Date(copy.getTime() - offset * 60 * 1000);
+
+    return local.toISOString().slice(0, 16);
 }
 
 function escapeICS(value = "") {
@@ -830,6 +847,16 @@ function MoneyTab({
                 />
             </div>
 
+            <FinancialHub
+                privateMode={privateMode}
+                onLogTransaction={() =>
+                    setTransactionModal(true)
+                }
+                onAddOpportunity={() =>
+                    setOpportunityModal(true)
+                }
+            />
+
             <Card>
                 <div className="section-title">
                     <div>
@@ -1019,7 +1046,9 @@ function MoneyTab({
 
 function FamilyTab({
     appointments,
+    currentUserId,
     setAppointmentModal,
+    setAppointmentDraftDate,
     deleteAppointment,
 }) {
     const safeAppointments = Array.isArray(appointments)
@@ -1092,64 +1121,15 @@ function FamilyTab({
             </Card>
 
             <Card>
-                <div className="section-title">
-                    <div>
-                        <h3>Appointments</h3>
-                        <p>Only share medical details both partners consent to sharing.</p>
-                    </div>
-                </div>
-
-                {safeAppointments.length ? (
-                    <div className="appointment-list">
-                        {safeAppointments.map((item) => (
-                            <article className="appointment-row" key={item.id}>
-                                <div className="date-block">
-                                    <strong>
-                                        {new Date(item.starts_at).toLocaleDateString("en-US", {
-                                            day: "2-digit",
-                                        })}
-                                    </strong>
-                                    <span>
-                                        {new Date(item.starts_at)
-                                            .toLocaleDateString("en-US", { month: "short" })
-                                            .toUpperCase()}
-                                    </span>
-                                </div>
-
-                                <div className="appointment-copy">
-                                    <strong>{item.title}</strong>
-                                    <small>
-                                        {new Date(item.starts_at).toLocaleTimeString("en-US", {
-                                            hour: "numeric",
-                                            minute: "2-digit",
-                                        })}
-                                        {item.location ? ` · ${item.location}` : ""}
-                                        {item.visibility === "private" ? " · Only me" : ""}
-                                    </small>
-                                    {item.notes && <p>{item.notes}</p>}
-                                </div>
-
-                                <button
-                                    className="icon-button small"
-                                    onClick={() => downloadAppointmentICS(item)}
-                                    aria-label="Add appointment to calendar"
-                                >
-                                    <Download size={16} />
-                                </button>
-
-                                <button
-                                    className="icon-button small danger"
-                                    onClick={() => deleteAppointment(item)}
-                                    aria-label="Delete appointment"
-                                >
-                                    <Trash2 size={16} />
-                                </button>
-                            </article>
-                        ))}
-                    </div>
-                ) : (
-                    <Empty>No appointments recorded.</Empty>
-                )}
+                <CalendarView
+                    appointments={appointments}
+                    currentUserId={currentUserId}
+                    onAdd={(selectedDate) => {
+                        setAppointmentDraftDate(selectedDate);
+                        setAppointmentModal(true);
+                    }}
+                    onDelete={deleteAppointment}
+                />
             </Card>
 
             <div className="checklist-grid">
@@ -1499,11 +1479,21 @@ function TransactionModal({ onClose, onSave }) {
     );
 }
 
-function AppointmentModal({ onClose, onSave }) {
+function AppointmentModal({
+    initialDate,
+    onClose,
+    onSave,
+}) {
     const [form, setForm] = useState({
         title: "",
-        starts_at: "",
+        starts_at: initialDate
+            ? toLocalDateTimeInput(initialDate)
+            : "",
+        category: "Prenatal",
         location: "",
+        reminder_minutes: 60,
+        transportation_plan: "",
+        questions: "",
         notes: "",
         visibility: "shared",
     });
@@ -1512,8 +1502,12 @@ function AppointmentModal({ onClose, onSave }) {
     async function submit(event) {
         event.preventDefault();
         setBusy(true);
-        await onSave(form);
-        setBusy(false);
+
+        try {
+            await onSave(form);
+        } finally {
+            setBusy(false);
+        }
     }
 
     return (
@@ -1529,6 +1523,55 @@ function AppointmentModal({ onClose, onSave }) {
                         }
                     />
                 </Field>
+
+                <div className="form-grid">
+                    <Field label="Category">
+                        <select
+                            value={form.category}
+                            onChange={(event) =>
+                                setForm({
+                                    ...form,
+                                    category: event.target.value,
+                                })
+                            }
+                        >
+                            <option>Prenatal</option>
+                            <option>Ultrasound</option>
+                            <option>Maternal-fetal medicine</option>
+                            <option>WIC</option>
+                            <option>Benefits</option>
+                            <option>School</option>
+                            <option>Financial aid</option>
+                            <option>Work</option>
+                            <option>Interview</option>
+                            <option>Performance</option>
+                            <option>Childcare</option>
+                            <option>Personal</option>
+                        </select>
+                    </Field>
+
+                    <Field label="Reminder">
+                        <select
+                            value={form.reminder_minutes}
+                            onChange={(event) =>
+                                setForm({
+                                    ...form,
+                                    reminder_minutes: Number(
+                                        event.target.value
+                                    ),
+                                })
+                            }
+                        >
+                            <option value="0">No reminder</option>
+                            <option value="15">15 minutes before</option>
+                            <option value="30">30 minutes before</option>
+                            <option value="60">1 hour before</option>
+                            <option value="1440">1 day before</option>
+                            <option value="2880">2 days before</option>
+                            <option value="10080">1 week before</option>
+                        </select>
+                    </Field>
+                </div>
 
                 <Field label="Date and time">
                     <input
@@ -1547,6 +1590,37 @@ function AppointmentModal({ onClose, onSave }) {
                         value={form.location}
                         onChange={(event) =>
                             setForm({ ...form, location: event.target.value })
+                        }
+                    />
+                </Field>
+
+                <Field label="Transportation plan">
+                    <textarea
+                        rows="2"
+                        maxLength={1000}
+                        placeholder="Train, trusted driver, rideshare, backup plan…"
+                        value={form.transportation_plan}
+                        onChange={(event) =>
+                            setForm({
+                                ...form,
+                                transportation_plan:
+                                    event.target.value,
+                            })
+                        }
+                    />
+                </Field>
+
+                <Field label="Questions to ask">
+                    <textarea
+                        rows="3"
+                        maxLength={3000}
+                        placeholder="Questions to bring to this appointment…"
+                        value={form.questions}
+                        onChange={(event) =>
+                            setForm({
+                                ...form,
+                                questions: event.target.value,
+                            })
                         }
                     />
                 </Field>
@@ -1849,6 +1923,7 @@ export default function App() {
     const [taskModal, setTaskModal] = useState(false);
     const [transactionModal, setTransactionModal] = useState(false);
     const [appointmentModal, setAppointmentModal] = useState(false);
+    const [appointmentDraftDate, setAppointmentDraftDate] = useState(null);
     const [opportunityModal, setOpportunityModal] = useState(false);
     const [settingsOpen, setSettingsOpen] = useState(false);
     const [uploading, setUploading] = useState(false);
@@ -2108,12 +2183,44 @@ export default function App() {
     }
 
     async function saveAppointment(form) {
+        setError("");
+
+        const appointmentDate = new Date(form.starts_at);
+
+        if (!form.title?.trim()) {
+            setError("Enter an appointment title.");
+            return false;
+        }
+
+        if (
+            !form.starts_at ||
+            Number.isNaN(appointmentDate.getTime())
+        ) {
+            setError("Enter a valid appointment date and time.");
+            return false;
+        }
+
         const success = await insertRecord("appointments", {
-            ...form,
-            starts_at: new Date(form.starts_at).toISOString(),
+            title: form.title.trim(),
+            starts_at: appointmentDate.toISOString(),
+            category: form.category || "Personal",
+            location: form.location?.trim() || null,
+            reminder_minutes:
+                Number.isFinite(Number(form.reminder_minutes))
+                    ? Number(form.reminder_minutes)
+                    : null,
+            transportation_plan:
+                form.transportation_plan?.trim() || null,
+            questions: form.questions?.trim() || null,
+            notes: form.notes?.trim() || null,
+            visibility: form.visibility || "shared",
         });
 
-        if (success) setAppointmentModal(false);
+        if (success) {
+            setAppointmentModal(false);
+        }
+
+        return success;
     }
 
     async function saveOpportunity(form) {
@@ -2335,7 +2442,9 @@ export default function App() {
                     {tab === "family" && (
                         <FamilyTab
                             appointments={appointments}
+                            currentUserId={session.user.id}
                             setAppointmentModal={setAppointmentModal}
+                            setAppointmentDraftDate={setAppointmentDraftDate}
                             deleteAppointment={(item) =>
                                 deleteRecord("appointments", item)
                             }
@@ -2388,7 +2497,11 @@ export default function App() {
 
             {appointmentModal && (
                 <AppointmentModal
-                    onClose={() => setAppointmentModal(false)}
+                    initialDate={appointmentDraftDate}
+                    onClose={() => {
+                        setAppointmentModal(false);
+                        setAppointmentDraftDate(null);
+                    }}
                     onSave={saveAppointment}
                 />
             )}

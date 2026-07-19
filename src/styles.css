@@ -1,4 +1,3 @@
-
 :root {
     color-scheme: dark;
     font-family:
@@ -1487,10 +1486,7 @@ small {
     z-index: 60;
     display: flex;
     padding:
-        calc(0.55rem + env(safe-area-inset-top))
-        max(1rem, env(safe-area-inset-right))
-        0.55rem
-        max(1rem, env(safe-area-inset-left));
+        calc(0.55rem + env(safe-area-inset-top)) max(1rem, env(safe-area-inset-right)) 0.55rem max(1rem, env(safe-area-inset-left));
     align-items: center;
     justify-content: center;
     gap: 0.5rem;
@@ -1503,4 +1499,416 @@ small {
     backdrop-filter: blur(18px);
     -webkit-backdrop-filter: blur(18px);
 }
-
+
+.calendar-layout {
+    display: grid;
+    gap: 1rem;
+    grid-template-columns: minmax(280px, 0.9fr) minmax(0, 1.1fr);
+}
+
+.calendar-panel,
+.calendar-agenda,
+.money-planner,
+.paypal-link-builder,
+.route-explorer {
+    padding: 1rem;
+    background: rgba(255, 255, 255, 0.025);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+}
+
+.calendar-panel .rdp-root {
+    --rdp-accent-color: var(--accent);
+    --rdp-accent-background-color:
+        color-mix(in srgb, var(--accent) 16%, transparent);
+    width: 100%;
+    margin: 0;
+}
+
+.calendar-panel .rdp-months,
+.calendar-panel .rdp-month,
+.calendar-panel .rdp-month_grid {
+    width: 100%;
+    max-width: none;
+}
+
+.calendar-panel .rdp-day {
+    position: relative;
+}
+
+.calendar-panel .has-appointment::after {
+    position: absolute;
+    right: 50%;
+    bottom: 3px;
+    width: 5px;
+    height: 5px;
+    content: "";
+    transform: translateX(50%);
+    background: var(--accent);
+    border-radius: 50%;
+    box-shadow: 0 0 8px var(--accent);
+}
+
+.calendar-legend {
+    display: flex;
+    margin-top: 0.8rem;
+    align-items: center;
+    gap: 0.45rem;
+    color: var(--muted);
+    font-size: 0.72rem;
+}
+
+.calendar-agenda-title,
+.calendar-appointment-header,
+.route-card-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.75rem;
+}
+
+.calendar-agenda-title {
+    margin-bottom: 1rem;
+}
+
+.calendar-agenda-title h3 {
+    margin: 0;
+}
+
+.calendar-appointment-list {
+    display: grid;
+    gap: 0.75rem;
+}
+
+.calendar-appointment {
+    position: relative;
+    display: flex;
+    overflow: hidden;
+    background: rgba(255, 255, 255, 0.035);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+}
+
+.calendar-category-line {
+    width: 4px;
+    flex: 0 0 auto;
+}
+
+.calendar-appointment-main {
+    min-width: 0;
+    padding: 0.85rem;
+    flex: 1;
+}
+
+.calendar-category {
+    color: var(--accent);
+    font-size: 0.64rem;
+    font-weight: 750;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+}
+
+.calendar-appointment h4 {
+    margin: 0.28rem 0 0;
+}
+
+.calendar-card-actions {
+    display: flex;
+    gap: 0.35rem;
+}
+
+.calendar-meta {
+    display: flex;
+    margin-top: 0.6rem;
+    flex-wrap: wrap;
+    gap: 0.65rem;
+    color: var(--muted);
+    font-size: 0.7rem;
+}
+
+.calendar-meta span {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+}
+
+.appointment-detail {
+    display: flex;
+    margin-top: 0.7rem;
+    padding: 0.65rem;
+    align-items: flex-start;
+    gap: 0.5rem;
+    background: rgba(255, 255, 255, 0.035);
+    border-radius: 12px;
+}
+
+.appointment-detail svg {
+    flex: 0 0 auto;
+    color: var(--accent);
+}
+
+.appointment-detail strong {
+    font-size: 0.72rem;
+}
+
+.appointment-detail p,
+.appointment-notes {
+    margin: 0.2rem 0 0;
+    font-size: 0.72rem;
+    white-space: pre-wrap;
+}
+
+.financial-hub {
+    display: grid;
+    gap: 1rem;
+}
+
+.money-input {
+    display: flex;
+    align-items: center;
+    background: rgba(3, 7, 15, 0.7);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+}
+
+.money-input>span {
+    padding-left: 0.9rem;
+    color: var(--success);
+    font-size: 1.2rem;
+    font-weight: 800;
+}
+
+.money-input input {
+    background: transparent;
+    border: 0;
+    box-shadow: none;
+}
+
+.allocation-cards {
+    display: grid;
+    margin-top: 1rem;
+    gap: 0.75rem;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.allocation-card {
+    display: flex;
+    min-width: 0;
+    padding: 0.85rem;
+    align-items: flex-start;
+    gap: 0.65rem;
+    background: rgba(255, 255, 255, 0.035);
+    border: 1px solid var(--border);
+    border-radius: 15px;
+}
+
+.allocation-card-icon {
+    display: grid;
+    width: 38px;
+    height: 38px;
+    flex: 0 0 auto;
+    place-items: center;
+    color: var(--accent);
+    background: color-mix(in srgb,
+            var(--accent) 12%,
+            transparent);
+    border-radius: 12px;
+}
+
+.allocation-card>div:last-child {
+    display: grid;
+    min-width: 0;
+    gap: 0.2rem;
+}
+
+.allocation-card span {
+    color: var(--muted);
+    font-size: 0.68rem;
+}
+
+.allocation-card strong {
+    font-size: 1rem;
+}
+
+.allocation-card p {
+    margin: 0.2rem 0 0;
+    font-size: 0.68rem;
+}
+
+.financial-action-row {
+    display: flex;
+    margin-top: 0.9rem;
+    flex-wrap: wrap;
+    gap: 0.55rem;
+}
+
+.paypal-link-builder {
+    display: grid;
+    gap: 0.8rem;
+    grid-template-columns: minmax(0, 1fr) minmax(240px, 0.8fr);
+}
+
+.payment-link-preview {
+    display: flex;
+    padding: 0.65rem;
+    grid-column: 1 / -1;
+    align-items: center;
+    gap: 0.5rem;
+    background: rgba(255, 255, 255, 0.035);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+}
+
+.payment-link-preview>span {
+    min-width: 0;
+    flex: 1;
+    overflow: hidden;
+    color: var(--accent);
+    font-size: 0.78rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.financial-route-grid {
+    display: grid;
+    gap: 0.8rem;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.financial-route-card {
+    display: flex;
+    min-width: 0;
+    padding: 0.9rem;
+    flex-direction: column;
+    gap: 0.7rem;
+    background:
+        linear-gradient(145deg,
+            color-mix(in srgb, var(--accent) 5%, transparent),
+            transparent),
+        rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--border);
+    border-radius: 17px;
+}
+
+.financial-route-card h4 {
+    margin: 0;
+}
+
+.financial-route-card>p {
+    margin: 0;
+    font-size: 0.76rem;
+}
+
+.route-score {
+    color: var(--success);
+    font-size: 0.66rem;
+    font-weight: 700;
+}
+
+.route-facts {
+    display: grid;
+    margin: 0;
+    gap: 0.45rem;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.route-facts div {
+    min-width: 0;
+    padding: 0.55rem;
+    background: rgba(255, 255, 255, 0.035);
+    border-radius: 11px;
+}
+
+.route-facts dt {
+    margin-bottom: 0.2rem;
+    color: var(--subtle);
+    font-size: 0.6rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+}
+
+.route-facts dd {
+    margin: 0;
+    overflow: hidden;
+    color: #e7ebf5;
+    font-size: 0.7rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.route-reporting-note {
+    display: flex;
+    padding: 0.65rem;
+    align-items: flex-start;
+    gap: 0.45rem;
+    color: #d4bd96;
+    font-size: 0.67rem;
+    line-height: 1.45;
+    background: rgba(255, 190, 85, 0.055);
+    border: 1px solid rgba(255, 190, 85, 0.12);
+    border-radius: 12px;
+}
+
+.route-reporting-note svg {
+    flex: 0 0 auto;
+}
+
+.financial-route-card .financial-action-row {
+    margin-top: auto;
+}
+
+@media (max-width: 850px) {
+    .calendar-layout {
+        grid-template-columns: 1fr;
+    }
+
+    .allocation-cards {
+        grid-template-columns: 1fr;
+    }
+
+    .paypal-link-builder {
+        grid-template-columns: 1fr;
+    }
+
+    .financial-route-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 480px) {
+
+    .calendar-panel,
+    .calendar-agenda,
+    .money-planner,
+    .paypal-link-builder,
+    .route-explorer {
+        padding: 0.75rem;
+    }
+
+    .calendar-panel .rdp-root {
+        font-size: 0.82rem;
+    }
+
+    .calendar-panel .rdp-day_button {
+        width: 38px;
+        height: 38px;
+    }
+
+    .route-facts {
+        grid-template-columns: 1fr;
+    }
+
+    .financial-action-row {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .financial-action-row .button {
+        width: 100%;
+    }
+
+    .planner-toggle {
+        margin-top: 0.8rem;
+    }
+}
