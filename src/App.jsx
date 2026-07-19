@@ -44,6 +44,8 @@ import {
 } from "./resources";
 
 import NetworkStatus from "./NetworkStatus";
+import { AnimatedMoney } from "./AnimatedMoney";
+import { motion } from "framer-motion";
 
 const moneyFormatter = new Intl.NumberFormat("en-US", {
     style: "currency",
@@ -496,7 +498,11 @@ function TodayTab({
                 <SummaryCard
                     icon={CircleDollarSign}
                     label="Tracked balance"
-                    value={privateMode ? "••••••" : moneyFormatter.format(balance)}
+                    value={
+                        privateMode
+                            ? "••••••"
+                            : <AnimatedMoney value={balance} />
+                    }
                     detail="Income minus expenses"
                 />
             </div>
@@ -2283,6 +2289,12 @@ export default function App() {
                 )}
 
                 <main className="content">
+                    <motion.div
+                        key={tab}
+                        initial={reducedMotion ? false : { opacity: 0, y: 12 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: reducedMotion ? 0 : 0.28 }}
+                    >
                     {tab === "today" && (
                         <TodayTab
                             tasks={tasks}
@@ -2339,6 +2351,7 @@ export default function App() {
                             uploading={uploading}
                         />
                     )}
+                    </motion.div>
                 </main>
 
                 <nav className="bottom-nav" aria-label="Main navigation">
