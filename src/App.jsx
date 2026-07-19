@@ -45,6 +45,7 @@ import {
 
 import NetworkStatus from "./NetworkStatus";
 import { AnimatedMoney } from "./AnimatedMoney";
+import AnimatedPage from "./AnimatedPage";
 import { motion } from "framer-motion";
 
 const moneyFormatter = new Intl.NumberFormat("en-US", {
@@ -191,90 +192,246 @@ function Field({ label, children, hint }) {
 }
 
 function AuthScreen() {
-    const [email, setEmail] = useState("");
-    const [sent, setSent] = useState(false);
-    const [busy, setBusy] = useState(false);
-    const [error, setError] = useState("");
+  const [mode, setMode] = useState("password");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [sent, setSent] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
 
-    async function signIn(event) {
-        event.preventDefault();
-        setBusy(true);
-        setError("");
+  async function signInWithPassword(event) {
+    event.preventDefault();
+    setBusy(true);
+    setError("");
 
-        const { error: authError } = await supabase.auth.signInWithOtp({
-            email: email.trim(),
-            options: {
-                emailRedirectTo: window.location.origin,
-            },
-        });
+    const { error: authError } =
+      await supabase.auth.signInWithPassword({
+        email: email.trim(),
+        password,
+      });
 
-        setBusy(false);
+    setBusy(false);
 
-        if (authError) {
-            setError(authError.message);
-            return;
-        }
+    if (authError) {
+      setError(
+        authError.message === "Invalid login credentials"
+          ? "Incorrect email or password. If you have never created a password, use the secure email link once."
+          : authError.message
+      );
+    }
+  }
 
-        setSent(true);
+  async function sendMagicLink(event) {
+    event.preventDefault();
+    setBusy(true);
+    setError("");
+    setSent(false);
+
+    const { error: authError } =
+      await supabase.auth.signInWithOtp({
+        email: email.trim(),
+        options: {
+          emailRedirectTo: window.location.origin,
+          shouldCreateUser: true,
+        },
+      });
+
+    setBusy(false);
+
+    if (authError) {
+      const isRateLimit =
+        authError.message
+          ?.toLowerCase()
+          .includes("rate limit");
+
+      setError(
+        isRateLimit
+          ? "Supabase has temporarily limited authentication emails. Stop retrying and wait for the limit shown in Supabase Authentication logs."
+          : authError.message
+      );
+
+      return;
     }
 
-    return (
-        <main className="auth-screen">
-            <ThemeScene themeKey="aurora" />
+    setSent(true);
+  }
 
-            <Card className="auth-card">
-                <div className="brand-mark">
-                    <Sparkles size={26} />
-                </div>
+  return (
+    <main className="auth-screen">
+      <ThemeScene themeKey="aurora" />
 
-                <p className="eyebrow">PRIVATE FAMILY COMMAND CENTER</p>
-                <h1>TwinPath</h1>
+      <Card className="auth-card">
+        <div className="brand-mark">
+          <Sparkles size={26} />
+        </div>
 
-                <p className="muted">
-                    Plan together, protect private information, track money and prepare
-                    for what comes next.
-                </p>
+        <p className="eyebrow">
+          PRIVATE FAMILY COMMAND CENTER
+        </p>
 
-                {sent ? (
-                    <div className="success-box">
-                        <CheckCircle2 />
-                        <div>
-                            <strong>Check your email</strong>
-                            <p>Open the secure sign-in link on this device.</p>
-                        </div>
-                    </div>
-                ) : (
-                    <form onSubmit={signIn} className="stack">
-                        <Field label="Email">
-                            <input
-                                type="email"
-                                autoComplete="email"
-                                required
-                                placeholder="you@example.com"
-                                value={email}
-                                onChange={(event) => setEmail(event.target.value)}
-                            />
-                        </Field>
+        <h1>TwinPath</h1>
 
-                        {error && <div className="error-box">{error}</div>}
+        <p className="muted">
+          Plan together, protect private information,
+          track money and prepare for what comes next.
+        </p>
 
-                        <Button disabled={busy} type="submit">
-                            {busy ? <Loader2 className="spin" size={18} /> : null}
-                            Send secure sign-in link
-                        </Button>
-                    </form>
-                )}
+        <div className="segmented">
+          <button
+            type="button"
+            className={mode === "password" ? "active" : ""}
+            onClick={() => {
+              setMode("password");
+              setError("");
+              setSent(false);
+            }}
+          >
+            Password
+          </button>
 
-                <div className="privacy-note">
-                    <ShieldCheck size={18} />
-                    <span>
-                        Use separate accounts. Never share passwords or monitor a partner
-                        without consent.
-                    </span>
-                </div>
-            </Card>
-        </main>
-    );
+          <button
+            type="button"
+            className={mode === "magic" ? "active" : ""}
+            onClick={() => {
+              setMode("magic");
+              setError("");
+              setSent(false);
+            }}
+          >
+            Email link
+          </button>
+        </div>
+
+        {mode === "password" ? (
+          <form
+            onSubmit={signInWithPassword}
+            className="stack"
+          >
+            <Field label="Email">
+              <input
+                type="email"
+                autoComplete="email"
+                required
+                placeholder="you@example.com"
+                value={email}
+                onChange={(event) =>
+                  setEmail(event.target.value)
+                }
+              />
+            </Field>
+
+            <Field label="Password">
+              <input
+                type="password"
+                autoComplete="current-password"
+                required
+                minLength={8}
+                placeholder="Your TwinPath password"
+                value={password}
+                onChange={(event) =>
+                  setPassword(event.target.value)
+                }
+              />
+            </Field>
+
+            {error && (
+              <div className="error-box">{error}</div>
+            )}
+
+            <Button type="submit" disabled={busy}>
+              {busy && (
+                <Loader2
+                  className="spin"
+                  size={18}
+                />
+              )}
+
+              Sign in
+            </Button>
+
+            <button
+              className="text-button"
+              type="button"
+              onClick={() => {
+                setMode("magic");
+                setError("");
+              }}
+            >
+              I have not created a password yet
+            </button>
+          </form>
+        ) : sent ? (
+          <div className="success-box">
+            <CheckCircle2 />
+
+            <div>
+              <strong>Check your email</strong>
+              <p>
+                Open the secure sign-in link on this
+                device. Do not request another link.
+              </p>
+            </div>
+          </div>
+        ) : (
+          <form
+            onSubmit={sendMagicLink}
+            className="stack"
+          >
+            <Field
+              label="Email"
+              hint="Use this once to access your account and create a password."
+            >
+              <input
+                type="email"
+                autoComplete="email"
+                required
+                placeholder="you@example.com"
+                value={email}
+                onChange={(event) =>
+                  setEmail(event.target.value)
+                }
+              />
+            </Field>
+
+            {error && (
+              <div className="error-box">{error}</div>
+            )}
+
+            <Button type="submit" disabled={busy}>
+              {busy && (
+                <Loader2
+                  className="spin"
+                  size={18}
+                />
+              )}
+
+              Send one secure link
+            </Button>
+
+            <button
+              className="text-button"
+              type="button"
+              onClick={() => {
+                setMode("password");
+                setError("");
+              }}
+            >
+              Return to password sign-in
+            </button>
+          </form>
+        )}
+
+        <div className="privacy-note">
+          <ShieldCheck size={18} />
+
+          <span>
+            Each partner should have a separate account.
+            Never share account passwords.
+          </span>
+        </div>
+      </Card>
+    </main>
+  );
 }
 
 function HouseholdSetup({ onReady }) {
@@ -1717,6 +1874,40 @@ function SettingsModal({
     const [rotating, setRotating] = useState(false);
     const [settingsError, setSettingsError] = useState("");
 
+    const [newPassword, setNewPassword] = useState("");
+    const [passwordBusy, setPasswordBusy] = useState(false);
+    const [passwordMessage, setPasswordMessage] = useState("");
+
+    async function savePassword(event) {
+        event.preventDefault();
+        setPasswordMessage("");
+
+        if (newPassword.length < 10) {
+            setPasswordMessage(
+                "Use at least 10 characters."
+            );
+            return;
+        }
+
+        setPasswordBusy(true);
+
+        const { error } = await supabase.auth.updateUser({
+            password: newPassword,
+        });
+
+        setPasswordBusy(false);
+
+        if (error) {
+            setPasswordMessage(error.message);
+            return;
+        }
+
+        setNewPassword("");
+        setPasswordMessage(
+            "Password saved. You can now use password sign-in without requesting an email."
+        );
+    }
+
     async function copyCode() {
         await navigator.clipboard.writeText(inviteCode);
         setCopied(true);
@@ -1822,6 +2013,57 @@ function SettingsModal({
                         onChange={(event) => setReducedMotion(event.target.checked)}
                     />
                 </label>
+
+                <Card className="nested-card">
+                    <span className="eyebrow">ACCOUNT ACCESS</span>
+                    <h3>Create or change password</h3>
+
+                    <p className="muted">
+                        A password avoids Supabase email limits during
+                        ordinary sign-in. Use a unique password that you
+                        do not use anywhere else.
+                    </p>
+
+                    <form className="stack" onSubmit={savePassword}>
+                        <Field label="New password">
+                            <input
+                                type="password"
+                                autoComplete="new-password"
+                                minLength={10}
+                                required
+                                value={newPassword}
+                                onChange={(event) =>
+                                    setNewPassword(event.target.value)
+                                }
+                                placeholder="At least 10 characters"
+                            />
+                        </Field>
+
+                        {passwordMessage && (
+                            <div
+                                className={
+                                    passwordMessage.startsWith("Password saved")
+                                        ? "success-box compact"
+                                        : "error-box"
+                                }
+                            >
+                                {passwordMessage}
+                            </div>
+                        )}
+
+                        <Button
+                            type="submit"
+                            variant="secondary"
+                            disabled={passwordBusy}
+                        >
+                            {passwordBusy && (
+                                <Loader2 className="spin" size={17} />
+                            )}
+
+                            Save password
+                        </Button>
+                    </form>
+                </Card>
 
                 <Button variant="danger" icon={LogOut} onClick={signOut}>
                     Sign out
@@ -2289,12 +2531,7 @@ export default function App() {
                 )}
 
                 <main className="content">
-                    <motion.div
-                        key={tab}
-                        initial={reducedMotion ? false : { opacity: 0, y: 12 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: reducedMotion ? 0 : 0.28 }}
-                    >
+                    <AnimatedPage key={tab} reducedMotion={reducedMotion}>
                     {tab === "today" && (
                         <TodayTab
                             tasks={tasks}
@@ -2351,7 +2588,7 @@ export default function App() {
                             uploading={uploading}
                         />
                     )}
-                    </motion.div>
+                    </AnimatedPage>
                 </main>
 
                 <nav className="bottom-nav" aria-label="Main navigation">

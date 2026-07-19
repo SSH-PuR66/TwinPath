@@ -1503,4 +1503,109 @@ small {
     backdrop-filter: blur(18px);
     -webkit-backdrop-filter: blur(18px);
 }
+
+.content {
+  padding-bottom: calc(7.5rem + env(safe-area-inset-bottom));
+}
+
+.modal {
+  max-height: min(88dvh, 760px);
+  overscroll-behavior: contain;
+}
+
+@supports (height: 100dvh) {
+  .app-shell,
+  .auth-screen,
+  .loading-screen {
+    min-height: 100dvh;
+  }
+}
+
+input,
+select,
+textarea {
+  font-size: 16px;
+}
+
+@media (hover: none) and (pointer: coarse) {
+  .button,
+  .icon-button,
+  .task-row,
+  .chip,
+  .bottom-nav button {
+    min-height: 44px;
+  }
+
+  .button:active,
+  .icon-button:active,
+  .task-row:active,
+  .chip:active,
+  .bottom-nav button:active {
+    transform: scale(0.97);
+    filter: brightness(1.08);
+  }
+}
+
+.skeleton {
+  overflow: hidden;
+  background:
+    linear-gradient(
+      90deg,
+      rgba(255, 255, 255, 0.04) 25%,
+      rgba(255, 255, 255, 0.1) 50%,
+      rgba(255, 255, 255, 0.04) 75%
+    );
+  background-size: 220% 100%;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  animation: skeleton-shimmer 1.4s linear infinite;
+}
+
+.skeleton-hero {
+  height: 190px;
+}
+
+.skeleton-card {
+  height: 90px;
+}
+
+.skeleton-list {
+  height: 280px;
+}
+
+@keyframes skeleton-shimmer {
+  to {
+    background-position: -220% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton {
+    animation: none;
+  }
+}
+
+.text-button {
+  width: fit-content;
+  margin: 0 auto;
+  padding: 0.35rem;
+  color: var(--accent);
+  font-size: 0.76rem;
+  cursor: pointer;
+  background: transparent;
+  border: 0;
+}
+
+.text-button:hover {
+  text-decoration: underline;
+}
+
+.success-box.compact {
+  margin-top: 0;
+  color: #b7f7d5;
+}
+
+
+
+
 
