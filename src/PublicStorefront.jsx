@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 
 import ThemeScene from "./ThemeScene";
+import { validateCheckoutUrl } from "./checkoutSecurity";
 import {
     storeFaq,
     storeProducts,
@@ -42,9 +43,7 @@ function recordCheckoutClick(productId) {
 }
 
 function ProductCard({ product }) {
-    const validCheckout =
-        product.checkoutUrl &&
-        !product.checkoutUrl.includes("YOUR_");
+    const checkout = validateCheckoutUrl(product.checkoutUrl);
 
     return (
         <article
@@ -97,10 +96,10 @@ function ProductCard({ product }) {
                     <strong>{currency.format(product.price)}</strong>
                 </div>
 
-                {validCheckout ? (
+                {checkout.valid ? (
                     <a
                         className="button primary"
-                        href={product.checkoutUrl}
+                        href={checkout.url}
                         target="_blank"
                         rel="noopener noreferrer"
                         onClick={() => recordCheckoutClick(product.id)}
@@ -113,9 +112,9 @@ function ProductCard({ product }) {
                         className="button secondary"
                         type="button"
                         disabled
-                        title="Add the real checkout URL in storeProducts.js"
+                        title={checkout.reason}
                     >
-                        Coming soon
+                        Unavailable
                     </button>
                 )}
             </div>
