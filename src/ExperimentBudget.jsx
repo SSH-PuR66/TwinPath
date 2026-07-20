@@ -205,17 +205,13 @@ export default function ExperimentBudget({
             return;
         }
 
-        const { error: updateError } = await supabase
-            .from("spend_proposals")
-            .update({
-                status,
-                reviewed_at:
-                    status === "pending"
-                        ? null
-                        : new Date().toISOString(),
-            })
-            .eq("id", proposal.id)
-            .eq("owner_user_id", currentUserId);
+        const { error: updateError } = await supabase.rpc(
+          "review_spend_proposal",
+          {
+            proposal_id: proposal.id,
+            requested_status: status,
+          }
+        );
 
         if (updateError) {
             setError(updateError.message);
