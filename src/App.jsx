@@ -54,6 +54,7 @@ import FinancialHub from "./FinancialHub";
 import ConnectorCenter from "./ConnectorCenter";
 import ExperimentBudget from "./ExperimentBudget";
 import OpportunityImporter from "./OpportunityImporter";
+import { safeExternalUrl } from "./safeUrl";
 import { motion } from "framer-motion";
 
 const moneyFormatter = new Intl.NumberFormat("en-US", {
@@ -875,16 +876,18 @@ function PlanTab({
                                 <span>{resource.warning}</span>
                             </div>
 
-                            <div className="resource-actions">
-                                <a
-                                    className="button secondary"
-                                    href={resource.url}
-                                    target="_blank"
-                                    rel="noreferrer"
-                                >
-                                    Official site
-                                    <ExternalLink size={15} />
-                                </a>
+                             <div className="resource-actions">
+                                {safeExternalUrl(resource.url) && (
+                                    <a
+                                        className="button secondary"
+                                        href={safeExternalUrl(resource.url)}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                    >
+                                        Official site
+                                        <ExternalLink size={15} />
+                                    </a>
+                                )}
 
                                 {resource.phone && (
                                     <a
@@ -2112,6 +2115,37 @@ export default function App() {
     const [settingsOpen, setSettingsOpen] = useState(false);
     const [uploading, setUploading] = useState(false);
     const [privateMode, setPrivateMode] = useState(false);
+
+    useEffect(() => {
+        const overlayOpen =
+            taskModal ||
+            transactionModal ||
+            appointmentModal ||
+            opportunityModal ||
+            settingsOpen;
+
+        const previousOverflow =
+            document.body.style.overflow;
+
+        const previousPosition =
+            document.body.style.position;
+
+        if (overlayOpen) {
+            document.body.style.overflow = "hidden";
+            document.body.style.position = "relative";
+        }
+
+        return () => {
+            document.body.style.overflow = previousOverflow;
+            document.body.style.position = previousPosition;
+        };
+    }, [
+        taskModal,
+        transactionModal,
+        appointmentModal,
+        opportunityModal,
+        settingsOpen,
+    ]);
 
     const [themeKey, setThemeKeyState] = useState(
         localStorage.getItem("twinpath-theme") || "aurora"

@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 
 import { connectorCatalog } from "./connectorCatalog";
+import { safeExternalUrl } from "./safeUrl";
 
 const emptyProfile = {
     legalName: "",
@@ -232,15 +233,17 @@ export default function ConnectorCenter() {
                             <span>{selectedConnector.warning}</span>
                         </div>
 
-                        <a
-                            className="button primary"
-                            href={selectedConnector.officialUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                        >
-                            Open official application
-                            <ExternalLink size={16} />
-                        </a>
+                        {safeExternalUrl(selectedConnector.officialUrl) && (
+                            <a
+                                className="button primary"
+                                href={safeExternalUrl(selectedConnector.officialUrl)}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                            >
+                                Open official application
+                                <ExternalLink size={16} />
+                            </a>
+                        )}
                     </article>
                 </div>
             </div>

@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 
 import { financialRoutes } from "./financialRoutes";
+import { safeExternalUrl } from "./safeUrl";
 
 const currency = new Intl.NumberFormat("en-US", {
     style: "currency",
@@ -322,9 +323,9 @@ export default function FinancialHub({
                     />
                 </label>
 
-                {paypalLink && (
+                {safeExternalUrl(paypalLink) && (
                     <div className="payment-link-preview">
-                        <span>{paypalLink}</span>
+                        <span>{safeExternalUrl(paypalLink)}</span>
 
                         <button
                             className="icon-button"
@@ -337,9 +338,9 @@ export default function FinancialHub({
 
                         <a
                             className="icon-button"
-                            href={paypalLink}
+                            href={safeExternalUrl(paypalLink)}
                             target="_blank"
-                            rel="noreferrer"
+                            rel="noopener noreferrer"
                             aria-label="Open PayPal link"
                         >
                             <ExternalLink size={17} />
@@ -379,71 +380,77 @@ export default function FinancialHub({
                 </div>
 
                 <div className="financial-route-grid">
-                    {visibleRoutes.map((route) => (
-                        <article
-                            className="financial-route-card"
-                            key={route.id}
-                        >
-                            <div className="route-card-top">
-                                <span className="pill blue">
-                                    {route.category}
-                                </span>
+                    {visibleRoutes.map((route) => {
+                        const officialUrl = safeExternalUrl(route.url);
 
-                                <span className="route-score">
-                                    Priority fit: {routeScore(route)}
-                                </span>
-                            </div>
+                        return (
+                            <article
+                                className="financial-route-card"
+                                key={route.id}
+                            >
+                                <div className="route-card-top">
+                                    <span className="pill blue">
+                                        {route.category}
+                                    </span>
 
-                            <h4>{route.title}</h4>
-                            <p>{route.description}</p>
-
-                            <dl className="route-facts">
-                                <div>
-                                    <dt>Startup</dt>
-                                    <dd>
-                                        {currency.format(route.startupCost)}
-                                    </dd>
+                                    <span className="route-score">
+                                        Priority fit: {routeScore(route)}
+                                    </span>
                                 </div>
 
-                                <div>
-                                    <dt>Car</dt>
-                                    <dd>
-                                        {route.carRequired ? "Required" : "No"}
-                                    </dd>
+                                <h4>{route.title}</h4>
+                                <p>{route.description}</p>
+
+                                <dl className="route-facts">
+                                    <div>
+                                        <dt>Startup</dt>
+                                        <dd>
+                                            {currency.format(route.startupCost)}
+                                        </dd>
+                                    </div>
+
+                                    <div>
+                                        <dt>Car</dt>
+                                        <dd>
+                                            {route.carRequired ? "Required" : "No"}
+                                        </dd>
+                                    </div>
+
+                                    <div>
+                                        <dt>Speed</dt>
+                                        <dd>{route.speed}</dd>
+                                    </div>
+                                </dl>
+
+                                <div className="route-reporting-note">
+                                    <Banknote size={15} />
+                                    <span>{route.reportingNote}</span>
                                 </div>
 
-                                <div>
-                                    <dt>Speed</dt>
-                                    <dd>{route.speed}</dd>
+                                <div className="financial-action-row">
+                                    {officialUrl && (
+                                        <a
+                                            className="button secondary"
+                                            href={officialUrl}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                        >
+                                            Official site
+                                            <ExternalLink size={15} />
+                                        </a>
+                                    )}
+
+                                    <button
+                                        className="button ghost"
+                                        type="button"
+                                        onClick={onAddOpportunity}
+                                    >
+                                        Track route
+                                    </button>
                                 </div>
-                            </dl>
-
-                            <div className="route-reporting-note">
-                                <Banknote size={15} />
-                                <span>{route.reportingNote}</span>
-                            </div>
-
-                            <div className="financial-action-row">
-                                <a
-                                    className="button secondary"
-                                    href={route.url}
-                                    target="_blank"
-                                    rel="noreferrer"
-                                >
-                                    Official site
-                                    <ExternalLink size={15} />
-                                </a>
-
-                                <button
-                                    className="button ghost"
-                                    type="button"
-                                    onClick={onAddOpportunity}
-                                >
-                                    Track route
-                                </button>
-                            </div>
-                        </article>
-                    ))}
+                            </article>
+                        );
+                    })}
                 </div>
             </section>
         </div>

@@ -371,98 +371,103 @@ export default function ExperimentBudget({
 
             {proposals.length ? (
                 <div className="experiment-proposal-list">
-                    {proposals.map((proposal) => (
-                        <article
-                            className="experiment-proposal-card"
-                            key={proposal.id}
-                        >
-                            <div className="proposal-card-header">
-                                <div>
-                                    <span className={`pill ${proposal.status}`}>
-                                        {proposal.status}
-                                    </span>
-                                    <h4>{proposal.title}</h4>
+                    {proposals.map((proposal) => {
+                        const providerUrl = safeExternalUrl(
+                            proposal.official_url
+                        );
+
+                        return (
+                            <article
+                                className="experiment-proposal-card"
+                                key={proposal.id}
+                            >
+                                <div className="proposal-card-header">
+                                    <div>
+                                        <span className={`pill ${proposal.status}`}>
+                                            {proposal.status}
+                                        </span>
+                                        <h4>{proposal.title}</h4>
+                                    </div>
+
+                                    <strong>
+                                        {showMoney(safeAmount(proposal.amount))}
+                                    </strong>
                                 </div>
 
-                                <strong>
-                                    {showMoney(safeAmount(proposal.amount))}
-                                </strong>
-                            </div>
+                                <p>{proposal.purpose}</p>
 
-                            <p>{proposal.purpose}</p>
+                                <dl>
+                                    <div>
+                                        <dt>Provider</dt>
+                                        <dd>{proposal.provider}</dd>
+                                    </div>
 
-                            <dl>
-                                <div>
-                                    <dt>Provider</dt>
-                                    <dd>{proposal.provider}</dd>
-                                </div>
+                                    <div>
+                                        <dt>Recurring</dt>
+                                        <dd>
+                                            {proposal.recurring ? "Rejected" : "No"}
+                                        </dd>
+                                    </div>
 
-                                <div>
-                                    <dt>Recurring</dt>
-                                    <dd>
-                                        {proposal.recurring ? "Rejected" : "No"}
-                                    </dd>
-                                </div>
+                                    <div>
+                                        <dt>Reversible</dt>
+                                        <dd>
+                                            {proposal.reversible ? "Yes" : "No"}
+                                        </dd>
+                                    </div>
+                                </dl>
 
-                                <div>
-                                    <dt>Reversible</dt>
-                                    <dd>
-                                        {proposal.reversible ? "Yes" : "No"}
-                                    </dd>
-                                </div>
-                            </dl>
-
-                            {proposal.free_alternative && (
-                                <div className="proposal-alternative">
-                                    <strong>Free alternative</strong>
-                                    <p>{proposal.free_alternative}</p>
-                                </div>
-                            )}
-
-                            <div className="proposal-actions">
-                                {safeExternalUrl(proposal.official_url) && (
-                                <a
-                                    className="button ghost"
-                                    href={safeExternalUrl(proposal.official_url)}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                >
-                                    Verify provider
-                                    <ExternalLink size={15} />
-                                </a>
+                                {proposal.free_alternative && (
+                                    <div className="proposal-alternative">
+                                        <strong>Free alternative</strong>
+                                        <p>{proposal.free_alternative}</p>
+                                    </div>
                                 )}
 
-                                {proposal.status === "pending" && (
-                                    <>
-                                        <button
-                                            className="button secondary"
-                                            type="button"
-                                            onClick={() =>
-                                                changeProposalStatus(
-                                                    proposal,
-                                                    "approved"
-                                                )
-                                            }
+                                <div className="proposal-actions">
+                                    {providerUrl && (
+                                        <a
+                                            className="button ghost"
+                                            href={providerUrl}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
                                         >
-                                            <Check size={16} />
-                                            Approve
-                                        </button>
+                                            Verify provider
+                                            <ExternalLink size={15} />
+                                        </a>
+                                    )}
 
-                                        <button
-                                            className="button danger"
-                                            type="button"
-                                            onClick={() =>
-                                                changeProposalStatus(
-                                                    proposal,
-                                                    "rejected"
-                                                )
-                                            }
-                                        >
-                                            <X size={16} />
-                                            Reject
-                                        </button>
-                                    </>
-                                )}
+                                    {proposal.status === "pending" && (
+                                        <>
+                                            <button
+                                                className="button secondary"
+                                                type="button"
+                                                onClick={() =>
+                                                    changeProposalStatus(
+                                                        proposal,
+                                                        "approved"
+                                                    )
+                                                }
+                                            >
+                                                <Check size={16} />
+                                                Approve
+                                            </button>
+
+                                            <button
+                                                className="button danger"
+                                                type="button"
+                                                onClick={() =>
+                                                    changeProposalStatus(
+                                                        proposal,
+                                                        "rejected"
+                                                    )
+                                                }
+                                            >
+                                                <X size={16} />
+                                                Reject
+                                            </button>
+                                        </>
+                                    )}
 
                                 {proposal.status === "approved" && (
                                     <button
@@ -481,7 +486,8 @@ export default function ExperimentBudget({
                                 )}
                             </div>
                         </article>
-                    ))}
+                    );
+                })}
                 </div>
             ) : (
                 <div className="empty">

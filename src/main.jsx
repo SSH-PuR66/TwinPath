@@ -5,7 +5,9 @@ import App from "./App";
 import ErrorBoundary from "./ErrorBoundary";
 import PublicStorefront from "./PublicStorefront";
 import StoreLegal from "./StoreLegal";
+
 import "./styles.css";
+import "./feature-components.css";
 
 if (import.meta.env.PROD && "serviceWorker" in navigator) {
   window.addEventListener("load", () => {

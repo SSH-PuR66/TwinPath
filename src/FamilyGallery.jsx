@@ -35,6 +35,19 @@ export default function FamilyGallery({
     const [uploading, setUploading] = useState(false);
     const [error, setError] = useState("");
 
+    useEffect(() => {
+        if (!viewerPhoto) return undefined;
+
+        const previousOverflow =
+            document.body.style.overflow;
+
+        document.body.style.overflow = "hidden";
+
+        return () => {
+            document.body.style.overflow = previousOverflow;
+        };
+    }, [viewerPhoto]);
+
     const [form, setForm] = useState({
         album: "Family",
         caption: "",
@@ -90,17 +103,22 @@ export default function FamilyGallery({
                         .download(photo.storage_path);
 
                 if (downloadError || !imageBlob) {
-                    console.error(
-                        "Gallery image download failed:",
-                        photo.storage_path,
-                        downloadError
-                    );
+                    if (import.meta.env.DEV) {
+                        console.error("Family gallery download diagnostic", {
+                            photoId: photo.id,
+                            storagePath: photo.storage_path,
+                            ownerUserId: photo.owner_user_id,
+                            visibility: photo.visibility,
+                            error: downloadError,
+                        });
+                    }
 
                     return {
                         ...photo,
                         objectUrl: null,
                         imageError:
-                            downloadError?.message || "Image download failed",
+                            downloadError?.message ||
+                            "Image download failed",
                     };
                 }
 
@@ -438,6 +456,17 @@ export default function FamilyGallery({
                                     {photo.imageError && (
                                         <small>{photo.imageError}</small>
                                     )}
+
+                                    <button
+                                        className="button ghost"
+                                        type="button"
+                                        onClick={(event) => {
+                                            event.stopPropagation();
+                                            loadPhotos();
+                                        }}
+                                    >
+                                        Retry
+                                    </button>
                                 </div>
                             )}
 

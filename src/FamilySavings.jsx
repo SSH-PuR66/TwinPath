@@ -436,107 +436,111 @@ export default function FamilySavings({
                 </div>
             ) : routes.length ? (
                 <div className="savings-route-list">
-                    {routes.map((route) => (
-                        <article className="savings-route-card" key={route.id}>
-                            <div className="savings-route-header">
-                                <div>
-                                    <span className="pill blue">
-                                        {route.category}
+                    {routes.map((route) => {
+                        const officialUrl = safeExternalUrl(route.official_url);
+
+                        return (
+                            <article className="savings-route-card" key={route.id}>
+                                <div className="savings-route-header">
+                                    <div>
+                                        <span className="pill blue">
+                                            {route.category}
+                                        </span>
+
+                                        <h4>{route.title}</h4>
+                                    </div>
+
+                                    <span className={`savings-status ${route.status}`}>
+                                        {statusLabel(route.status)}
+                                    </span>
+                                </div>
+
+                                <div className="savings-values">
+                                    <span>
+                                        Monthly:{" "}
+                                        <strong>
+                                            {showMoney(
+                                                Number(route.approved_monthly_value || 0)
+                                            )}
+                                        </strong>
                                     </span>
 
-                                    <h4>{route.title}</h4>
+                                    <span>
+                                        One-time:{" "}
+                                        <strong>
+                                            {showMoney(
+                                                Number(route.approved_one_time_value || 0)
+                                            )}
+                                        </strong>
+                                    </span>
                                 </div>
 
-                                <span className={`savings-status ${route.status}`}>
-                                    {statusLabel(route.status)}
-                                </span>
-                            </div>
+                                {route.next_action && (
+                                    <div className="savings-next-action">
+                                        <strong>Next action</strong>
+                                        <p>{route.next_action}</p>
 
-                            <div className="savings-values">
-                                <span>
-                                    Monthly:{" "}
-                                    <strong>
-                                        {showMoney(
-                                            Number(route.approved_monthly_value || 0)
+                                        {route.next_action_on && (
+                                            <small>
+                                                Due{" "}
+                                                {new Date(
+                                                    `${route.next_action_on}T12:00:00`
+                                                ).toLocaleDateString()}
+                                            </small>
                                         )}
-                                    </strong>
-                                </span>
+                                    </div>
+                                )}
 
-                                <span>
-                                    One-time:{" "}
-                                    <strong>
-                                        {showMoney(
-                                            Number(route.approved_one_time_value || 0)
-                                        )}
-                                    </strong>
-                                </span>
-                            </div>
+                                {route.reporting_obligations && (
+                                    <div className="route-reporting-note">
+                                        <ShieldCheck size={15} />
+                                        <span>{route.reporting_obligations}</span>
+                                    </div>
+                                )}
 
-                            {route.next_action && (
-                                <div className="savings-next-action">
-                                    <strong>Next action</strong>
-                                    <p>{route.next_action}</p>
+                                <div className="savings-route-actions">
+                                    {officialUrl && (
+                                        <a
+                                            className="button ghost"
+                                            href={officialUrl}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                        >
+                                            Official source
+                                            <ExternalLink size={15} />
+                                        </a>
+                                    )}
 
-                                    {route.next_action_on && (
-                                        <small>
-                                            Due{" "}
-                                            {new Date(
-                                                `${route.next_action_on}T12:00:00`
-                                            ).toLocaleDateString()}
-                                        </small>
+                                    {route.owner_user_id === currentUserId && (
+                                        <>
+                                            <select
+                                                aria-label={`Update ${route.title} status`}
+                                                value={route.status}
+                                                onChange={(event) =>
+                                                    updateStatus(route, event.target.value)
+                                                }
+                                            >
+                                                {statuses.map((status) => (
+                                                    <option value={status} key={status}>
+                                                        {statusLabel(status)}
+                                                    </option>
+                                                ))}
+                                            </select>
+
+                                            <button
+                                                className="icon-button danger"
+                                                type="button"
+                                                onClick={() => deleteRoute(route)}
+                                                aria-label="Delete route"
+                                            >
+                                                <Trash2 size={16} />
+                                            </button>
+                                        </>
                                     )}
                                 </div>
-                            )}
-
-                            {route.reporting_obligations && (
-                                <div className="route-reporting-note">
-                                    <ShieldCheck size={15} />
-                                    <span>{route.reporting_obligations}</span>
-                                </div>
-                            )}
-
-                            <div className="savings-route-actions">
-                                {safeExternalUrl(route.official_url) && (
-                                    <a
-                                        className="button ghost"
-                                        href={safeExternalUrl(route.official_url)}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                    >
-                                        Official source
-                                        <ExternalLink size={15} />
-                                    </a>
-                                )}
-
-                                {route.owner_user_id === currentUserId && (
-                                    <>
-                                        <select
-                                            aria-label={`Update ${route.title} status`}
-                                            value={route.status}
-                                            onChange={(event) =>
-                                                updateStatus(route, event.target.value)
-                                            }
-                                        >
-                                            {statuses.map((status) => (
-                                                <option value={status} key={status}>
-                                                    {statusLabel(status)}
-                                                </option>
-                                            ))}
-                                        </select>
-
-                                        <button
-                                            className="icon-button danger"
-                                            type="button"
-                                            onClick={() => deleteRoute(route)}
-                                            aria-label="Delete route"
-                                        >
-                                            <Trash2 size={16} />
-                                        </button>
-                                    </>
-                                )}
-                            </div>
-                        </article>
-                    ))}
+                            </article>
+                        );
+                    })}
                 </div>
             ) : (
                 <div className="empty">

@@ -14,7 +14,7 @@ import {
 
 import ThemeScene from "./ThemeScene";
 import { storeFaq, storeProducts } from "./storeProducts";
-import { validateCheckoutUrl } from "./checkoutSecurity";
+import { safeCheckoutUrl } from "./safeUrl";
 
 const currency = new Intl.NumberFormat("en-US", {
     style: "currency",
@@ -23,12 +23,9 @@ const currency = new Intl.NumberFormat("en-US", {
 });
 
 function ProductCard({ product }) {
-    // Only allow checkout links that pass the HTTPS + approved-host allowlist,
-    // and that are not still the placeholder value.
-    const checkout = validateCheckoutUrl(product.checkoutUrl);
-    const validCheckout =
-        checkout.valid && !product.checkoutUrl.includes("YOUR_");
-    const safeCheckoutUrl = validCheckout ? checkout.url : undefined;
+    const checkoutUrl = !product.checkoutUrl?.includes("YOUR_")
+        ? safeCheckoutUrl(product.checkoutUrl)
+        : null;
 
     return (
         <article
@@ -81,10 +78,10 @@ function ProductCard({ product }) {
                     <strong>{currency.format(product.price)}</strong>
                 </div>
 
-                {validCheckout ? (
+                {checkoutUrl ? (
                     <a
                         className="button primary"
-                        href={safeCheckoutUrl}
+                        href={checkoutUrl}
                         target="_blank"
                         rel="noopener noreferrer"
                     >

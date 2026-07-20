@@ -5,7 +5,10 @@
     "type": "module",
     "scripts": {
         "dev": "vite",
-        "build": "vite build",
+        "audit:imports": "node scripts/audit-imports.mjs",
+        "audit:css": "node scripts/audit-css-classes.mjs",
+        "audit": "npm run audit:imports && npm run audit:css",
+        "build": "npm run audit && vite build",
         "preview": "vite preview"
     },
     "dependencies": {
