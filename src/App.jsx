@@ -48,6 +48,8 @@ import { AnimatedMoney } from "./AnimatedMoney";
 import AnimatedPage from "./AnimatedPage";
 import RevenueAllocator from "./RevenueAllocator";
 import ExperimentBudget from "./ExperimentBudget";
+import FamilyGallery from "./FamilyGallery";
+import FamilySavings from "./FamilySavings";
 import { motion } from "framer-motion";
 
 const moneyFormatter = new Intl.NumberFormat("en-US", {
@@ -1088,9 +1090,15 @@ function MoneyTab({
 
 function FamilyTab({
     appointments,
+    householdId,
+    currentUserId,
+    privateMode,
     setAppointmentModal,
+    setAppointmentDraftDate,
     deleteAppointment,
 }) {
+    const [familySection, setFamilySection] = useState("calendar");
+
     const safeAppointments = Array.isArray(appointments)
         ? appointments
         : [];
@@ -1148,6 +1156,24 @@ function FamilyTab({
                 </Button>
             </div>
 
+            <div className="family-section-tabs">
+                {[
+                    ["calendar", "Calendar"],
+                    ["gallery", "Gallery"],
+                    ["readiness", "Readiness"],
+                    ["savings", "Savings"],
+                ].map(([value, label]) => (
+                    <button
+                        type="button"
+                        key={value}
+                        className={familySection === value ? "active" : ""}
+                        onClick={() => setFamilySection(value)}
+                    >
+                        {label}
+                    </button>
+                ))}
+            </div>
+
             <Card className="warning-card">
                 <Baby size={24} />
                 <div>
@@ -1160,83 +1186,106 @@ function FamilyTab({
                 </div>
             </Card>
 
-            <Card>
-                <div className="section-title">
-                    <div>
-                        <h3>Appointments</h3>
-                        <p>Only share medical details both partners consent to sharing.</p>
+            {familySection === "calendar" && (
+                <Card>
+                    <div className="section-title">
+                        <div>
+                            <h3>Appointments</h3>
+                            <p>Only share medical details both partners consent to sharing.</p>
+                        </div>
                     </div>
-                </div>
 
-                {safeAppointments.length ? (
-                    <div className="appointment-list">
-                        {safeAppointments.map((item) => (
-                            <article className="appointment-row" key={item.id}>
-                                <div className="date-block">
-                                    <strong>
-                                        {new Date(item.starts_at).toLocaleDateString("en-US", {
-                                            day: "2-digit",
-                                        })}
-                                    </strong>
-                                    <span>
-                                        {new Date(item.starts_at)
-                                            .toLocaleDateString("en-US", { month: "short" })
-                                            .toUpperCase()}
-                                    </span>
-                                </div>
+                    {safeAppointments.length ? (
+                        <div className="appointment-list">
+                            {safeAppointments.map((item) => (
+                                <article className="appointment-row" key={item.id}>
+                                    <div className="date-block">
+                                        <strong>
+                                            {new Date(item.starts_at).toLocaleDateString("en-US", {
+                                                day: "2-digit",
+                                            })}
+                                        </strong>
+                                        <span>
+                                            {new Date(item.starts_at)
+                                                .toLocaleDateString("en-US", { month: "short" })
+                                                .toUpperCase()}
+                                        </span>
+                                    </div>
 
-                                <div className="appointment-copy">
-                                    <strong>{item.title}</strong>
-                                    <small>
-                                        {new Date(item.starts_at).toLocaleTimeString("en-US", {
-                                            hour: "numeric",
-                                            minute: "2-digit",
-                                        })}
-                                        {item.location ? ` · ${item.location}` : ""}
-                                        {item.visibility === "private" ? " · Only me" : ""}
-                                    </small>
-                                    {item.notes && <p>{item.notes}</p>}
-                                </div>
+                                    <div className="appointment-copy">
+                                        <strong>{item.title}</strong>
+                                        <small>
+                                            {new Date(item.starts_at).toLocaleTimeString("en-US", {
+                                                hour: "numeric",
+                                                minute: "2-digit",
+                                            })}
+                                            {item.location ? ` · ${item.location}` : ""}
+                                            {item.visibility === "private" ? " · Only me" : ""}
+                                        </small>
+                                        {item.notes && <p>{item.notes}</p>}
+                                    </div>
 
-                                <button
-                                    className="icon-button small"
-                                    onClick={() => downloadAppointmentICS(item)}
-                                    aria-label="Add appointment to calendar"
-                                >
-                                    <Download size={16} />
-                                </button>
+                                    <button
+                                        className="icon-button small"
+                                        onClick={() => downloadAppointmentICS(item)}
+                                        aria-label="Add appointment to calendar"
+                                    >
+                                        <Download size={16} />
+                                    </button>
 
-                                <button
-                                    className="icon-button small danger"
-                                    onClick={() => deleteAppointment(item)}
-                                    aria-label="Delete appointment"
-                                >
-                                    <Trash2 size={16} />
-                                </button>
-                            </article>
-                        ))}
-                    </div>
-                ) : (
-                    <Empty>No appointments recorded.</Empty>
-                )}
-            </Card>
-
-            <div className="checklist-grid">
-                {checklists.map((list) => (
-                    <Card key={list.title}>
-                        <h3>{list.title}</h3>
-
-                        <ul className="safe-list">
-                            {list.items.map((item) => (
-                                <li key={item}>
-                                    <CheckCircle2 size={17} />
-                                    <span>{item}</span>
-                                </li>
+                                    <button
+                                        className="icon-button small danger"
+                                        onClick={() => deleteAppointment(item)}
+                                        aria-label="Delete appointment"
+                                    >
+                                        <Trash2 size={16} />
+                                    </button>
+                                </article>
                             ))}
-                        </ul>
-                    </Card>
-                ))}
-            </div>
+                        </div>
+                    ) : (
+                        <Empty>No appointments recorded.</Empty>
+                    )}
+                </Card>
+            )}
+
+            {familySection === "gallery" && (
+                <Card>
+                    <FamilyGallery
+                        householdId={householdId}
+                        currentUserId={currentUserId}
+                    />
+                </Card>
+            )}
+
+            {familySection === "readiness" && (
+                <div className="checklist-grid">
+                    {checklists.map((list) => (
+                        <Card key={list.title}>
+                            <h3>{list.title}</h3>
+
+                            <ul className="safe-list">
+                                {list.items.map((item) => (
+                                    <li key={item}>
+                                        <CheckCircle2 size={17} />
+                                        <span>{item}</span>
+                                    </li>
+                                ))}
+                            </ul>
+                        </Card>
+                    ))}
+                </div>
+            )}
+
+            {familySection === "savings" && (
+                <Card>
+                    <FamilySavings
+                        householdId={householdId}
+                        currentUserId={currentUserId}
+                        privateMode={privateMode}
+                    />
+                </Card>
+            )}
         </div>
     );
 }
@@ -2485,6 +2534,9 @@ export default function App() {
                     {tab === "family" && (
                         <FamilyTab
                             appointments={appointments}
+                            householdId={household?.id}
+                            currentUserId={session?.user?.id}
+                            privateMode={privateMode}
                             setAppointmentModal={setAppointmentModal}
                             deleteAppointment={(item) =>
                                 deleteRecord("appointments", item)
