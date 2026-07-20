@@ -45,6 +45,9 @@ import {
 
 import NetworkStatus from "./NetworkStatus";
 import { AnimatedMoney } from "./AnimatedMoney";
+import AnimatedPage from "./AnimatedPage";
+import RevenueAllocator from "./RevenueAllocator";
+import ExperimentBudget from "./ExperimentBudget";
 import { motion } from "framer-motion";
 
 const moneyFormatter = new Intl.NumberFormat("en-US", {
@@ -191,90 +194,139 @@ function Field({ label, children, hint }) {
 }
 
 function AuthScreen() {
-    const [email, setEmail] = useState("");
-    const [sent, setSent] = useState(false);
-    const [busy, setBusy] = useState(false);
-    const [error, setError] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
 
-    async function signIn(event) {
-        event.preventDefault();
-        setBusy(true);
-        setError("");
+  async function signIn(event) {
+    event.preventDefault();
 
-        const { error: authError } = await supabase.auth.signInWithOtp({
-            email: email.trim(),
-            options: {
-                emailRedirectTo: window.location.origin,
-            },
+    if (busy) return;
+
+    setBusy(true);
+    setError("");
+
+    try {
+      const { error: signInError } =
+        await supabase.auth.signInWithPassword({
+          email: email.trim().toLowerCase(),
+          password,
         });
 
-        setBusy(false);
+      if (signInError) {
+        const message = signInError.message?.toLowerCase() || "";
 
-        if (authError) {
-            setError(authError.message);
-            return;
+        if (message.includes("invalid login credentials")) {
+          setError(
+            "Incorrect email or password. Use the private account created for you in Supabase."
+          );
+        } else if (message.includes("email not confirmed")) {
+          setError(
+            "This account has not been confirmed. Confirm it from the Supabase dashboard or contact the private app administrator."
+          );
+        } else if (message.includes("rate limit")) {
+          setError(
+            "Authentication is temporarily rate-limited. Stop retrying and wait before trying again."
+          );
+        } else {
+          setError(signInError.message);
         }
-
-        setSent(true);
+      }
+    } catch {
+      setError(
+        "TwinPath could not contact the authentication service. Check your connection and try once more."
+      );
+    } finally {
+      setBusy(false);
     }
+  }
 
-    return (
-        <main className="auth-screen">
-            <ThemeScene themeKey="aurora" />
+  return (
+    <main className="auth-screen">
+      <ThemeScene themeKey="aurora" reducedMotion />
 
-            <Card className="auth-card">
-                <div className="brand-mark">
-                    <Sparkles size={26} />
-                </div>
+      <Card className="auth-card">
+        <div className="brand-mark">
+          <Sparkles size={26} />
+        </div>
 
-                <p className="eyebrow">PRIVATE FAMILY COMMAND CENTER</p>
-                <h1>TwinPath</h1>
+        <p className="eyebrow">PRIVATE FAMILY COMMAND CENTER</p>
+        <h1>TwinPath</h1>
 
-                <p className="muted">
-                    Plan together, protect private information, track money and prepare
-                    for what comes next.
-                </p>
+        <p className="muted">
+          This application is restricted to invited household
+          members. Public registration is disabled.
+        </p>
 
-                {sent ? (
-                    <div className="success-box">
-                        <CheckCircle2 />
-                        <div>
-                            <strong>Check your email</strong>
-                            <p>Open the secure sign-in link on this device.</p>
-                        </div>
-                    </div>
+        <form className="stack" onSubmit={signIn}>
+          <Field label="Email">
+            <input
+              required
+              type="email"
+              autoComplete="username"
+              inputMode="email"
+              autoCapitalize="none"
+              autoCorrect="off"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              placeholder="Your private account email"
+            />
+          </Field>
+
+          <Field label="Password">
+            <div className="password-field">
+              <input
+                required
+                type={showPassword ? "text" : "password"}
+                autoComplete="current-password"
+                minLength={10}
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+                placeholder="Your TwinPath password"
+              />
+
+              <button
+                type="button"
+                className="password-toggle"
+                onClick={() => setShowPassword((value) => !value)}
+                aria-label={
+                  showPassword ? "Hide password" : "Show password"
+                }
+              >
+                {showPassword ? (
+                  <EyeOff size={18} />
                 ) : (
-                    <form onSubmit={signIn} className="stack">
-                        <Field label="Email">
-                            <input
-                                type="email"
-                                autoComplete="email"
-                                required
-                                placeholder="you@example.com"
-                                value={email}
-                                onChange={(event) => setEmail(event.target.value)}
-                            />
-                        </Field>
-
-                        {error && <div className="error-box">{error}</div>}
-
-                        <Button disabled={busy} type="submit">
-                            {busy ? <Loader2 className="spin" size={18} /> : null}
-                            Send secure sign-in link
-                        </Button>
-                    </form>
+                  <Eye size={18} />
                 )}
+              </button>
+            </div>
+          </Field>
 
-                <div className="privacy-note">
-                    <ShieldCheck size={18} />
-                    <span>
-                        Use separate accounts. Never share passwords or monitor a partner
-                        without consent.
-                    </span>
-                </div>
-            </Card>
-        </main>
-    );
+          {error && (
+            <div className="error-box" role="alert">
+              {error}
+            </div>
+          )}
+
+          <Button type="submit" disabled={busy}>
+            {busy && <Loader2 className="spin" size={18} />}
+            Sign in privately
+          </Button>
+        </form>
+
+        <div className="privacy-note">
+          <ShieldCheck size={18} />
+
+          <span>
+            No public sign-up is available. Each partner must use
+            a separate account and password.
+          </span>
+        </div>
+      </Card>
+    </main>
+  );
 }
 
 function HouseholdSetup({ onReady }) {
@@ -738,13 +790,15 @@ function PlanTab({
 }
 
 function MoneyTab({
-    transactions,
-    opportunities,
-    privateMode,
-    setTransactionModal,
-    setOpportunityModal,
-    deleteTransaction,
-    deleteOpportunity,
+  transactions,
+  opportunities,
+  privateMode,
+  householdId,
+  currentUserId,
+  setTransactionModal,
+  setOpportunityModal,
+  deleteTransaction,
+  deleteOpportunity,
 }) {
     const income = transactions
         .filter((item) => item.kind === "income")
@@ -829,6 +883,21 @@ function MoneyTab({
                     value={shownMoney(balance)}
                 />
             </div>
+
+            <Card>
+                <RevenueAllocator
+                    privateMode={privateMode}
+                    onLogIncome={() => setTransactionModal(true)}
+                />
+            </Card>
+
+            <Card>
+                <ExperimentBudget
+                    householdId={householdId}
+                    currentUserId={currentUserId}
+                    privateMode={privateMode}
+                />
+            </Card>
 
             <Card>
                 <div className="section-title">
@@ -1717,6 +1786,43 @@ function SettingsModal({
     const [rotating, setRotating] = useState(false);
     const [settingsError, setSettingsError] = useState("");
 
+    const [newPassword, setNewPassword] = useState("");
+    const [passwordBusy, setPasswordBusy] = useState(false);
+    const [passwordMessage, setPasswordMessage] = useState("");
+    const [passwordError, setPasswordError] = useState("");
+
+    async function updatePassword(event) {
+        event.preventDefault();
+
+        setPasswordMessage("");
+        setPasswordError("");
+
+        if (newPassword.length < 12) {
+            setPasswordError(
+                "Use at least 12 characters. A unique passphrase is recommended."
+            );
+            return;
+        }
+
+        setPasswordBusy(true);
+
+        const { error } = await supabase.auth.updateUser({
+            password: newPassword,
+        });
+
+        setPasswordBusy(false);
+
+        if (error) {
+            setPasswordError(error.message);
+            return;
+        }
+
+        setNewPassword("");
+        setPasswordMessage(
+            "Password updated. Store it in a reputable password manager."
+        );
+    }
+
     async function copyCode() {
         await navigator.clipboard.writeText(inviteCode);
         setCopied(true);
@@ -1822,6 +1928,53 @@ function SettingsModal({
                         onChange={(event) => setReducedMotion(event.target.checked)}
                     />
                 </label>
+
+                <Card className="nested-card">
+                    <span className="eyebrow">ACCOUNT SECURITY</span>
+                    <h3>Change password</h3>
+
+                    <p className="muted">
+                        Use a unique password for TwinPath. Do not share it with
+                        your partner or reuse it on another service.
+                    </p>
+
+                    <form className="stack" onSubmit={updatePassword}>
+                        <Field label="New password">
+                            <input
+                                required
+                                type="password"
+                                minLength={12}
+                                autoComplete="new-password"
+                                value={newPassword}
+                                onChange={(event) => setNewPassword(event.target.value)}
+                                placeholder="At least 12 characters"
+                            />
+                        </Field>
+
+                        {passwordError && (
+                            <div className="error-box">{passwordError}</div>
+                        )}
+
+                        {passwordMessage && (
+                            <div className="success-box compact">
+                                <CheckCircle2 size={18} />
+                                <span>{passwordMessage}</span>
+                            </div>
+                        )}
+
+                        <Button
+                            type="submit"
+                            variant="secondary"
+                            disabled={passwordBusy}
+                        >
+                            {passwordBusy && (
+                                <Loader2 className="spin" size={17} />
+                            )}
+
+                            Update password
+                        </Button>
+                    </form>
+                </Card>
 
                 <Button variant="danger" icon={LogOut} onClick={signOut}>
                     Sign out
@@ -2289,12 +2442,7 @@ export default function App() {
                 )}
 
                 <main className="content">
-                    <motion.div
-                        key={tab}
-                        initial={reducedMotion ? false : { opacity: 0, y: 12 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: reducedMotion ? 0 : 0.28 }}
-                    >
+                    <AnimatedPage key={tab} reducedMotion={reducedMotion}>
                     {tab === "today" && (
                         <TodayTab
                             tasks={tasks}
@@ -2321,6 +2469,8 @@ export default function App() {
                             transactions={transactions}
                             opportunities={opportunities}
                             privateMode={privateMode}
+                            householdId={household?.id}
+                            currentUserId={session?.user?.id}
                             setTransactionModal={setTransactionModal}
                             setOpportunityModal={setOpportunityModal}
                             deleteTransaction={(item) =>
@@ -2351,7 +2501,7 @@ export default function App() {
                             uploading={uploading}
                         />
                     )}
-                    </motion.div>
+                    </AnimatedPage>
                 </main>
 
                 <nav className="bottom-nav" aria-label="Main navigation">

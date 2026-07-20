@@ -1,16 +1,37 @@
 import { motion } from "framer-motion";
 
-export function AnimatedPage({ children }) {
+export default function AnimatedPage({
+    children,
+    reducedMotion = false,
+    className = "",
+}) {
     return (
         <motion.div
-            initial={{ opacity: 0, y: 12, filter: "blur(6px)" }}
-            animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-            exit={{ opacity: 0, y: -8, filter: "blur(4px)" }}
-            transition={{
-                type: "spring",
-                stiffness: 260,
-                damping: 26,
+            className={className}
+            initial={
+                reducedMotion
+                    ? false
+                    : {
+                        opacity: 0,
+                        y: 10,
+                        scale: 0.992,
+                    }
+            }
+            animate={{
+                opacity: 1,
+                y: 0,
+                scale: 1,
             }}
+            transition={
+                reducedMotion
+                    ? { duration: 0 }
+                    : {
+                        type: "spring",
+                        stiffness: 260,
+                        damping: 27,
+                        mass: 0.8,
+                    }
+            }
         >
             {children}
         </motion.div>
