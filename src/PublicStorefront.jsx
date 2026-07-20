@@ -13,12 +13,8 @@ import {
 } from "lucide-react";
 
 import ThemeScene from "./ThemeScene";
+import { storeFaq, storeProducts } from "./storeProducts";
 import { validateCheckoutUrl } from "./checkoutSecurity";
-import {
-    storeFaq,
-    storeProducts,
-    storeSettings,
-} from "./storeProducts";
 
 const currency = new Intl.NumberFormat("en-US", {
     style: "currency",
@@ -26,24 +22,13 @@ const currency = new Intl.NumberFormat("en-US", {
     maximumFractionDigits: 0,
 });
 
-function recordCheckoutClick(productId) {
-    try {
-        const key = "twinpath-store-clicks";
-        const existing = JSON.parse(
-            localStorage.getItem(key) || "{}"
-        );
-
-        existing[productId] =
-            Number(existing[productId] || 0) + 1;
-
-        localStorage.setItem(key, JSON.stringify(existing));
-    } catch {
-        // Analytics must never block checkout.
-    }
-}
-
 function ProductCard({ product }) {
+    // Only allow checkout links that pass the HTTPS + approved-host allowlist,
+    // and that are not still the placeholder value.
     const checkout = validateCheckoutUrl(product.checkoutUrl);
+    const validCheckout =
+        checkout.valid && !product.checkoutUrl.includes("YOUR_");
+    const safeCheckoutUrl = validCheckout ? checkout.url : undefined;
 
     return (
         <article
@@ -96,13 +81,12 @@ function ProductCard({ product }) {
                     <strong>{currency.format(product.price)}</strong>
                 </div>
 
-                {checkout.valid ? (
+                {validCheckout ? (
                     <a
                         className="button primary"
-                        href={checkout.url}
+                        href={safeCheckoutUrl}
                         target="_blank"
                         rel="noopener noreferrer"
-                        onClick={() => recordCheckoutClick(product.id)}
                     >
                         Get it
                         <ExternalLink size={16} />
@@ -112,9 +96,9 @@ function ProductCard({ product }) {
                         className="button secondary"
                         type="button"
                         disabled
-                        title={checkout.reason}
+                        title="Add the real checkout URL in storeProducts.js"
                     >
-                        Unavailable
+                        Coming soon
                     </button>
                 )}
             </div>
@@ -165,7 +149,7 @@ export default function PublicStorefront() {
 
     return (
         <main className="public-store">
-            <ThemeScene themeKey="cyber" reducedMotion />
+            <ThemeScene themeKey="cyber" reducedMotion={false} />
 
             <div className="store-layer">
                 <header className="store-header">
@@ -350,12 +334,6 @@ export default function PublicStorefront() {
                     <div>
                         <a href="#products">Products</a>
                         <a href="#faq">FAQ</a>
-                        <a href="/shop/privacy">Privacy</a>
-                        <a href="/shop/terms">Terms</a>
-                        <a href="/shop/refunds">Refunds</a>
-                        <a href={`mailto:${storeSettings.supportEmail}`}>
-                            Customer support
-                        </a>
                         <a href="/">Private app</a>
                     </div>
 

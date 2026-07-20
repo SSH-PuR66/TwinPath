@@ -120,9 +120,9 @@ function downloadAppointmentICS(appointment) {
     const anchor = document.createElement("a");
 
     anchor.href = url;
-    anchor.download = `${appointment.title
+    anchor.download = `${String(appointment.title || "appointment")
         .replace(/[^a-zA-Z0-9_-]/g, "_")
-        .slice(0, 80)}.ics`;
+        .slice(0, 80) || "appointment"}.ics`;
 
     document.body.appendChild(anchor);
     anchor.click();

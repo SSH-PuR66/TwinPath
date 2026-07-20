@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 
 import { supabase } from "./supabase";
+import { safeExternalUrl } from "./safeUrl";
 
 const currency = new Intl.NumberFormat("en-US", {
     style: "currency",
@@ -495,10 +496,10 @@ export default function FamilySavings({
                             )}
 
                             <div className="savings-route-actions">
-                                {route.official_url && (
+                                {safeExternalUrl(route.official_url) && (
                                     <a
                                         className="button ghost"
-                                        href={route.official_url}
+                                        href={safeExternalUrl(route.official_url)}
                                         target="_blank"
                                         rel="noopener noreferrer"
                                     >

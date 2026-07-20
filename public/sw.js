@@ -1,4 +1,4 @@
-const CACHE = "twinpath-shell-v1";
+const CACHE = "twinpath-shell-v2";
 const SHELL = ["/", "/manifest.webmanifest", "/icon.svg"];
 
 self.addEventListener("install", (event) => {
@@ -26,21 +26,39 @@ self.addEventListener("activate", (event) => {
 });
 
 self.addEventListener("fetch", (event) => {
-    if (event.request.method !== "GET") return;
+    const request = event.request;
+
+    if (request.method !== "GET") return;
+
+    const url = new URL(request.url);
+
+    // Never cache cross-origin responses (Supabase API, checkout
+    // provider). Caching API responses would persist private account
+    // data in Cache Storage and serve stale data offline.
+    if (url.origin !== self.location.origin) return;
 
     event.respondWith(
-        fetch(event.request)
+        fetch(request)
             .then((response) => {
-                const copy = response.clone();
+                if (
+                    response.ok &&
+                    response.type === "basic" &&
+                    response.status === 200
+                ) {
+                    const copy = response.clone();
 
-                caches.open(CACHE).then((cache) => {
-                    cache.put(event.request, copy);
-                });
+                    caches
+                        .open(CACHE)
+                        .then((cache) => cache.put(request, copy))
+                        .catch(() => {
+                            // Quota/scheme errors must never break the page.
+                        });
+                }
 
                 return response;
             })
             .catch(() =>
-                caches.match(event.request).then((cached) => {
+                caches.match(request).then((cached) => {
                     return cached || caches.match("/");
                 })
             )

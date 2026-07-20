@@ -1,10 +1,4 @@
-import {
-    lazy,
-    Suspense,
-    useEffect,
-    useMemo,
-    useState,
-} from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
     Baby,
     Bell,
@@ -52,16 +46,15 @@ import {
 import NetworkStatus from "./NetworkStatus";
 import { AnimatedMoney } from "./AnimatedMoney";
 import AnimatedPage from "./AnimatedPage";
-import FeatureLoader from "./FeatureLoader";
+import RevenueAllocator from "./RevenueAllocator";
+import FamilyGallery from "./FamilyGallery";
+import CalendarView from "./CalendarView";
+import FamilySavings from "./FamilySavings";
+import FinancialHub from "./FinancialHub";
+import ConnectorCenter from "./ConnectorCenter";
+import ExperimentBudget from "./ExperimentBudget";
+import OpportunityImporter from "./OpportunityImporter";
 import { motion } from "framer-motion";
-
-const CalendarView = lazy(() => import("./CalendarView"));
-const FamilyGallery = lazy(() => import("./FamilyGallery"));
-const FamilySavings = lazy(() => import("./FamilySavings"));
-const FinancialHub = lazy(() => import("./FinancialHub"));
-const ExperimentBudget = lazy(() => import("./ExperimentBudget"));
-const RevenueAllocator = lazy(() => import("./RevenueAllocator"));
-const ConnectorCenter = lazy(() => import("./ConnectorCenter"));
 
 const moneyFormatter = new Intl.NumberFormat("en-US", {
     style: "currency",
@@ -79,6 +72,7 @@ const tabs = [
     { id: "plan", label: "Plan", icon: CheckCircle2 },
     { id: "money", label: "Money", icon: WalletCards },
     { id: "family", label: "Family", icon: Baby },
+    { id: "grow", label: "Grow", icon: BriefcaseBusiness },
     { id: "vault", label: "Vault", icon: FileLock2 },
 ];
 
@@ -207,134 +201,241 @@ function Field({ label, children, hint }) {
 }
 
 function AuthScreen() {
+  const [mode, setMode] = useState("password");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
+  const [sent, setSent] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
-  async function signIn(event) {
+  async function signInWithPassword(event) {
     event.preventDefault();
-
-    if (busy) return;
-
     setBusy(true);
     setError("");
 
-    try {
-      const { error: signInError } =
-        await supabase.auth.signInWithPassword({
-          email: email.trim().toLowerCase(),
-          password,
-        });
+    const { error: authError } =
+      await supabase.auth.signInWithPassword({
+        email: email.trim(),
+        password,
+      });
 
-      if (signInError) {
-        const message = signInError.message?.toLowerCase() || "";
+    setBusy(false);
 
-        if (message.includes("invalid login credentials")) {
-          setError(
-            "Incorrect email or password. Use the private account created for you in Supabase."
-          );
-        } else if (message.includes("email not confirmed")) {
-          setError(
-            "This account has not been confirmed. Confirm it from the Supabase dashboard or contact the private app administrator."
-          );
-        } else if (message.includes("rate limit")) {
-          setError(
-            "Authentication is temporarily rate-limited. Stop retrying and wait before trying again."
-          );
-        } else {
-          setError(signInError.message);
-        }
-      }
-    } catch {
+    if (authError) {
       setError(
-        "TwinPath could not contact the authentication service. Check your connection and try once more."
+        authError.message === "Invalid login credentials"
+          ? "Incorrect email or password. If you have never created a password, use the secure email link once."
+          : authError.message
       );
-    } finally {
-      setBusy(false);
     }
+  }
+
+  async function sendMagicLink(event) {
+    event.preventDefault();
+    setBusy(true);
+    setError("");
+    setSent(false);
+
+    const { error: authError } =
+      await supabase.auth.signInWithOtp({
+        email: email.trim(),
+        options: {
+          emailRedirectTo: window.location.origin,
+          shouldCreateUser: true,
+        },
+      });
+
+    setBusy(false);
+
+    if (authError) {
+      const isRateLimit =
+        authError.message
+          ?.toLowerCase()
+          .includes("rate limit");
+
+      setError(
+        isRateLimit
+          ? "Supabase has temporarily limited authentication emails. Stop retrying and wait for the limit shown in Supabase Authentication logs."
+          : authError.message
+      );
+
+      return;
+    }
+
+    setSent(true);
   }
 
   return (
     <main className="auth-screen">
-      <ThemeScene themeKey="aurora" reducedMotion />
+      <ThemeScene themeKey="aurora" />
 
       <Card className="auth-card">
         <div className="brand-mark">
           <Sparkles size={26} />
         </div>
 
-        <p className="eyebrow">PRIVATE FAMILY COMMAND CENTER</p>
+        <p className="eyebrow">
+          PRIVATE FAMILY COMMAND CENTER
+        </p>
+
         <h1>TwinPath</h1>
 
         <p className="muted">
-          This application is restricted to invited household
-          members. Public registration is disabled.
+          Plan together, protect private information,
+          track money and prepare for what comes next.
         </p>
 
-        <form className="stack" onSubmit={signIn}>
-          <Field label="Email">
-            <input
-              required
-              type="email"
-              autoComplete="username"
-              inputMode="email"
-              autoCapitalize="none"
-              autoCorrect="off"
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
-              placeholder="Your private account email"
-            />
-          </Field>
+        <div className="segmented">
+          <button
+            type="button"
+            className={mode === "password" ? "active" : ""}
+            onClick={() => {
+              setMode("password");
+              setError("");
+              setSent(false);
+            }}
+          >
+            Password
+          </button>
 
-          <Field label="Password">
-            <div className="password-field">
+          <button
+            type="button"
+            className={mode === "magic" ? "active" : ""}
+            onClick={() => {
+              setMode("magic");
+              setError("");
+              setSent(false);
+            }}
+          >
+            Email link
+          </button>
+        </div>
+
+        {mode === "password" ? (
+          <form
+            onSubmit={signInWithPassword}
+            className="stack"
+          >
+            <Field label="Email">
               <input
+                type="email"
+                autoComplete="email"
                 required
-                type={showPassword ? "text" : "password"}
-                autoComplete="current-password"
-                minLength={10}
-                value={password}
-                onChange={(event) => setPassword(event.target.value)}
-                placeholder="Your TwinPath password"
-              />
-
-              <button
-                type="button"
-                className="password-toggle"
-                onClick={() => setShowPassword((value) => !value)}
-                aria-label={
-                  showPassword ? "Hide password" : "Show password"
+                placeholder="you@example.com"
+                value={email}
+                onChange={(event) =>
+                  setEmail(event.target.value)
                 }
-              >
-                {showPassword ? (
-                  <EyeOff size={18} />
-                ) : (
-                  <Eye size={18} />
-                )}
-              </button>
-            </div>
-          </Field>
+              />
+            </Field>
 
-          {error && (
-            <div className="error-box" role="alert">
-              {error}
-            </div>
-          )}
+            <Field label="Password">
+              <input
+                type="password"
+                autoComplete="current-password"
+                required
+                minLength={8}
+                placeholder="Your TwinPath password"
+                value={password}
+                onChange={(event) =>
+                  setPassword(event.target.value)
+                }
+              />
+            </Field>
 
-          <Button type="submit" disabled={busy}>
-            {busy && <Loader2 className="spin" size={18} />}
-            Sign in privately
-          </Button>
-        </form>
+            {error && (
+              <div className="error-box">{error}</div>
+            )}
+
+            <Button type="submit" disabled={busy}>
+              {busy && (
+                <Loader2
+                  className="spin"
+                  size={18}
+                />
+              )}
+
+              Sign in
+            </Button>
+
+            <button
+              className="text-button"
+              type="button"
+              onClick={() => {
+                setMode("magic");
+                setError("");
+              }}
+            >
+              I have not created a password yet
+            </button>
+          </form>
+        ) : sent ? (
+          <div className="success-box">
+            <CheckCircle2 />
+
+            <div>
+              <strong>Check your email</strong>
+              <p>
+                Open the secure sign-in link on this
+                device. Do not request another link.
+              </p>
+            </div>
+          </div>
+        ) : (
+          <form
+            onSubmit={sendMagicLink}
+            className="stack"
+          >
+            <Field
+              label="Email"
+              hint="Use this once to access your account and create a password."
+            >
+              <input
+                type="email"
+                autoComplete="email"
+                required
+                placeholder="you@example.com"
+                value={email}
+                onChange={(event) =>
+                  setEmail(event.target.value)
+                }
+              />
+            </Field>
+
+            {error && (
+              <div className="error-box">{error}</div>
+            )}
+
+            <Button type="submit" disabled={busy}>
+              {busy && (
+                <Loader2
+                  className="spin"
+                  size={18}
+                />
+              )}
+
+              Send one secure link
+            </Button>
+
+            <button
+              className="text-button"
+              type="button"
+              onClick={() => {
+                setMode("password");
+                setError("");
+              }}
+            >
+              Return to password sign-in
+            </button>
+          </form>
+        )}
 
         <div className="privacy-note">
           <ShieldCheck size={18} />
 
           <span>
-            No public sign-up is available. Each partner must use
-            a separate account and password.
+            Each partner should have a separate account.
+            Never share account passwords.
           </span>
         </div>
       </Card>
@@ -670,12 +771,6 @@ function PlanTab({
             </div>
 
             <Card>
-                <Suspense fallback={<FeatureLoader label="Loading application connectors…" />}>
-                    <ConnectorCenter />
-                </Suspense>
-            </Card>
-
-            <Card>
                 <div className="section-title">
                     <div>
                         <h3>Household tasks</h3>
@@ -809,15 +904,13 @@ function PlanTab({
 }
 
 function MoneyTab({
-  transactions,
-  opportunities,
-  privateMode,
-  householdId,
-  currentUserId,
-  setTransactionModal,
-  setOpportunityModal,
-  deleteTransaction,
-  deleteOpportunity,
+    transactions,
+    opportunities,
+    privateMode,
+    setTransactionModal,
+    setOpportunityModal,
+    deleteTransaction,
+    deleteOpportunity,
 }) {
     const income = transactions
         .filter((item) => item.kind === "income")
@@ -904,22 +997,10 @@ function MoneyTab({
             </div>
 
             <Card>
-                <Suspense fallback={<FeatureLoader label="Loading revenue allocator…" />}>
-                    <RevenueAllocator
-                        privateMode={privateMode}
-                        onLogIncome={() => setTransactionModal(true)}
-                    />
-                </Suspense>
-            </Card>
-
-            <Card>
-                <Suspense fallback={<FeatureLoader label="Loading opportunity lab…" />}>
-                    <ExperimentBudget
-                        householdId={householdId}
-                        currentUserId={currentUserId}
-                        privateMode={privateMode}
-                    />
-                </Suspense>
+                <RevenueAllocator
+                    privateMode={privateMode}
+                    onLogIncome={() => setTransactionModal(true)}
+                />
             </Card>
 
             <Card>
@@ -1111,15 +1192,9 @@ function MoneyTab({
 
 function FamilyTab({
     appointments,
-    householdId,
-    currentUserId,
-    privateMode,
     setAppointmentModal,
-    setAppointmentDraftDate,
     deleteAppointment,
 }) {
-    const [familySection, setFamilySection] = useState("calendar");
-
     const safeAppointments = Array.isArray(appointments)
         ? appointments
         : [];
@@ -1177,24 +1252,6 @@ function FamilyTab({
                 </Button>
             </div>
 
-            <div className="family-section-tabs">
-                {[
-                    ["calendar", "Calendar"],
-                    ["gallery", "Gallery"],
-                    ["readiness", "Readiness"],
-                    ["savings", "Savings"],
-                ].map(([value, label]) => (
-                    <button
-                        type="button"
-                        key={value}
-                        className={familySection === value ? "active" : ""}
-                        onClick={() => setFamilySection(value)}
-                    >
-                        {label}
-                    </button>
-                ))}
-            </div>
-
             <Card className="warning-card">
                 <Baby size={24} />
                 <div>
@@ -1207,110 +1264,83 @@ function FamilyTab({
                 </div>
             </Card>
 
-            {familySection === "calendar" && (
-                <Card>
-                    <div className="section-title">
-                        <div>
-                            <h3>Appointments</h3>
-                            <p>Only share medical details both partners consent to sharing.</p>
-                        </div>
+            <Card>
+                <div className="section-title">
+                    <div>
+                        <h3>Appointments</h3>
+                        <p>Only share medical details both partners consent to sharing.</p>
                     </div>
-
-                    {safeAppointments.length ? (
-                        <div className="appointment-list">
-                            {safeAppointments.map((item) => (
-                                <article className="appointment-row" key={item.id}>
-                                    <div className="date-block">
-                                        <strong>
-                                            {new Date(item.starts_at).toLocaleDateString("en-US", {
-                                                day: "2-digit",
-                                            })}
-                                        </strong>
-                                        <span>
-                                            {new Date(item.starts_at)
-                                                .toLocaleDateString("en-US", { month: "short" })
-                                                .toUpperCase()}
-                                        </span>
-                                    </div>
-
-                                    <div className="appointment-copy">
-                                        <strong>{item.title}</strong>
-                                        <small>
-                                            {new Date(item.starts_at).toLocaleTimeString("en-US", {
-                                                hour: "numeric",
-                                                minute: "2-digit",
-                                            })}
-                                            {item.location ? ` · ${item.location}` : ""}
-                                            {item.visibility === "private" ? " · Only me" : ""}
-                                        </small>
-                                        {item.notes && <p>{item.notes}</p>}
-                                    </div>
-
-                                    <button
-                                        className="icon-button small"
-                                        onClick={() => downloadAppointmentICS(item)}
-                                        aria-label="Add appointment to calendar"
-                                    >
-                                        <Download size={16} />
-                                    </button>
-
-                                    <button
-                                        className="icon-button small danger"
-                                        onClick={() => deleteAppointment(item)}
-                                        aria-label="Delete appointment"
-                                    >
-                                        <Trash2 size={16} />
-                                    </button>
-                                </article>
-                            ))}
-                        </div>
-                    ) : (
-                        <Empty>No appointments recorded.</Empty>
-                    )}
-                </Card>
-            )}
-
-            {familySection === "gallery" && (
-                <Card>
-                    <Suspense fallback={<FeatureLoader label="Opening gallery…" />}>
-                        <FamilyGallery
-                            householdId={householdId}
-                            currentUserId={currentUserId}
-                        />
-                    </Suspense>
-                </Card>
-            )}
-
-            {familySection === "readiness" && (
-                <div className="checklist-grid">
-                    {checklists.map((list) => (
-                        <Card key={list.title}>
-                            <h3>{list.title}</h3>
-
-                            <ul className="safe-list">
-                                {list.items.map((item) => (
-                                    <li key={item}>
-                                        <CheckCircle2 size={17} />
-                                        <span>{item}</span>
-                                    </li>
-                                ))}
-                            </ul>
-                        </Card>
-                    ))}
                 </div>
-            )}
 
-            {familySection === "savings" && (
-                <Card>
-                    <Suspense fallback={<FeatureLoader label="Loading savings routes…" />}>
-                        <FamilySavings
-                            householdId={householdId}
-                            currentUserId={currentUserId}
-                            privateMode={privateMode}
-                        />
-                    </Suspense>
-                </Card>
-            )}
+                {safeAppointments.length ? (
+                    <div className="appointment-list">
+                        {safeAppointments.map((item) => (
+                            <article className="appointment-row" key={item.id}>
+                                <div className="date-block">
+                                    <strong>
+                                        {new Date(item.starts_at).toLocaleDateString("en-US", {
+                                            day: "2-digit",
+                                        })}
+                                    </strong>
+                                    <span>
+                                        {new Date(item.starts_at)
+                                            .toLocaleDateString("en-US", { month: "short" })
+                                            .toUpperCase()}
+                                    </span>
+                                </div>
+
+                                <div className="appointment-copy">
+                                    <strong>{item.title}</strong>
+                                    <small>
+                                        {new Date(item.starts_at).toLocaleTimeString("en-US", {
+                                            hour: "numeric",
+                                            minute: "2-digit",
+                                        })}
+                                        {item.location ? ` · ${item.location}` : ""}
+                                        {item.visibility === "private" ? " · Only me" : ""}
+                                    </small>
+                                    {item.notes && <p>{item.notes}</p>}
+                                </div>
+
+                                <button
+                                    className="icon-button small"
+                                    onClick={() => downloadAppointmentICS(item)}
+                                    aria-label="Add appointment to calendar"
+                                >
+                                    <Download size={16} />
+                                </button>
+
+                                <button
+                                    className="icon-button small danger"
+                                    onClick={() => deleteAppointment(item)}
+                                    aria-label="Delete appointment"
+                                >
+                                    <Trash2 size={16} />
+                                </button>
+                            </article>
+                        ))}
+                    </div>
+                ) : (
+                    <Empty>No appointments recorded.</Empty>
+                )}
+            </Card>
+
+            <div className="checklist-grid">
+                {checklists.map((list) => (
+                    <Card key={list.title}>
+                        <h3>{list.title}</h3>
+
+                        <ul className="safe-list">
+                            {list.items.map((item) => (
+                                <li key={item}>
+                                    <CheckCircle2 size={17} />
+                                    <span>{item}</span>
+                                </li>
+                            ))}
+                        </ul>
+                    </Card>
+                ))}
+            </div>
         </div>
     );
 }
@@ -1382,9 +1412,10 @@ function VaultTab({
                         <input
                             hidden
                             type="file"
+                            accept=".pdf,.png,.jpg,.jpeg,.webp,.txt,.md,image/*,application/pdf,text/plain"
                             disabled={uploading}
                             onChange={(event) => {
-                                const file = event.target.files?.[0](0);
+                                const file = event.target.files?.[0];
                                 if (file) uploadDocument(file, visibility);
                                 event.target.value = "";
                             }}
@@ -1863,17 +1894,14 @@ function SettingsModal({
     const [newPassword, setNewPassword] = useState("");
     const [passwordBusy, setPasswordBusy] = useState(false);
     const [passwordMessage, setPasswordMessage] = useState("");
-    const [passwordError, setPasswordError] = useState("");
 
-    async function updatePassword(event) {
+    async function savePassword(event) {
         event.preventDefault();
-
         setPasswordMessage("");
-        setPasswordError("");
 
-        if (newPassword.length < 12) {
-            setPasswordError(
-                "Use at least 12 characters. A unique passphrase is recommended."
+        if (newPassword.length < 10) {
+            setPasswordMessage(
+                "Use at least 10 characters."
             );
             return;
         }
@@ -1887,13 +1915,13 @@ function SettingsModal({
         setPasswordBusy(false);
 
         if (error) {
-            setPasswordError(error.message);
+            setPasswordMessage(error.message);
             return;
         }
 
         setNewPassword("");
         setPasswordMessage(
-            "Password updated. Store it in a reputable password manager."
+            "Password saved. You can now use password sign-in without requesting an email."
         );
     }
 
@@ -2004,35 +2032,39 @@ function SettingsModal({
                 </label>
 
                 <Card className="nested-card">
-                    <span className="eyebrow">ACCOUNT SECURITY</span>
-                    <h3>Change password</h3>
+                    <span className="eyebrow">ACCOUNT ACCESS</span>
+                    <h3>Create or change password</h3>
 
                     <p className="muted">
-                        Use a unique password for TwinPath. Do not share it with
-                        your partner or reuse it on another service.
+                        A password avoids Supabase email limits during
+                        ordinary sign-in. Use a unique password that you
+                        do not use anywhere else.
                     </p>
 
-                    <form className="stack" onSubmit={updatePassword}>
+                    <form className="stack" onSubmit={savePassword}>
                         <Field label="New password">
                             <input
-                                required
                                 type="password"
-                                minLength={12}
                                 autoComplete="new-password"
+                                minLength={10}
+                                required
                                 value={newPassword}
-                                onChange={(event) => setNewPassword(event.target.value)}
-                                placeholder="At least 12 characters"
+                                onChange={(event) =>
+                                    setNewPassword(event.target.value)
+                                }
+                                placeholder="At least 10 characters"
                             />
                         </Field>
 
-                        {passwordError && (
-                            <div className="error-box">{passwordError}</div>
-                        )}
-
                         {passwordMessage && (
-                            <div className="success-box compact">
-                                <CheckCircle2 size={18} />
-                                <span>{passwordMessage}</span>
+                            <div
+                                className={
+                                    passwordMessage.startsWith("Password saved")
+                                        ? "success-box compact"
+                                        : "error-box"
+                                }
+                            >
+                                {passwordMessage}
                             </div>
                         )}
 
@@ -2045,7 +2077,7 @@ function SettingsModal({
                                 <Loader2 className="spin" size={17} />
                             )}
 
-                            Update password
+                            Save password
                         </Button>
                     </form>
                 </Card>
@@ -2176,27 +2208,6 @@ export default function App() {
         };
     }, [household?.id]);
 
-    useEffect(() => {
-        const modalOpen =
-            taskModal ||
-            transactionModal ||
-            appointmentModal ||
-            opportunityModal ||
-            settingsOpen;
-
-        document.body.style.overflow = modalOpen ? "hidden" : "";
-
-        return () => {
-            document.body.style.overflow = "";
-        };
-    }, [
-        taskModal,
-        transactionModal,
-        appointmentModal,
-        opportunityModal,
-        settingsOpen,
-    ]);
-
     async function loadIdentity() {
         setLoading(true);
         setError("");
@@ -2212,7 +2223,8 @@ export default function App() {
                     .from("household_members")
                     .select("household_id, role, households(*)")
                     .eq("user_id", session.user.id)
-                    .maybeSingle(),
+                    .order("joined_at", { ascending: true })
+                    .limit(1),
             ]);
 
         if (profileError || membershipResult.error) {
@@ -2224,7 +2236,11 @@ export default function App() {
         }
 
         setProfile(profileData);
-        setHousehold(membershipResult.data?.households || null);
+        const membership = Array.isArray(membershipResult.data)
+            ? membershipResult.data[0]
+            : membershipResult.data;
+
+        setHousehold(membership?.households || null);
         setLoading(false);
     }
 
@@ -2537,77 +2553,110 @@ export default function App() {
                 )}
 
                 <main className="content">
-                    <Suspense
-                        fallback={
-                            <div className="loading-screen">
-                                <Loader2 className="spin" size={32} />
-                            </div>
-                        }
-                    >
-                        <AnimatedPage key={tab} reducedMotion={reducedMotion}>
-                        {tab === "today" && (
-                            <TodayTab
-                                tasks={tasks}
-                                appointments={appointments}
-                                balance={balance}
-                                privateMode={privateMode}
-                                setTaskModal={setTaskModal}
-                                toggleTask={toggleTask}
-                            />
-                        )}
+                    <AnimatedPage key={tab} reducedMotion={reducedMotion}>
+                    {tab === "today" && (
+                        <TodayTab
+                            tasks={tasks}
+                            appointments={appointments}
+                            balance={balance}
+                            privateMode={privateMode}
+                            setTaskModal={setTaskModal}
+                            toggleTask={toggleTask}
+                        />
+                    )}
 
-                        {tab === "plan" && (
-                            <PlanTab
-                                tasks={tasks}
-                                setTaskModal={setTaskModal}
-                                toggleTask={toggleTask}
-                                deleteTask={(task) => deleteRecord("tasks", task)}
-                                seedTasks={seedTasks}
-                            />
-                        )}
+                    {tab === "plan" && (
+                        <PlanTab
+                            tasks={tasks}
+                            setTaskModal={setTaskModal}
+                            toggleTask={toggleTask}
+                            deleteTask={(task) => deleteRecord("tasks", task)}
+                            seedTasks={seedTasks}
+                        />
+                    )}
 
-                        {tab === "money" && (
-                            <MoneyTab
-                                transactions={transactions}
-                                opportunities={opportunities}
-                                privateMode={privateMode}
-                                householdId={household?.id}
-                                currentUserId={session?.user?.id}
-                                setTransactionModal={setTransactionModal}
-                                setOpportunityModal={setOpportunityModal}
-                                deleteTransaction={(item) =>
-                                    deleteRecord("transactions", item)
-                                }
-                                deleteOpportunity={(item) =>
-                                    deleteRecord("income_opportunities", item)
-                                }
-                            />
-                        )}
+                    {tab === "money" && (
+                        <MoneyTab
+                            transactions={transactions}
+                            opportunities={opportunities}
+                            privateMode={privateMode}
+                            setTransactionModal={setTransactionModal}
+                            setOpportunityModal={setOpportunityModal}
+                            deleteTransaction={(item) =>
+                                deleteRecord("transactions", item)
+                            }
+                            deleteOpportunity={(item) =>
+                                deleteRecord("income_opportunities", item)
+                            }
+                        />
+                    )}
 
-                        {tab === "family" && (
+                    {tab === "family" && (
+                        <div className="page-stack">
                             <FamilyTab
                                 appointments={appointments}
-                                householdId={household?.id}
-                                currentUserId={session?.user?.id}
-                                privateMode={privateMode}
                                 setAppointmentModal={setAppointmentModal}
                                 deleteAppointment={(item) =>
                                     deleteRecord("appointments", item)
                                 }
                             />
-                        )}
 
-                        {tab === "vault" && (
-                            <VaultTab
-                                documents={documents}
-                                uploadDocument={uploadDocument}
-                                downloadDocument={downloadDocument}
-                                deleteDocument={deleteDocument}
-                                uploading={uploading}
+                            <CalendarView
+                                appointments={appointments}
+                                currentUserId={session.user.id}
+                                onAdd={() => setAppointmentModal(true)}
+                                onDelete={(item) =>
+                                    deleteRecord("appointments", item)
+                                }
                             />
-                        )}
-                        </AnimatedPage>
-                    </Suspense>
+
+                            <FamilySavings
+                                householdId={household.id}
+                                currentUserId={session.user.id}
+                                privateMode={privateMode}
+                            />
+
+                            <FamilyGallery
+                                householdId={household.id}
+                                currentUserId={session.user.id}
+                            />
+                        </div>
+                    )}
+
+                    {tab === "grow" && (
+                        <div className="page-stack">
+                            <FinancialHub
+                                privateMode={privateMode}
+                                onLogTransaction={() => setTransactionModal(true)}
+                                onAddOpportunity={() => setOpportunityModal(true)}
+                            />
+
+                            <OpportunityImporter
+                                householdId={household.id}
+                                currentUserId={session.user.id}
+                                onImported={loadData}
+                            />
+
+                            <ExperimentBudget
+                                householdId={household.id}
+                                currentUserId={session.user.id}
+                                privateMode={privateMode}
+                            />
+
+                            <ConnectorCenter />
+                        </div>
+                    )}
+
+                    {tab === "vault" && (
+                        <VaultTab
+                            documents={documents}
+                            uploadDocument={uploadDocument}
+                            downloadDocument={downloadDocument}
+                            deleteDocument={deleteDocument}
+                            uploading={uploading}
+                        />
+                    )}
+                    </AnimatedPage>
                 </main>
 
                 <nav className="bottom-nav" aria-label="Main navigation">

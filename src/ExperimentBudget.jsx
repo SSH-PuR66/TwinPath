@@ -12,6 +12,11 @@ import {
 } from "lucide-react";
 
 import { supabase } from "./supabase";
+import { safeExternalUrl } from "./safeUrl";
+
+// Mirror of the server-side cap enforced in review_spend_proposal().
+// The database is the real gate; this is advisory UX only.
+const PER_PROPOSAL_CAP = 5;
 
 const currency = new Intl.NumberFormat("en-US", {
     style: "currency",
@@ -185,6 +190,24 @@ export default function ExperimentBudget({
         setError("");
 
         if (
+            (status === "approved" || status === "purchased") &&
+            safeAmount(proposal.amount) > PER_PROPOSAL_CAP
+        ) {
+            setError(
+                `Individual proposals cannot exceed $${PER_PROPOSAL_CAP}.`
+            );
+            return;
+        }
+
+        if (
+            (status === "approved" || status === "purchased") &&
+            proposal.recurring
+        ) {
+            setError("Recurring purchases are not allowed.");
+            return;
+        }
+
+        if (
             status === "approved" &&
             safeAmount(proposal.amount) >
             totals.availableAfterApproved
@@ -332,7 +355,7 @@ export default function ExperimentBudget({
                 <div>
                     <h4>Approval queue</h4>
                     <small>
-                        Individual proposals remain capped at \$5.
+                        Individual proposals remain capped at ${PER_PROPOSAL_CAP}.
                     </small>
                 </div>
 
@@ -397,15 +420,17 @@ export default function ExperimentBudget({
                             )}
 
                             <div className="proposal-actions">
+                                {safeExternalUrl(proposal.official_url) && (
                                 <a
                                     className="button ghost"
-                                    href={proposal.official_url}
+                                    href={safeExternalUrl(proposal.official_url)}
                                     target="_blank"
                                     rel="noopener noreferrer"
                                 >
                                     Verify provider
                                     <ExternalLink size={15} />
                                 </a>
+                                )}
 
                                 {proposal.status === "pending" && (
                                     <>
