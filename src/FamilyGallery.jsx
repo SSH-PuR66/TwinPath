@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
     CalendarDays,
     Camera,
@@ -42,11 +42,23 @@ export default function FamilyGallery({
         visibility: "shared",
     });
 
+    const objectUrlsRef = useRef(new Set());
+
+    const revokeObjectUrls = useCallback(() => {
+        objectUrlsRef.current.forEach((url) => {
+            URL.revokeObjectURL(url);
+        });
+
+        objectUrlsRef.current.clear();
+    }, []);
+
     const loadPhotos = useCallback(async () => {
         if (!householdId) return;
 
         setLoading(true);
         setError("");
+
+        revokeObjectUrls();
 
         const { data, error: queryError } = await supabase
             .from("family_photos")
@@ -58,7 +70,8 @@ export default function FamilyGallery({
             })
             .order("created_at", {
                 ascending: false,
-            });
+            })
+            .limit(24);
 
         if (queryError) {
             setError(queryError.message);
@@ -69,29 +82,50 @@ export default function FamilyGallery({
 
         const records = Array.isArray(data) ? data : [];
 
-        const recordsWithUrls = await Promise.all(
+        const downloadedRecords = await Promise.all(
             records.map(async (photo) => {
-                const { data: signedData, error: signedError } =
+                const { data: imageBlob, error: downloadError } =
                     await supabase.storage
                         .from("family-gallery")
-                        .createSignedUrl(photo.storage_path, 60 * 15);
+                        .download(photo.storage_path);
+
+                if (downloadError || !imageBlob) {
+                    console.error(
+                        "Gallery image download failed:",
+                        photo.storage_path,
+                        downloadError
+                    );
+
+                    return {
+                        ...photo,
+                        objectUrl: null,
+                        imageError:
+                            downloadError?.message || "Image download failed",
+                    };
+                }
+
+                const objectUrl = URL.createObjectURL(imageBlob);
+                objectUrlsRef.current.add(objectUrl);
 
                 return {
                     ...photo,
-                    signedUrl: signedError
-                        ? null
-                        : signedData?.signedUrl || null,
+                    objectUrl,
+                    imageError: null,
                 };
             })
         );
 
-        setPhotos(recordsWithUrls);
+        setPhotos(downloadedRecords);
         setLoading(false);
-    }, [householdId]);
+    }, [householdId, revokeObjectUrls]);
 
     useEffect(() => {
         loadPhotos();
-    }, [loadPhotos]);
+
+        return () => {
+            revokeObjectUrls();
+        };
+    }, [loadPhotos, revokeObjectUrls]);
 
     const visiblePhotos = useMemo(() => {
         if (selectedAlbum === "All") return photos;
@@ -340,7 +374,7 @@ export default function FamilyGallery({
                     <input
                         hidden
                         type="file"
-                        accept="image/jpeg,image/png,image/webp"
+                        accept="image/*"
                         disabled={uploading}
                         onChange={(event) => {
                             const file = event.target.files?.[0];
@@ -387,15 +421,23 @@ export default function FamilyGallery({
                             key={photo.id}
                             onClick={() => setViewerPhoto(photo)}
                         >
-                            {photo.signedUrl ? (
+                            {photo.objectUrl ? (
                                 <img
-                                    src={photo.signedUrl}
+                                    src={photo.objectUrl}
                                     alt={photo.caption || `${photo.album} photo`}
                                     loading="lazy"
+                                    decoding="async"
+                                    onError={(event) => {
+                                        event.currentTarget.style.display = "none";
+                                    }}
                                 />
                             ) : (
                                 <div className="gallery-image-unavailable">
-                                    Image unavailable
+                                    <span>Image unavailable</span>
+
+                                    {photo.imageError && (
+                                        <small>{photo.imageError}</small>
+                                    )}
                                 </div>
                             )}
 
@@ -442,11 +484,16 @@ export default function FamilyGallery({
                             <X size={21} />
                         </button>
 
-                        {viewerPhoto.signedUrl && (
+                        {viewerPhoto.objectUrl ? (
                             <img
-                                src={viewerPhoto.signedUrl}
+                                src={viewerPhoto.objectUrl}
                                 alt={viewerPhoto.caption || "Family photo"}
+                                decoding="async"
                             />
+                        ) : (
+                            <div className="gallery-image-unavailable">
+                                Image unavailable
+                            </div>
                         )}
 
                         <div className="gallery-viewer-details">

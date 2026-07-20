@@ -1,4 +1,10 @@
-import { useEffect, useMemo, useState } from "react";
+import {
+    lazy,
+    Suspense,
+    useEffect,
+    useMemo,
+    useState,
+} from "react";
 import {
     Baby,
     Bell,
@@ -46,11 +52,16 @@ import {
 import NetworkStatus from "./NetworkStatus";
 import { AnimatedMoney } from "./AnimatedMoney";
 import AnimatedPage from "./AnimatedPage";
-import RevenueAllocator from "./RevenueAllocator";
-import ExperimentBudget from "./ExperimentBudget";
-import FamilyGallery from "./FamilyGallery";
-import FamilySavings from "./FamilySavings";
+import FeatureLoader from "./FeatureLoader";
 import { motion } from "framer-motion";
+
+const CalendarView = lazy(() => import("./CalendarView"));
+const FamilyGallery = lazy(() => import("./FamilyGallery"));
+const FamilySavings = lazy(() => import("./FamilySavings"));
+const FinancialHub = lazy(() => import("./FinancialHub"));
+const ExperimentBudget = lazy(() => import("./ExperimentBudget"));
+const RevenueAllocator = lazy(() => import("./RevenueAllocator"));
+const ConnectorCenter = lazy(() => import("./ConnectorCenter"));
 
 const moneyFormatter = new Intl.NumberFormat("en-US", {
     style: "currency",
@@ -659,6 +670,12 @@ function PlanTab({
             </div>
 
             <Card>
+                <Suspense fallback={<FeatureLoader label="Loading application connectors…" />}>
+                    <ConnectorCenter />
+                </Suspense>
+            </Card>
+
+            <Card>
                 <div className="section-title">
                     <div>
                         <h3>Household tasks</h3>
@@ -887,18 +904,22 @@ function MoneyTab({
             </div>
 
             <Card>
-                <RevenueAllocator
-                    privateMode={privateMode}
-                    onLogIncome={() => setTransactionModal(true)}
-                />
+                <Suspense fallback={<FeatureLoader label="Loading revenue allocator…" />}>
+                    <RevenueAllocator
+                        privateMode={privateMode}
+                        onLogIncome={() => setTransactionModal(true)}
+                    />
+                </Suspense>
             </Card>
 
             <Card>
-                <ExperimentBudget
-                    householdId={householdId}
-                    currentUserId={currentUserId}
-                    privateMode={privateMode}
-                />
+                <Suspense fallback={<FeatureLoader label="Loading opportunity lab…" />}>
+                    <ExperimentBudget
+                        householdId={householdId}
+                        currentUserId={currentUserId}
+                        privateMode={privateMode}
+                    />
+                </Suspense>
             </Card>
 
             <Card>
@@ -1251,10 +1272,12 @@ function FamilyTab({
 
             {familySection === "gallery" && (
                 <Card>
-                    <FamilyGallery
-                        householdId={householdId}
-                        currentUserId={currentUserId}
-                    />
+                    <Suspense fallback={<FeatureLoader label="Opening gallery…" />}>
+                        <FamilyGallery
+                            householdId={householdId}
+                            currentUserId={currentUserId}
+                        />
+                    </Suspense>
                 </Card>
             )}
 
@@ -1279,11 +1302,13 @@ function FamilyTab({
 
             {familySection === "savings" && (
                 <Card>
-                    <FamilySavings
-                        householdId={householdId}
-                        currentUserId={currentUserId}
-                        privateMode={privateMode}
-                    />
+                    <Suspense fallback={<FeatureLoader label="Loading savings routes…" />}>
+                        <FamilySavings
+                            householdId={householdId}
+                            currentUserId={currentUserId}
+                            privateMode={privateMode}
+                        />
+                    </Suspense>
                 </Card>
             )}
         </div>
@@ -2151,6 +2176,27 @@ export default function App() {
         };
     }, [household?.id]);
 
+    useEffect(() => {
+        const modalOpen =
+            taskModal ||
+            transactionModal ||
+            appointmentModal ||
+            opportunityModal ||
+            settingsOpen;
+
+        document.body.style.overflow = modalOpen ? "hidden" : "";
+
+        return () => {
+            document.body.style.overflow = "";
+        };
+    }, [
+        taskModal,
+        transactionModal,
+        appointmentModal,
+        opportunityModal,
+        settingsOpen,
+    ]);
+
     async function loadIdentity() {
         setLoading(true);
         setError("");
@@ -2491,69 +2537,77 @@ export default function App() {
                 )}
 
                 <main className="content">
-                    <AnimatedPage key={tab} reducedMotion={reducedMotion}>
-                    {tab === "today" && (
-                        <TodayTab
-                            tasks={tasks}
-                            appointments={appointments}
-                            balance={balance}
-                            privateMode={privateMode}
-                            setTaskModal={setTaskModal}
-                            toggleTask={toggleTask}
-                        />
-                    )}
+                    <Suspense
+                        fallback={
+                            <div className="loading-screen">
+                                <Loader2 className="spin" size={32} />
+                            </div>
+                        }
+                    >
+                        <AnimatedPage key={tab} reducedMotion={reducedMotion}>
+                        {tab === "today" && (
+                            <TodayTab
+                                tasks={tasks}
+                                appointments={appointments}
+                                balance={balance}
+                                privateMode={privateMode}
+                                setTaskModal={setTaskModal}
+                                toggleTask={toggleTask}
+                            />
+                        )}
 
-                    {tab === "plan" && (
-                        <PlanTab
-                            tasks={tasks}
-                            setTaskModal={setTaskModal}
-                            toggleTask={toggleTask}
-                            deleteTask={(task) => deleteRecord("tasks", task)}
-                            seedTasks={seedTasks}
-                        />
-                    )}
+                        {tab === "plan" && (
+                            <PlanTab
+                                tasks={tasks}
+                                setTaskModal={setTaskModal}
+                                toggleTask={toggleTask}
+                                deleteTask={(task) => deleteRecord("tasks", task)}
+                                seedTasks={seedTasks}
+                            />
+                        )}
 
-                    {tab === "money" && (
-                        <MoneyTab
-                            transactions={transactions}
-                            opportunities={opportunities}
-                            privateMode={privateMode}
-                            householdId={household?.id}
-                            currentUserId={session?.user?.id}
-                            setTransactionModal={setTransactionModal}
-                            setOpportunityModal={setOpportunityModal}
-                            deleteTransaction={(item) =>
-                                deleteRecord("transactions", item)
-                            }
-                            deleteOpportunity={(item) =>
-                                deleteRecord("income_opportunities", item)
-                            }
-                        />
-                    )}
+                        {tab === "money" && (
+                            <MoneyTab
+                                transactions={transactions}
+                                opportunities={opportunities}
+                                privateMode={privateMode}
+                                householdId={household?.id}
+                                currentUserId={session?.user?.id}
+                                setTransactionModal={setTransactionModal}
+                                setOpportunityModal={setOpportunityModal}
+                                deleteTransaction={(item) =>
+                                    deleteRecord("transactions", item)
+                                }
+                                deleteOpportunity={(item) =>
+                                    deleteRecord("income_opportunities", item)
+                                }
+                            />
+                        )}
 
-                    {tab === "family" && (
-                        <FamilyTab
-                            appointments={appointments}
-                            householdId={household?.id}
-                            currentUserId={session?.user?.id}
-                            privateMode={privateMode}
-                            setAppointmentModal={setAppointmentModal}
-                            deleteAppointment={(item) =>
-                                deleteRecord("appointments", item)
-                            }
-                        />
-                    )}
+                        {tab === "family" && (
+                            <FamilyTab
+                                appointments={appointments}
+                                householdId={household?.id}
+                                currentUserId={session?.user?.id}
+                                privateMode={privateMode}
+                                setAppointmentModal={setAppointmentModal}
+                                deleteAppointment={(item) =>
+                                    deleteRecord("appointments", item)
+                                }
+                            />
+                        )}
 
-                    {tab === "vault" && (
-                        <VaultTab
-                            documents={documents}
-                            uploadDocument={uploadDocument}
-                            downloadDocument={downloadDocument}
-                            deleteDocument={deleteDocument}
-                            uploading={uploading}
-                        />
-                    )}
-                    </AnimatedPage>
+                        {tab === "vault" && (
+                            <VaultTab
+                                documents={documents}
+                                uploadDocument={uploadDocument}
+                                downloadDocument={downloadDocument}
+                                deleteDocument={deleteDocument}
+                                uploading={uploading}
+                            />
+                        )}
+                        </AnimatedPage>
+                    </Suspense>
                 </main>
 
                 <nav className="bottom-nav" aria-label="Main navigation">

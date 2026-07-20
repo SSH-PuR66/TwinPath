@@ -5,7 +5,7 @@ const ACCEPTED_TYPES = new Set([
 ]);
 
 const MAX_SOURCE_SIZE = 20 * 1024 * 1024;
-const MAX_DIMENSION = 2048;
+const MAX_DIMENSION = 1600;
 
 function loadImageElement(file) {
     return new Promise((resolve, reject) => {
@@ -48,16 +48,18 @@ export async function processFamilyImage(file) {
         throw new Error("Select a valid image.");
     }
 
-    if (!ACCEPTED_TYPES.has(file.type)) {
-        if (
-            file.type === "image/heic" ||
-            file.type === "image/heif"
-        ) {
-            throw new Error(
-                "HEIC is not supported yet. Export the image as JPEG, PNG or WebP first."
-            );
-        }
+    if (
+        file.type === "image/heic" ||
+        file.type === "image/heif" ||
+        file.name.toLowerCase().endsWith(".heic") ||
+        file.name.toLowerCase().endsWith(".heif")
+    ) {
+        throw new Error(
+            "This iPhone photo is HEIC. In Photos, share or export it as JPEG before uploading. Automatic HEIC conversion will be added later."
+        );
+    }
 
+    if (!ACCEPTED_TYPES.has(file.type)) {
         throw new Error("Only JPEG, PNG and WebP images are supported.");
     }
 
@@ -122,7 +124,7 @@ export async function processFamilyImage(file) {
     let blob;
 
     try {
-        blob = await canvasToBlob(canvas, outputType, 0.84);
+        blob = await canvasToBlob(canvas, outputType, 0.78);
     } catch {
         outputType = "image/jpeg";
         blob = await canvasToBlob(canvas, outputType, 0.86);
