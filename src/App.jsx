@@ -46,6 +46,8 @@ import {
 import NetworkStatus from "./NetworkStatus";
 import { AnimatedMoney } from "./AnimatedMoney";
 import AnimatedPage from "./AnimatedPage";
+import RevenueAllocator from "./RevenueAllocator";
+import ExperimentBudget from "./ExperimentBudget";
 import { motion } from "framer-motion";
 
 const moneyFormatter = new Intl.NumberFormat("en-US", {
@@ -192,241 +194,134 @@ function Field({ label, children, hint }) {
 }
 
 function AuthScreen() {
-  const [mode, setMode] = useState("password");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [sent, setSent] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
-  async function signInWithPassword(event) {
+  async function signIn(event) {
     event.preventDefault();
+
+    if (busy) return;
+
     setBusy(true);
     setError("");
 
-    const { error: authError } =
-      await supabase.auth.signInWithPassword({
-        email: email.trim(),
-        password,
-      });
+    try {
+      const { error: signInError } =
+        await supabase.auth.signInWithPassword({
+          email: email.trim().toLowerCase(),
+          password,
+        });
 
-    setBusy(false);
+      if (signInError) {
+        const message = signInError.message?.toLowerCase() || "";
 
-    if (authError) {
+        if (message.includes("invalid login credentials")) {
+          setError(
+            "Incorrect email or password. Use the private account created for you in Supabase."
+          );
+        } else if (message.includes("email not confirmed")) {
+          setError(
+            "This account has not been confirmed. Confirm it from the Supabase dashboard or contact the private app administrator."
+          );
+        } else if (message.includes("rate limit")) {
+          setError(
+            "Authentication is temporarily rate-limited. Stop retrying and wait before trying again."
+          );
+        } else {
+          setError(signInError.message);
+        }
+      }
+    } catch {
       setError(
-        authError.message === "Invalid login credentials"
-          ? "Incorrect email or password. If you have never created a password, use the secure email link once."
-          : authError.message
+        "TwinPath could not contact the authentication service. Check your connection and try once more."
       );
+    } finally {
+      setBusy(false);
     }
-  }
-
-  async function sendMagicLink(event) {
-    event.preventDefault();
-    setBusy(true);
-    setError("");
-    setSent(false);
-
-    const { error: authError } =
-      await supabase.auth.signInWithOtp({
-        email: email.trim(),
-        options: {
-          emailRedirectTo: window.location.origin,
-          shouldCreateUser: true,
-        },
-      });
-
-    setBusy(false);
-
-    if (authError) {
-      const isRateLimit =
-        authError.message
-          ?.toLowerCase()
-          .includes("rate limit");
-
-      setError(
-        isRateLimit
-          ? "Supabase has temporarily limited authentication emails. Stop retrying and wait for the limit shown in Supabase Authentication logs."
-          : authError.message
-      );
-
-      return;
-    }
-
-    setSent(true);
   }
 
   return (
     <main className="auth-screen">
-      <ThemeScene themeKey="aurora" />
+      <ThemeScene themeKey="aurora" reducedMotion />
 
       <Card className="auth-card">
         <div className="brand-mark">
           <Sparkles size={26} />
         </div>
 
-        <p className="eyebrow">
-          PRIVATE FAMILY COMMAND CENTER
-        </p>
-
+        <p className="eyebrow">PRIVATE FAMILY COMMAND CENTER</p>
         <h1>TwinPath</h1>
 
         <p className="muted">
-          Plan together, protect private information,
-          track money and prepare for what comes next.
+          This application is restricted to invited household
+          members. Public registration is disabled.
         </p>
 
-        <div className="segmented">
-          <button
-            type="button"
-            className={mode === "password" ? "active" : ""}
-            onClick={() => {
-              setMode("password");
-              setError("");
-              setSent(false);
-            }}
-          >
-            Password
-          </button>
+        <form className="stack" onSubmit={signIn}>
+          <Field label="Email">
+            <input
+              required
+              type="email"
+              autoComplete="username"
+              inputMode="email"
+              autoCapitalize="none"
+              autoCorrect="off"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              placeholder="Your private account email"
+            />
+          </Field>
 
-          <button
-            type="button"
-            className={mode === "magic" ? "active" : ""}
-            onClick={() => {
-              setMode("magic");
-              setError("");
-              setSent(false);
-            }}
-          >
-            Email link
-          </button>
-        </div>
-
-        {mode === "password" ? (
-          <form
-            onSubmit={signInWithPassword}
-            className="stack"
-          >
-            <Field label="Email">
+          <Field label="Password">
+            <div className="password-field">
               <input
-                type="email"
-                autoComplete="email"
                 required
-                placeholder="you@example.com"
-                value={email}
-                onChange={(event) =>
-                  setEmail(event.target.value)
-                }
-              />
-            </Field>
-
-            <Field label="Password">
-              <input
-                type="password"
+                type={showPassword ? "text" : "password"}
                 autoComplete="current-password"
-                required
-                minLength={8}
-                placeholder="Your TwinPath password"
+                minLength={10}
                 value={password}
-                onChange={(event) =>
-                  setPassword(event.target.value)
-                }
+                onChange={(event) => setPassword(event.target.value)}
+                placeholder="Your TwinPath password"
               />
-            </Field>
 
-            {error && (
-              <div className="error-box">{error}</div>
-            )}
-
-            <Button type="submit" disabled={busy}>
-              {busy && (
-                <Loader2
-                  className="spin"
-                  size={18}
-                />
-              )}
-
-              Sign in
-            </Button>
-
-            <button
-              className="text-button"
-              type="button"
-              onClick={() => {
-                setMode("magic");
-                setError("");
-              }}
-            >
-              I have not created a password yet
-            </button>
-          </form>
-        ) : sent ? (
-          <div className="success-box">
-            <CheckCircle2 />
-
-            <div>
-              <strong>Check your email</strong>
-              <p>
-                Open the secure sign-in link on this
-                device. Do not request another link.
-              </p>
+              <button
+                type="button"
+                className="password-toggle"
+                onClick={() => setShowPassword((value) => !value)}
+                aria-label={
+                  showPassword ? "Hide password" : "Show password"
+                }
+              >
+                {showPassword ? (
+                  <EyeOff size={18} />
+                ) : (
+                  <Eye size={18} />
+                )}
+              </button>
             </div>
-          </div>
-        ) : (
-          <form
-            onSubmit={sendMagicLink}
-            className="stack"
-          >
-            <Field
-              label="Email"
-              hint="Use this once to access your account and create a password."
-            >
-              <input
-                type="email"
-                autoComplete="email"
-                required
-                placeholder="you@example.com"
-                value={email}
-                onChange={(event) =>
-                  setEmail(event.target.value)
-                }
-              />
-            </Field>
+          </Field>
 
-            {error && (
-              <div className="error-box">{error}</div>
-            )}
+          {error && (
+            <div className="error-box" role="alert">
+              {error}
+            </div>
+          )}
 
-            <Button type="submit" disabled={busy}>
-              {busy && (
-                <Loader2
-                  className="spin"
-                  size={18}
-                />
-              )}
-
-              Send one secure link
-            </Button>
-
-            <button
-              className="text-button"
-              type="button"
-              onClick={() => {
-                setMode("password");
-                setError("");
-              }}
-            >
-              Return to password sign-in
-            </button>
-          </form>
-        )}
+          <Button type="submit" disabled={busy}>
+            {busy && <Loader2 className="spin" size={18} />}
+            Sign in privately
+          </Button>
+        </form>
 
         <div className="privacy-note">
           <ShieldCheck size={18} />
 
           <span>
-            Each partner should have a separate account.
-            Never share account passwords.
+            No public sign-up is available. Each partner must use
+            a separate account and password.
           </span>
         </div>
       </Card>
@@ -895,13 +790,15 @@ function PlanTab({
 }
 
 function MoneyTab({
-    transactions,
-    opportunities,
-    privateMode,
-    setTransactionModal,
-    setOpportunityModal,
-    deleteTransaction,
-    deleteOpportunity,
+  transactions,
+  opportunities,
+  privateMode,
+  householdId,
+  currentUserId,
+  setTransactionModal,
+  setOpportunityModal,
+  deleteTransaction,
+  deleteOpportunity,
 }) {
     const income = transactions
         .filter((item) => item.kind === "income")
@@ -986,6 +883,21 @@ function MoneyTab({
                     value={shownMoney(balance)}
                 />
             </div>
+
+            <Card>
+                <RevenueAllocator
+                    privateMode={privateMode}
+                    onLogIncome={() => setTransactionModal(true)}
+                />
+            </Card>
+
+            <Card>
+                <ExperimentBudget
+                    householdId={householdId}
+                    currentUserId={currentUserId}
+                    privateMode={privateMode}
+                />
+            </Card>
 
             <Card>
                 <div className="section-title">
@@ -1877,14 +1789,17 @@ function SettingsModal({
     const [newPassword, setNewPassword] = useState("");
     const [passwordBusy, setPasswordBusy] = useState(false);
     const [passwordMessage, setPasswordMessage] = useState("");
+    const [passwordError, setPasswordError] = useState("");
 
-    async function savePassword(event) {
+    async function updatePassword(event) {
         event.preventDefault();
-        setPasswordMessage("");
 
-        if (newPassword.length < 10) {
-            setPasswordMessage(
-                "Use at least 10 characters."
+        setPasswordMessage("");
+        setPasswordError("");
+
+        if (newPassword.length < 12) {
+            setPasswordError(
+                "Use at least 12 characters. A unique passphrase is recommended."
             );
             return;
         }
@@ -1898,13 +1813,13 @@ function SettingsModal({
         setPasswordBusy(false);
 
         if (error) {
-            setPasswordMessage(error.message);
+            setPasswordError(error.message);
             return;
         }
 
         setNewPassword("");
         setPasswordMessage(
-            "Password saved. You can now use password sign-in without requesting an email."
+            "Password updated. Store it in a reputable password manager."
         );
     }
 
@@ -2015,39 +1930,35 @@ function SettingsModal({
                 </label>
 
                 <Card className="nested-card">
-                    <span className="eyebrow">ACCOUNT ACCESS</span>
-                    <h3>Create or change password</h3>
+                    <span className="eyebrow">ACCOUNT SECURITY</span>
+                    <h3>Change password</h3>
 
                     <p className="muted">
-                        A password avoids Supabase email limits during
-                        ordinary sign-in. Use a unique password that you
-                        do not use anywhere else.
+                        Use a unique password for TwinPath. Do not share it with
+                        your partner or reuse it on another service.
                     </p>
 
-                    <form className="stack" onSubmit={savePassword}>
+                    <form className="stack" onSubmit={updatePassword}>
                         <Field label="New password">
                             <input
-                                type="password"
-                                autoComplete="new-password"
-                                minLength={10}
                                 required
+                                type="password"
+                                minLength={12}
+                                autoComplete="new-password"
                                 value={newPassword}
-                                onChange={(event) =>
-                                    setNewPassword(event.target.value)
-                                }
-                                placeholder="At least 10 characters"
+                                onChange={(event) => setNewPassword(event.target.value)}
+                                placeholder="At least 12 characters"
                             />
                         </Field>
 
+                        {passwordError && (
+                            <div className="error-box">{passwordError}</div>
+                        )}
+
                         {passwordMessage && (
-                            <div
-                                className={
-                                    passwordMessage.startsWith("Password saved")
-                                        ? "success-box compact"
-                                        : "error-box"
-                                }
-                            >
-                                {passwordMessage}
+                            <div className="success-box compact">
+                                <CheckCircle2 size={18} />
+                                <span>{passwordMessage}</span>
                             </div>
                         )}
 
@@ -2060,7 +1971,7 @@ function SettingsModal({
                                 <Loader2 className="spin" size={17} />
                             )}
 
-                            Save password
+                            Update password
                         </Button>
                     </form>
                 </Card>
@@ -2558,6 +2469,8 @@ export default function App() {
                             transactions={transactions}
                             opportunities={opportunities}
                             privateMode={privateMode}
+                            householdId={household?.id}
+                            currentUserId={session?.user?.id}
                             setTransactionModal={setTransactionModal}
                             setOpportunityModal={setOpportunityModal}
                             deleteTransaction={(item) =>
