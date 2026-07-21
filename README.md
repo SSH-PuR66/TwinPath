@@ -58,7 +58,21 @@ workflows and stage private artifacts and approvals. It does not perform real
 deployment, spending, vulnerability disclosure, asset purchasing, scanning,
 or publishing.
 
-Apply `supabase/v13-autonomous-operations.sql` after the earlier schema files,
-configure the Worker secrets, and set `VITE_CONTROL_PLANE_URL` to its origin.
+Apply the versioned SQL files through
+`supabase/v15-financial-integrations.sql`, configure the Worker secrets, and
+set `VITE_CONTROL_PLANE_URL` to its origin.
 See [docs/autonomous-operations.md](docs/autonomous-operations.md) for setup,
 policy boundaries, migration guidance, and emergency shutdown.
+
+## Financial connections and profitability
+
+Plaid can provide read-only account data for supported institutions such as
+M&T Bank and Chime. Stripe can provide allowlisted Checkout and Billing
+sessions. Provider access is disabled until credentials, signed webhooks, and
+readiness checks are configured.
+
+See [docs/financial-integrations.md](docs/financial-integrations.md) for the
+security model and activation process. Profit goals and opportunity scores are
+planning scenarios, not guaranteed financial outcomes. The route-priority and
+goal methodology is documented in
+[docs/profitability-playbook.md](docs/profitability-playbook.md).

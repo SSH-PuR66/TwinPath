@@ -1,9 +1,14 @@
 export const BLOCKED_ACTIONS = Object.freeze([
+  "charge",
   "deploy",
   "spend",
   "disclose",
+  "payment",
+  "payout",
   "purchase",
   "publish",
+  "transfer",
+  "withdraw",
 ]);
 
 const SAFE_SANDBOX_ACTIONS = new Set([

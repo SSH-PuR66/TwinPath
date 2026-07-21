@@ -1,15 +1,41 @@
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
-  "name": "el-plan-control-plane",
+  "name": "twinpath-control-plane",
   "main": "src/index.js",
   "compatibility_date": "2026-07-20",
   "compatibility_flags": ["nodejs_compat"],
   "vars": {
-    "ENVIRONMENT": "sandbox",
-    "ALLOWED_ORIGINS": "https://YOUR_APP_DOMAIN",
-    "SUPABASE_URL": "https://YOUR_PROJECT.supabase.co",
-    "HOUSEHOLD_MEMBERS_TABLE": "household_members"
+    "ENVIRONMENT": "production",
+    "PROVIDER_MODE": "disabled",
+    "ALLOWED_ORIGINS": "https://twinpath.srodriguez46.workers.dev",
+    "SUPABASE_URL": "https://wtdmjybpfimmsojsdobx.supabase.co",
+    "HOUSEHOLD_MEMBERS_TABLE": "household_members",
+    "PLAID_ENV": "sandbox",
+    "PLAID_WEBHOOK_URL": "https://twinpath-control-plane.srodriguez46.workers.dev/v1/webhooks/plaid",
+    "PLAID_REDIRECT_URI": "https://twinpath.srodriguez46.workers.dev/",
+    "STRIPE_ALLOWED_PRICE_IDS": "",
+    "STRIPE_CHECKOUT_SUCCESS_URL": "https://twinpath.srodriguez46.workers.dev/?billing=success",
+    "STRIPE_CHECKOUT_CANCEL_URL": "https://twinpath.srodriguez46.workers.dev/?billing=cancelled",
+    "STRIPE_PORTAL_RETURN_URL": "https://twinpath.srodriguez46.workers.dev/",
+    "PLAID_ITEMS_TABLE": "plaid_items",
+    "PLAID_ACCOUNTS_TABLE": "plaid_accounts",
+    "PLAID_TRANSACTIONS_TABLE": "plaid_transactions",
+    "STRIPE_CUSTOMERS_TABLE": "stripe_customers",
+    "STRIPE_LIFECYCLE_EVENTS_TABLE": "stripe_lifecycle_events",
+    "PROVIDER_WEBHOOK_EVENTS_TABLE": "provider_webhook_events",
+    "REVENUE_EVENTS_TABLE": "revenue_events",
+    "AGENT_AUDIT_EVENTS_TABLE": "agent_audit_events"
   },
+  "ratelimits": [
+    {
+      "name": "API_RATE_LIMITER",
+      "namespace_id": "764201",
+      "simple": {
+        "limit": 120,
+        "period": 60
+      }
+    }
+  ],
   "queues": {
     "producers": [
       {

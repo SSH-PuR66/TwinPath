@@ -41,3 +41,33 @@ test("sandbox artifacts are private and evidence requires redaction", async () =
   assert.match(persistence, /fixture\.adapter === "bounty_recon"/);
   assert.match(persistence, /redaction_status/);
 });
+
+test("financial provider secrets are service-only and ledger posts are verified", async () => {
+  const sql = await read("supabase/v15-financial-integrations.sql");
+  assert.match(sql, /encrypted_access_token text/i);
+  assert.match(sql, /revoke all on public\.plaid_items[\s\S]*from public, anon, authenticated/i);
+  assert.match(sql, /record_revenue_event_transaction[\s\S]*verified live USD Stripe revenue/i);
+  assert.match(sql, /provider_webhook_events[\s\S]*verification_status/i);
+  assert.match(
+    sql,
+    /on public\.transactions\(household_id, external_source, external_id\)/i,
+  );
+});
+
+test("provider runtime and frontend contracts use the same routes", async () => {
+  const [worker, panel] = await Promise.all([
+    read("workers/control-plane/src/index.js"),
+    read("src/FinancialConnectionsPanel.jsx"),
+  ]);
+  for (const route of [
+    "/v1/financial/connections",
+    "/v1/financial/plaid/link-token",
+    "/v1/financial/plaid/exchange",
+  ]) {
+    assert.match(worker, new RegExp(route.replaceAll("/", "\\/")));
+    assert.match(panel, new RegExp(route.replaceAll("/", "\\/")));
+  }
+  assert.match(worker, /\/v1\/billing\/checkout/);
+  assert.match(worker, /\/v1\/billing\/portal/);
+  assert.match(panel, /\/v1\/billing\/\$\{kind\}/);
+});

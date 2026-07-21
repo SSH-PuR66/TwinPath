@@ -1,5 +1,62 @@
 export const connectorCatalog = [
     {
+        id: "iona-student-services",
+        title: "Iona Student Services",
+        category: "Campus",
+        officialUrl: "https://www.iona.edu/students",
+        fields: [
+            "Iona ID where requested",
+            "School email",
+            "Program and expected graduation",
+            "Specific office or service needed",
+        ],
+        documents: [
+            "Current course schedule if relevant",
+            "Award or account notice if relevant",
+            "Résumé for employment services",
+        ],
+        warning:
+            "Use only the minimum information requested by the official Iona office. Never place account passwords in this packet.",
+    },
+    {
+        id: "student-discount-verification",
+        title: "Student discount verification",
+        category: "Student perks",
+        officialUrl: "https://www.myunidays.com/",
+        fields: [
+            "School name",
+            "School email",
+            "Expected graduation date",
+            "Enrollment status if requested",
+        ],
+        documents: [
+            "Current student ID if accepted",
+            "Current enrollment document if requested",
+        ],
+        warning:
+            "Verification providers set their own rules. Do not upload identity documents unless the official service requires them.",
+    },
+    {
+        id: "student-beans",
+        title: "Student Beans",
+        category: "Student perks",
+        officialUrl: "https://www.studentbeans.com/us",
+        fields: ["School", "School email", "Expected graduation date"],
+        documents: ["Current enrollment proof only when officially requested"],
+        warning:
+            "Offers and eligibility change. Confirm the final merchant price and renewal terms before buying.",
+    },
+    {
+        id: "github-education",
+        title: "GitHub Student Developer Pack",
+        category: "Student perks",
+        officialUrl: "https://education.github.com/pack",
+        fields: ["GitHub account", "School", "School email"],
+        documents: ["Current enrollment proof accepted by GitHub Education"],
+        warning:
+            "Review each partner offer separately. Some benefits expire or convert to paid plans.",
+    },
+    {
         id: "ny-health",
         title: "NY State of Health",
         category: "Healthcare",

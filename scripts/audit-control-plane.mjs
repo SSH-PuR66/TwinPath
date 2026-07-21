@@ -9,10 +9,16 @@ async function source(path) {
 
 const requiredFiles = [
     "supabase/v13-autonomous-operations.sql",
+    "supabase/v14-family-gallery-storage-fix.sql",
+    "supabase/v15-financial-integrations.sql",
     "workers/control-plane/wrangler.jsonc",
     "workers/control-plane/src/index.js",
     "workers/control-plane/src/persistence-v13.js",
     "workers/control-plane/src/policies.js",
+    "workers/control-plane/src/provider-mode.js",
+    "workers/control-plane/src/provider-persistence-v15.js",
+    "workers/control-plane/src/plaid.js",
+    "workers/control-plane/src/stripe.js",
     "src/OperationsControlPlane.jsx",
     "src/operationsCatalog.js",
 ];
@@ -67,6 +73,30 @@ for (const binding of ["AGENT_JOBS", '"crons"', '"observability"']) {
     if (!workerConfig.includes(binding)) {
         throw new Error(`Worker configuration is missing ${binding}.`);
     }
+}
+
+const financialMigration = contents.get(
+    "supabase/v15-financial-integrations.sql"
+);
+for (const table of [
+    "plaid_items",
+    "plaid_accounts",
+    "plaid_transactions",
+    "stripe_customers",
+    "provider_webhook_events",
+]) {
+    if (!financialMigration.includes(`public.${table}`)) {
+        throw new Error(`Financial migration is missing ${table}.`);
+    }
+}
+
+if (
+    !/PROVIDER_MODE"\s*:\s*"disabled"/u.test(workerConfig) ||
+    !/"ratelimits"/u.test(workerConfig)
+) {
+    throw new Error(
+        "Worker providers must deploy disabled with a rate-limit binding."
+    );
 }
 
 console.log("Autonomous operations audit passed.");

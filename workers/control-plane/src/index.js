@@ -1,7 +1,23 @@
 import { authenticate } from "./auth.js";
 import { enqueueDueSandboxRuns } from "./cron.js";
-import { assertObject, errorResponse, HttpError, json, options, readJson } from "./http.js";
+import {
+  assertObject,
+  enforceOrigin,
+  errorResponse,
+  HttpError,
+  json,
+  options,
+  readJson,
+} from "./http.js";
 import { log, logError } from "./log.js";
+import {
+  createPlaidLinkToken,
+  disconnectPlaid,
+  exchangePlaidPublicToken,
+  getPlaidAccounts,
+  handlePlaidWebhook,
+  syncPlaidTransactions,
+} from "./plaid.js";
 import {
   cancelRun,
   createArtifactSignedUrl,
@@ -13,6 +29,13 @@ import {
   pauseRun,
 } from "./persistence-v13.js";
 import { consumeAgentJobs } from "./queue.js";
+import { providerReadiness } from "./provider-mode.js";
+import { listStripeLifecycleEvents } from "./provider-persistence-v15.js";
+import {
+  createBillingPortalSession,
+  createCheckoutSession,
+  handleStripeWebhook,
+} from "./stripe.js";
 
 function routeMatch(pathname, pattern) {
   const match = pattern.exec(pathname);
@@ -36,6 +59,143 @@ async function enqueueRun(env, run) {
 
 async function handleAuthenticated(request, env, pathname) {
   const auth = await authenticate(request, env);
+  if (env.API_RATE_LIMITER) {
+    const routeFamily = pathname.split("/").slice(0, 4).join("/");
+    const { success } = await env.API_RATE_LIMITER.limit({
+      key: `${auth.user.id}:${routeFamily}`,
+    });
+    if (!success) {
+      throw new HttpError(429, "rate_limited", "Too many requests; try again shortly");
+    }
+  }
+
+  if (
+    request.method === "POST"
+    && ["/v1/plaid/link-token", "/v1/financial/plaid/link-token"].includes(pathname)
+  ) {
+    return json(request, env, await createPlaidLinkToken(request, env, auth));
+  }
+
+  if (
+    request.method === "POST"
+    && [
+      "/v1/plaid/public-token/exchange",
+      "/v1/plaid/exchange-public-token",
+      "/v1/financial/plaid/exchange",
+    ].includes(pathname)
+  ) {
+    return json(request, env, await exchangePlaidPublicToken(request, env, auth), { status: 201 });
+  }
+
+  if (request.method === "GET" && pathname === "/v1/plaid/accounts") {
+    return json(request, env, { accounts: await getPlaidAccounts(env, auth) });
+  }
+
+  if (request.method === "GET" && pathname === "/v1/financial/connections") {
+    const readiness = providerReadiness(env);
+    const accounts = readiness.plaid.ready ? await getPlaidAccounts(env, auth) : [];
+    const lifecycle = readiness.stripe.ready
+      ? await listStripeLifecycleEvents(env, auth)
+      : [];
+    const connections = [...accounts.reduce((items, account) => {
+      const item = account.plaid_items || {};
+      const key = account.plaid_item_id;
+      if (!items.has(key)) {
+        items.set(key, {
+          id: key,
+          provider: "plaid",
+          institution_name: item.institution_name || "Connected institution",
+          institution_id: item.institution_id || null,
+          status: item.status || "active",
+          last_synced_at: item.last_synced_at || null,
+          account_count: 0,
+        });
+      }
+      items.get(key).account_count += 1;
+      return items;
+    }, new Map()).values()];
+    return json(request, env, {
+      provider_mode: readiness.mode,
+      readiness: [
+        {
+          id: "plaid",
+          label: "Read-only bank data",
+          status: readiness.plaid.ready ? "ready" : "disabled",
+          message: readiness.plaid.ready
+            ? `${readiness.plaid.environment} credentials are ready.`
+            : "Plaid remains fail-closed until its mode and secrets are configured.",
+        },
+        {
+          id: "stripe",
+          label: "Stripe Billing",
+          status: readiness.stripe.ready ? "ready" : "disabled",
+          message: readiness.stripe.ready
+            ? "Stripe keys, webhook signing, and price allowlist are ready."
+            : "Stripe remains fail-closed until keys, webhook signing, and prices are configured.",
+        },
+      ],
+      connections,
+      billing: {
+        checkout_ready: readiness.stripe.ready,
+        portal_ready: readiness.stripe.ready,
+        lifecycle,
+      },
+    });
+  }
+
+  if (request.method === "POST" && pathname === "/v1/plaid/transactions/sync") {
+    return json(request, env, { sync: await syncPlaidTransactions(request, env, auth) });
+  }
+
+  if (request.method === "POST" && pathname === "/v1/plaid/disconnect") {
+    return json(request, env, await disconnectPlaid(request, env, auth));
+  }
+
+  const financialSync = routeMatch(
+    pathname,
+    /^\/v1\/financial\/connections\/([^/]+)\/sync$/,
+  );
+  if (request.method === "POST" && financialSync) {
+    const headers = new Headers(request.headers);
+    headers.set("content-type", "application/json");
+    const routedRequest = new Request(request.url, {
+      method: "POST",
+      body: JSON.stringify({ item_id: financialSync[0] }),
+      headers,
+    });
+    return json(request, env, {
+      sync: await syncPlaidTransactions(routedRequest, env, auth),
+    });
+  }
+
+  const financialDisconnect = routeMatch(
+    pathname,
+    /^\/v1\/financial\/connections\/([^/]+)$/,
+  );
+  if (request.method === "DELETE" && financialDisconnect) {
+    const headers = new Headers(request.headers);
+    headers.set("content-type", "application/json");
+    const routedRequest = new Request(request.url, {
+      method: "POST",
+      body: JSON.stringify({ item_id: financialDisconnect[0] }),
+      headers,
+    });
+    return json(request, env, await disconnectPlaid(routedRequest, env, auth));
+  }
+
+  if (
+    request.method === "POST"
+    && ["/v1/stripe/checkout", "/v1/billing/checkout"].includes(pathname)
+  ) {
+    return json(request, env, await createCheckoutSession(request, env, auth), { status: 201 });
+  }
+
+  if (
+    request.method === "POST"
+    && ["/v1/stripe/billing-portal", "/v1/billing/portal"].includes(pathname)
+  ) {
+    return json(request, env, await createBillingPortalSession(request, env, auth), { status: 201 });
+  }
 
   if (request.method === "GET" && ["/v1/bootstrap", "/v1/dashboard"].includes(pathname)) {
     const dashboard = await listDashboard(env, auth.household.id);
@@ -93,16 +253,35 @@ async function handleFetch(request, env) {
   const started = Date.now();
   try {
     if (request.method === "OPTIONS") return options(request, env);
+    enforceOrigin(request, env);
     if (request.method === "GET" && url.pathname === "/health") {
+      const providers = providerReadiness(env);
       return json(request, env, {
         ok: true,
-        service: "el-plan-control-plane",
-        mode: "sandbox",
+        service: "twinpath-control-plane",
+        mode: env.ENVIRONMENT || "sandbox",
         external_actions_enabled: false,
+        autonomous_runs: "sandbox_only",
+        providers,
       });
     }
-    if (env.ENVIRONMENT !== "sandbox") {
-      throw new HttpError(503, "sandbox_required", "This control plane is configured for sandbox operation only");
+    if (request.method === "POST" && url.pathname === "/v1/webhooks/plaid") {
+      const limited = env.API_RATE_LIMITER
+        ? await env.API_RATE_LIMITER.limit({ key: "webhook:plaid" })
+        : { success: true };
+      if (!limited.success) {
+        throw new HttpError(429, "rate_limited", "Webhook rate limit exceeded");
+      }
+      return json(request, env, await handlePlaidWebhook(request, env));
+    }
+    if (request.method === "POST" && url.pathname === "/v1/webhooks/stripe") {
+      const limited = env.API_RATE_LIMITER
+        ? await env.API_RATE_LIMITER.limit({ key: "webhook:stripe" })
+        : { success: true };
+      if (!limited.success) {
+        throw new HttpError(429, "rate_limited", "Webhook rate limit exceeded");
+      }
+      return json(request, env, await handleStripeWebhook(request, env));
     }
     const response = await handleAuthenticated(request, env, url.pathname);
     log("info", "http_request_completed", {

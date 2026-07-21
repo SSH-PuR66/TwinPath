@@ -29,12 +29,15 @@ only spending approval system. Do not deploy `supabase/wallet-schema.sql`.
 ## Setup
 
 1. Apply the existing SQL files in their documented order, ending with
-   `supabase/v13-autonomous-operations.sql`.
+   `supabase/v15-financial-integrations.sql`.
 2. Create the queue named `twinpath-agent-jobs`.
-3. In `workers/control-plane`, set Worker secrets with Wrangler:
-   - `SUPABASE_URL`
+3. In `workers/control-plane`, set Worker configuration and secrets with
+   Wrangler:
+   - `SUPABASE_URL` (non-secret variable)
    - `SUPABASE_ANON_KEY`
    - `SUPABASE_SERVICE_ROLE_KEY`
+   - provider secrets listed in
+     [financial-integrations.md](financial-integrations.md)
 4. Set `VITE_CONTROL_PLANE_URL` in the frontend environment to the Worker
    origin.
 5. Start the Worker with `npm run worker:dev` and the app with `npm run dev`.

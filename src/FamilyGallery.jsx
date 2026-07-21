@@ -24,6 +24,23 @@ const albums = [
     "Equipment",
 ];
 
+function galleryErrorMessage(error, action, fallback) {
+    const status = Number(error?.statusCode ?? error?.status);
+    const message = String(error?.message || "");
+    const isPermissionError =
+        status === 401 ||
+        status === 403 ||
+        /row-level security|permission denied|not authorized|unauthorized|forbidden|access denied|jwt/i.test(
+            message
+        );
+
+    if (isPermissionError) {
+        return `Gallery storage access needs repair before you can ${action}. Ask the app administrator to apply the latest storage update, then retry.`;
+    }
+
+    return message || fallback;
+}
+
 export default function FamilyGallery({
     householdId,
     currentUserId,
@@ -87,7 +104,13 @@ export default function FamilyGallery({
             .limit(24);
 
         if (queryError) {
-            setError(queryError.message);
+            setError(
+                galleryErrorMessage(
+                    queryError,
+                    "view this family gallery",
+                    "The family gallery could not be loaded."
+                )
+            );
             setPhotos([]);
             setLoading(false);
             return;
@@ -117,8 +140,11 @@ export default function FamilyGallery({
                         ...photo,
                         objectUrl: null,
                         imageError:
-                            downloadError?.message ||
-                            "Image download failed",
+                            galleryErrorMessage(
+                                downloadError,
+                                "view this family photo",
+                                "This family photo could not be loaded."
+                            ),
                     };
                 }
 
@@ -214,8 +240,11 @@ export default function FamilyGallery({
             }
 
             setError(
-                uploadError?.message ||
-                "The photo could not be uploaded."
+                galleryErrorMessage(
+                    uploadError,
+                    "upload photos to this family gallery",
+                    "The photo could not be uploaded."
+                )
             );
         } finally {
             setUploading(false);
@@ -231,7 +260,13 @@ export default function FamilyGallery({
                 .download(photo.storage_path);
 
         if (downloadError) {
-            setError(downloadError.message);
+            setError(
+                galleryErrorMessage(
+                    downloadError,
+                    "download this family photo",
+                    "The photo could not be downloaded."
+                )
+            );
             return;
         }
 
@@ -261,7 +296,13 @@ export default function FamilyGallery({
             .remove([photo.storage_path]);
 
         if (storageError) {
-            setError(storageError.message);
+            setError(
+                galleryErrorMessage(
+                    storageError,
+                    "delete this family photo",
+                    "The photo could not be deleted."
+                )
+            );
             return;
         }
 
@@ -272,7 +313,13 @@ export default function FamilyGallery({
             .eq("owner_user_id", currentUserId);
 
         if (metadataError) {
-            setError(metadataError.message);
+            setError(
+                galleryErrorMessage(
+                    metadataError,
+                    "delete this family photo",
+                    "The photo record could not be deleted."
+                )
+            );
             return;
         }
 

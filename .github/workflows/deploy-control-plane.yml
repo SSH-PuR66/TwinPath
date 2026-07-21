@@ -1,0 +1,37 @@
+name: Deploy control plane
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "workers/control-plane/**"
+      - "supabase/v14-family-gallery-storage-fix.sql"
+      - "supabase/v15-financial-integrations.sql"
+      - ".github/workflows/deploy-control-plane.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: twinpath-control-plane-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm run test:worker
+      - run: node scripts/validate-control-plane-deploy.mjs
+      - uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: deploy --config workers/control-plane/wrangler.jsonc

@@ -14,7 +14,8 @@
         "test:worker": "node --test workers/control-plane/test/*.test.js",
         "worker:dev": "wrangler dev --config workers/control-plane/wrangler.jsonc",
         "worker:types": "wrangler types --config workers/control-plane/wrangler.jsonc workers/control-plane/src/worker-configuration.d.ts",
-        "worker:dry-run": "wrangler deploy --dry-run --config workers/control-plane/wrangler.jsonc"
+        "worker:deploy:check": "node scripts/validate-control-plane-deploy.mjs",
+        "worker:dry-run": "npm run worker:deploy:check && wrangler deploy --dry-run --config workers/control-plane/wrangler.jsonc"
     },
     "dependencies": {
         "@react-three/drei": "^9.114.3",

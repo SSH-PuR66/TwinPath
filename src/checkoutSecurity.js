@@ -1,6 +1,8 @@
 const APPROVED_CHECKOUT_HOSTS = new Set([
     "gumroad.com",
     "www.gumroad.com",
+    "checkout.stripe.com",
+    "billing.stripe.com",
 ]);
 
 export function validateCheckoutUrl(value) {
@@ -16,9 +18,7 @@ export function validateCheckoutUrl(value) {
         const url = new URL(value.trim());
         const hostname = url.hostname.toLowerCase();
 
-        const approved =
-            APPROVED_CHECKOUT_HOSTS.has(hostname) ||
-            hostname.endsWith(".gumroad.com");
+        const approved = APPROVED_CHECKOUT_HOSTS.has(hostname);
 
         if (url.protocol !== "https:") {
             return {

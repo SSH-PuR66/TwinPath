@@ -39,4 +39,17 @@ wire any new wallet UI to `spend_proposals` + `review_spend_proposal`.
 
 ## Storage
 Buckets `vault` and `family-gallery` both exist, both private, both with
-INSERT/SELECT/DELETE RLS policies. Healthy.
+INSERT/SELECT/DELETE RLS policies.
+
+On 2026-07-21 the Family Gallery download path returned
+`permission denied for function can_access_document_path`, indicating live
+policy/grant drift. Apply `supabase/v14-family-gallery-storage-fix.sql`; it
+restores the required helper grants and recreates the gallery policies with
+`can_read_family_photo_path`.
+
+## Financial integrations
+
+Apply `supabase/v15-financial-integrations.sql` before enabling Plaid or
+Stripe provider routes. Provider credentials remain encrypted and inaccessible
+to browser roles. M&T Bank and Chime synchronization is read-only through
+Plaid; the integration does not support transfers or automated spending.

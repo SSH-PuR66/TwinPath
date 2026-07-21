@@ -49,19 +49,12 @@ import AnimatedPage from "./AnimatedPage";
 import RevenueAllocator from "./RevenueAllocator";
 import FeatureLoader from "./FeatureLoader";
 import { safeExternalUrl } from "./safeUrl";
-import { motion } from "framer-motion";
 
 const CalendarView = lazy(() => import("./CalendarView.jsx"));
 const FamilyGallery = lazy(() => import("./FamilyGallery.jsx"));
 const FamilySavings = lazy(() => import("./FamilySavings.jsx"));
 const FamilyWorkspace = lazy(() => import("./FamilyWorkspace.jsx"));
-const FinancialHub = lazy(() => import("./FinancialHub.jsx"));
-const OpportunityImporter = lazy(() => import("./OpportunityImporter.jsx"));
-const ExperimentBudget = lazy(() => import("./ExperimentBudget.jsx"));
-const ConnectorCenter = lazy(() => import("./ConnectorCenter.jsx"));
-const OperationsControlPlane = lazy(
-    () => import("./OperationsControlPlane.jsx")
-);
+const GrowWorkspace = lazy(() => import("./GrowWorkspace.jsx"));
 
 const moneyFormatter = new Intl.NumberFormat("en-US", {
     style: "currency",
@@ -601,6 +594,7 @@ function TodayTab({
     appointments,
     balance,
     privateMode,
+    reducedMotion,
     setTaskModal,
     toggleTask,
 }) {
@@ -674,7 +668,7 @@ function TodayTab({
                     value={
                         privateMode
                             ? "••••••"
-                            : <AnimatedMoney value={balance} />
+                            : <AnimatedMoney value={balance} reducedMotion={reducedMotion} />
                     }
                     detail="Income minus expenses"
                 />
@@ -2577,7 +2571,11 @@ export default function App() {
                 "--accent-2": themes[themeKey]?.accent2,
             }}
         >
-            <ThemeScene themeKey={themeKey} reducedMotion={reducedMotion} />
+            <ThemeScene
+                themeKey={themeKey}
+                reducedMotion={reducedMotion}
+                privateMode={privateMode}
+            />
 
             <div className="app-layer">
                 <NetworkStatus />
@@ -2612,6 +2610,7 @@ export default function App() {
                             appointments={appointments}
                             balance={balance}
                             privateMode={privateMode}
+                            reducedMotion={reducedMotion}
                             setTaskModal={setTaskModal}
                             toggleTask={toggleTask}
                         />
@@ -2699,44 +2698,19 @@ export default function App() {
                                 <FeatureLoader label="Opening Growth Center…" />
                             }
                         >
-                            <div className="page-stack">
-                                <OperationsControlPlane
-                                    householdId={household.id}
-                                    currentUserId={session.user.id}
-                                    privateMode={privateMode}
-                                />
-
-                                <FinancialHub
-                                    privateMode={privateMode}
-                                    onLogTransaction={() =>
-                                        setTransactionModal(true)
-                                    }
-                                    onAddOpportunity={(route) => {
-                                        setOpportunityDraft(
-                                            route || null
-                                        );
-
-                                        setOpportunityModal(true);
-                                    }}
-                                />
-
-                                <OpportunityImporter
-                                    householdId={household.id}
-                                    currentUserId={session.user.id}
-                                    onImported={loadData}
-                                />
-
-                                <ExperimentBudget
-                                    householdId={household.id}
-                                    currentUserId={session.user.id}
-                                    privateMode={privateMode}
-                                />
-
-                                <ConnectorCenter
-                                    householdId={household.id}
-                                    currentUserId={session.user.id}
-                                />
-                            </div>
+                            <GrowWorkspace
+                                householdId={household.id}
+                                currentUserId={session.user.id}
+                                transactions={transactions}
+                                privateMode={privateMode}
+                                reducedMotion={reducedMotion}
+                                onLogTransaction={() => setTransactionModal(true)}
+                                onAddOpportunity={(route) => {
+                                    setOpportunityDraft(route || null);
+                                    setOpportunityModal(true);
+                                }}
+                                onImported={loadData}
+                            />
                         </Suspense>
                     )}
 

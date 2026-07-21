@@ -6,7 +6,7 @@ const moneyFormatter = new Intl.NumberFormat("en-US", {
     currency: "USD",
 });
 
-export function AnimatedMoney({ value, hidden = false }) {
+export function AnimatedMoney({ value, hidden = false, reducedMotion = false }) {
     const motionValue = useMotionValue(0);
 
     const display = useTransform(motionValue, (current) =>
@@ -14,13 +14,18 @@ export function AnimatedMoney({ value, hidden = false }) {
     );
 
     useEffect(() => {
+        if (hidden || reducedMotion) {
+            motionValue.set(Number(value) || 0);
+            return undefined;
+        }
+
         const controls = animate(motionValue, value, {
             duration: 0.65,
             ease: "easeOut",
         });
 
         return controls.stop;
-    }, [motionValue, value]);
+    }, [hidden, motionValue, reducedMotion, value]);
 
     if (hidden) return <span>••••••</span>;
 

@@ -24,11 +24,21 @@ function allowedOrigin(request, env) {
   return configured.includes(origin) ? origin : null;
 }
 
+export function enforceOrigin(request, env) {
+  const origin = request.headers.get("origin");
+  if (origin && !allowedOrigin(request, env)) {
+    throw new HttpError(403, "origin_denied", "Origin is not allowed");
+  }
+}
+
+const CORS_METHODS = ["GET", "POST", "DELETE", "OPTIONS"];
+const CORS_HEADERS = ["authorization", "content-type", "x-household-id"];
+
 export function corsHeaders(request, env) {
   const origin = allowedOrigin(request, env);
   return {
     ...(origin ? { "access-control-allow-origin": origin, vary: "Origin" } : {}),
-    "access-control-allow-methods": "GET, POST, OPTIONS",
+    "access-control-allow-methods": CORS_METHODS.join(", "),
     "access-control-allow-headers": "Authorization, Content-Type, X-Household-Id",
     "access-control-max-age": "86400",
   };
@@ -76,10 +86,23 @@ export async function readJson(request, maxBytes = 65_536) {
     throw new HttpError(413, "payload_too_large", "JSON body is too large");
   }
 
-  if (!request.body) {
-    throw new HttpError(400, "invalid_json", "A JSON body is required");
+  const bytes = await readBytes(request, maxBytes);
+  try {
+    return JSON.parse(new TextDecoder().decode(bytes));
+  } catch {
+    throw new HttpError(400, "invalid_json", "Body must contain valid JSON");
   }
+}
 
+export async function readBytes(request, maxBytes) {
+  const declaredHeader = request.headers.get("content-length");
+  const declared = declaredHeader === null ? 0 : Number(declaredHeader);
+  if (!Number.isFinite(declared) || declared < 0 || declared > maxBytes) {
+    throw new HttpError(413, "payload_too_large", "Request body is too large");
+  }
+  if (!request.body) {
+    throw new HttpError(400, "body_required", "A request body is required");
+  }
   const reader = request.body.getReader();
   const chunks = [];
   let length = 0;
@@ -89,7 +112,7 @@ export async function readJson(request, maxBytes = 65_536) {
     length += value.byteLength;
     if (length > maxBytes) {
       await reader.cancel("payload too large");
-      throw new HttpError(413, "payload_too_large", "JSON body is too large");
+      throw new HttpError(413, "payload_too_large", "Request body is too large");
     }
     chunks.push(value);
   }
@@ -101,11 +124,7 @@ export async function readJson(request, maxBytes = 65_536) {
     offset += chunk.byteLength;
   }
 
-  try {
-    return JSON.parse(new TextDecoder().decode(bytes));
-  } catch {
-    throw new HttpError(400, "invalid_json", "Body must contain valid JSON");
-  }
+  return bytes;
 }
 
 export function assertObject(value) {
@@ -119,6 +138,17 @@ export function options(request, env) {
   const origin = request.headers.get("origin");
   if (origin && !allowedOrigin(request, env)) {
     return json(request, env, { error: { code: "origin_denied", message: "Origin is not allowed" } }, { status: 403 });
+  }
+  const requestedMethod = request.headers.get("access-control-request-method");
+  if (requestedMethod && !CORS_METHODS.includes(requestedMethod.toUpperCase())) {
+    return json(request, env, { error: { code: "cors_method_denied", message: "CORS method is not allowed" } }, { status: 403 });
+  }
+  const requestedHeaders = (request.headers.get("access-control-request-headers") || "")
+    .split(",")
+    .map((value) => value.trim().toLowerCase())
+    .filter(Boolean);
+  if (requestedHeaders.some((header) => !CORS_HEADERS.includes(header))) {
+    return json(request, env, { error: { code: "cors_headers_denied", message: "CORS headers are not allowed" } }, { status: 403 });
   }
   return new Response(null, { status: 204, headers: corsHeaders(request, env) });
 }

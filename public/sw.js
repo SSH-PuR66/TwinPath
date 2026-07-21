@@ -1,4 +1,4 @@
-const CACHE = "twinpath-shell-v3";
+const CACHE = "twinpath-shell-v4";
 const SHELL = ["/", "/manifest.webmanifest", "/icon.svg"];
 
 self.addEventListener("install", (event) => {
@@ -32,14 +32,17 @@ self.addEventListener("fetch", (event) => {
 
     const url = new URL(request.url);
 
-    // Never cache cross-origin responses (Supabase API, checkout
-    // provider). Caching API responses would persist private account
-    // data in Cache Storage and serve stale data offline.
+    // Never cache cross-origin responses (Supabase API, control-plane
+    // Worker, Plaid, Stripe, checkout providers). Caching API responses
+    // would persist private account data in Cache Storage.
     if (url.origin !== self.location.origin) return;
 
     if (
         url.pathname.startsWith("/api/operations") ||
-        url.pathname.startsWith("/api/control-plane")
+        url.pathname.startsWith("/api/control-plane") ||
+        url.pathname.startsWith("/api/financial") ||
+        url.pathname.startsWith("/v1/") ||
+        url.pathname.startsWith("/webhooks")
     ) {
         return;
     }
