@@ -202,7 +202,7 @@ small {
 .content {
     width: 100%;
     padding:
-        1rem max(1rem, env(safe-area-inset-left)) calc(7.5rem + env(safe-area-inset-bottom)) max(1rem, env(safe-area-inset-right));
+        1rem max(1rem, env(safe-area-inset-right)) calc(7.5rem + env(safe-area-inset-bottom)) max(1rem, env(safe-area-inset-left));
 }
 
 .page-stack {
