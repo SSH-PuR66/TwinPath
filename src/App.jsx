@@ -54,6 +54,7 @@ import { motion } from "framer-motion";
 const CalendarView = lazy(() => import("./CalendarView.jsx"));
 const FamilyGallery = lazy(() => import("./FamilyGallery.jsx"));
 const FamilySavings = lazy(() => import("./FamilySavings.jsx"));
+const FamilyWorkspace = lazy(() => import("./FamilyWorkspace.jsx"));
 const FinancialHub = lazy(() => import("./FinancialHub.jsx"));
 const OpportunityImporter = lazy(() => import("./OpportunityImporter.jsx"));
 const ExperimentBudget = lazy(() => import("./ExperimentBudget.jsx"));
@@ -2651,44 +2652,39 @@ export default function App() {
                                     householdId={household.id}
                                     currentUserId={session.user.id}
                                     privateMode={privateMode}
-                                    setAppointmentModal={setAppointmentModal}
-                                    setAppointmentDraftDate={
-                                        typeof setAppointmentDraftDate === "function"
-                                            ? setAppointmentDraftDate
-                                            : undefined
+                                    setAppointmentModal={
+                                        setAppointmentModal
                                     }
                                     deleteAppointment={(item) =>
-                                        deleteRecord("appointments", item)
+                                        deleteRecord(
+                                            "appointments",
+                                            item
+                                        )
                                     }
                                 />
 
-                                <CalendarView
+                                <FamilyWorkspace
                                     appointments={appointments}
+                                    householdId={household.id}
                                     currentUserId={session.user.id}
-                                    onAdd={(selectedDate) => {
-                                        if (
-                                            selectedDate &&
-                                            typeof setAppointmentDraftDate === "function"
-                                        ) {
-                                            setAppointmentDraftDate(selectedDate);
+                                    privateMode={privateMode}
+                                    onAddAppointment={(
+                                        selectedDate
+                                    ) => {
+                                        if (selectedDate) {
+                                            setAppointmentDraftDate(
+                                                selectedDate
+                                            );
                                         }
 
                                         setAppointmentModal(true);
                                     }}
-                                    onDelete={(item) =>
-                                        deleteRecord("appointments", item)
+                                    onDeleteAppointment={(item) =>
+                                        deleteRecord(
+                                            "appointments",
+                                            item
+                                        )
                                     }
-                                />
-
-                                <FamilySavings
-                                    householdId={household.id}
-                                    currentUserId={session.user.id}
-                                    privateMode={privateMode}
-                                />
-
-                                <FamilyGallery
-                                    householdId={household.id}
-                                    currentUserId={session.user.id}
                                 />
                             </div>
                         </Suspense>
@@ -2707,11 +2703,9 @@ export default function App() {
                                         setTransactionModal(true)
                                     }
                                     onAddOpportunity={(route) => {
-                                        if (
-                                            typeof setOpportunityDraft === "function"
-                                        ) {
-                                            setOpportunityDraft(route || null);
-                                        }
+                                        setOpportunityDraft(
+                                            route || null
+                                        );
 
                                         setOpportunityModal(true);
                                     }}
@@ -2720,9 +2714,7 @@ export default function App() {
                                 <OpportunityImporter
                                     householdId={household.id}
                                     currentUserId={session.user.id}
-                                    onImported={async () => {
-                                        await loadData();
-                                    }}
+                                    onImported={loadData}
                                 />
 
                                 <ExperimentBudget
