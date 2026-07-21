@@ -2112,6 +2112,22 @@ textarea {
   }
 }
 
+/* =========================================================
+   FEATURE LOADER STYLES
+   ========================================================= */
+
+.feature-loader {
+  display: grid;
+  min-height: 190px;
+  padding: 1rem;
+  place-content: center;
+  justify-items: center;
+  gap: 0.65rem;
+  color: var(--muted);
+  text-align: center;
+}
+
+
 
 
 

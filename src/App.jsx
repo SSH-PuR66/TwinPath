@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import {
     Baby,
     Bell,
@@ -47,15 +47,17 @@ import NetworkStatus from "./NetworkStatus";
 import { AnimatedMoney } from "./AnimatedMoney";
 import AnimatedPage from "./AnimatedPage";
 import RevenueAllocator from "./RevenueAllocator";
-import FamilyGallery from "./FamilyGallery";
-import CalendarView from "./CalendarView";
-import FamilySavings from "./FamilySavings";
-import FinancialHub from "./FinancialHub";
-import ConnectorCenter from "./ConnectorCenter";
-import ExperimentBudget from "./ExperimentBudget";
-import OpportunityImporter from "./OpportunityImporter";
+import FeatureLoader from "./FeatureLoader";
 import { safeExternalUrl } from "./safeUrl";
 import { motion } from "framer-motion";
+
+const CalendarView = lazy(() => import("./CalendarView.jsx"));
+const FamilyGallery = lazy(() => import("./FamilyGallery.jsx"));
+const FamilySavings = lazy(() => import("./FamilySavings.jsx"));
+const FinancialHub = lazy(() => import("./FinancialHub.jsx"));
+const OpportunityImporter = lazy(() => import("./OpportunityImporter.jsx"));
+const ExperimentBudget = lazy(() => import("./ExperimentBudget.jsx"));
+const ConnectorCenter = lazy(() => import("./ConnectorCenter.jsx"));
 
 const moneyFormatter = new Intl.NumberFormat("en-US", {
     style: "currency",
@@ -1676,10 +1678,10 @@ function TransactionModal({ onClose, onSave }) {
     );
 }
 
-function AppointmentModal({ onClose, onSave }) {
+function AppointmentModal({ initialDate, onClose, onSave }) {
     const [form, setForm] = useState({
         title: "",
-        starts_at: "",
+        starts_at: initialDate ? `${initialDate}T09:00` : "",
         location: "",
         notes: "",
         visibility: "shared",
@@ -2121,6 +2123,7 @@ export default function App() {
     const [taskModal, setTaskModal] = useState(false);
     const [transactionModal, setTransactionModal] = useState(false);
     const [appointmentModal, setAppointmentModal] = useState(false);
+    const [appointmentDraftDate, setAppointmentDraftDate] = useState(null);
     const [opportunityModal, setOpportunityModal] = useState(false);
     const [opportunityDraft, setOpportunityDraft] = useState(null);
     const [settingsOpen, setSettingsOpen] = useState(false);
@@ -2637,62 +2640,100 @@ export default function App() {
                     )}
 
                     {tab === "family" && (
-                        <div className="page-stack">
-                            <FamilyTab
-                                appointments={appointments}
-                                setAppointmentModal={setAppointmentModal}
-                                deleteAppointment={(item) =>
-                                    deleteRecord("appointments", item)
-                                }
-                            />
+                        <Suspense
+                            fallback={
+                                <FeatureLoader label="Opening Family Hub…" />
+                            }
+                        >
+                            <div className="page-stack">
+                                <FamilyTab
+                                    appointments={appointments}
+                                    householdId={household.id}
+                                    currentUserId={session.user.id}
+                                    privateMode={privateMode}
+                                    setAppointmentModal={setAppointmentModal}
+                                    setAppointmentDraftDate={
+                                        typeof setAppointmentDraftDate === "function"
+                                            ? setAppointmentDraftDate
+                                            : undefined
+                                    }
+                                    deleteAppointment={(item) =>
+                                        deleteRecord("appointments", item)
+                                    }
+                                />
 
-                            <CalendarView
-                                appointments={appointments}
-                                currentUserId={session.user.id}
-                                onAdd={() => setAppointmentModal(true)}
-                                onDelete={(item) =>
-                                    deleteRecord("appointments", item)
-                                }
-                            />
+                                <CalendarView
+                                    appointments={appointments}
+                                    currentUserId={session.user.id}
+                                    onAdd={(selectedDate) => {
+                                        if (
+                                            selectedDate &&
+                                            typeof setAppointmentDraftDate === "function"
+                                        ) {
+                                            setAppointmentDraftDate(selectedDate);
+                                        }
 
-                            <FamilySavings
-                                householdId={household.id}
-                                currentUserId={session.user.id}
-                                privateMode={privateMode}
-                            />
+                                        setAppointmentModal(true);
+                                    }}
+                                    onDelete={(item) =>
+                                        deleteRecord("appointments", item)
+                                    }
+                                />
 
-                            <FamilyGallery
-                                householdId={household.id}
-                                currentUserId={session.user.id}
-                            />
-                        </div>
+                                <FamilySavings
+                                    householdId={household.id}
+                                    currentUserId={session.user.id}
+                                    privateMode={privateMode}
+                                />
+
+                                <FamilyGallery
+                                    householdId={household.id}
+                                    currentUserId={session.user.id}
+                                />
+                            </div>
+                        </Suspense>
                     )}
 
                     {tab === "grow" && (
-                        <div className="page-stack">
-                            <FinancialHub
-                                privateMode={privateMode}
-                                onLogTransaction={() => setTransactionModal(true)}
-                                onAddOpportunity={(route) => {
-                                    setOpportunityDraft(route || null);
-                                    setOpportunityModal(true);
-                                }}
-                            />
+                        <Suspense
+                            fallback={
+                                <FeatureLoader label="Opening Growth Center…" />
+                            }
+                        >
+                            <div className="page-stack">
+                                <FinancialHub
+                                    privateMode={privateMode}
+                                    onLogTransaction={() =>
+                                        setTransactionModal(true)
+                                    }
+                                    onAddOpportunity={(route) => {
+                                        if (
+                                            typeof setOpportunityDraft === "function"
+                                        ) {
+                                            setOpportunityDraft(route || null);
+                                        }
 
-                            <OpportunityImporter
-                                householdId={household.id}
-                                currentUserId={session.user.id}
-                                onImported={loadData}
-                            />
+                                        setOpportunityModal(true);
+                                    }}
+                                />
 
-                            <ExperimentBudget
-                                householdId={household.id}
-                                currentUserId={session.user.id}
-                                privateMode={privateMode}
-                            />
+                                <OpportunityImporter
+                                    householdId={household.id}
+                                    currentUserId={session.user.id}
+                                    onImported={async () => {
+                                        await loadData();
+                                    }}
+                                />
 
-                            <ConnectorCenter />
-                        </div>
+                                <ExperimentBudget
+                                    householdId={household.id}
+                                    currentUserId={session.user.id}
+                                    privateMode={privateMode}
+                                />
+
+                                <ConnectorCenter />
+                            </div>
+                        </Suspense>
                     )}
 
                     {tab === "vault" && (
@@ -2741,7 +2782,11 @@ export default function App() {
 
             {appointmentModal && (
                 <AppointmentModal
-                    onClose={() => setAppointmentModal(false)}
+                    initialDate={appointmentDraftDate}
+                    onClose={() => {
+                        setAppointmentModal(false);
+                        setAppointmentDraftDate(null);
+                    }}
                     onSave={saveAppointment}
                 />
             )}
