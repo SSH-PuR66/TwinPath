@@ -31,34 +31,12 @@ const ALLOWED_FIELDS = new Set([
     "risks",
 ]);
 
-const REQUIRED_STRING_FIELDS = [
-    "title",
-    "hypothesis",
-    "targetCustomer",
-    "offer",
-];
-
-const PRIVATE_OR_LOCAL_HOST_PATTERNS = [
-    /^localhost$/i,
-    /^127\./,
-    /^0\./,
-    /^10\./,
-    /^192\.168\./,
-    /^169\.254\./,
-    /^172\.(1[6-9]|2\d|3[01])\./,
-    /^::1$/i,
-    /^fc[0-9a-f]{2}:/i,
-    /^fd[0-9a-f]{2}:/i,
-    /\.local$/i,
-    /\.internal$/i,
-];
-
 const SAMPLE_PROPOSAL = {
     title: "Authorized cyber lab evidence pack",
     hypothesis:
         "Cybersecurity students may pay for an original system that helps them organize authorized lab notes, screenshots, findings, remediation, and portfolio-safe summaries.",
     targetCustomer:
-        "First- and second-year cybersecurity students completing authorized labs",
+        "Cybersecurity students completing authorized labs",
     offer:
         "An original editable evidence register, screenshot index, finding template, redaction checklist, and portfolio publishing workflow.",
     estimatedCost: 0,
@@ -75,7 +53,7 @@ const SAMPLE_PROPOSAL = {
     risks: [
         "Demand has not yet been verified.",
         "The product must contain only original material.",
-        "Users must test only systems for which they have explicit authorization.",
+        "Users must test only systems they are authorized to test.",
     ],
 };
 
@@ -96,16 +74,14 @@ function isPlainObject(value) {
     );
 }
 
-function removeMarkdownCodeFence(value) {
+function stripMarkdownFence(value) {
     const trimmed = String(value || "").trim();
 
-    const fencedMatch = trimmed.match(
+    const match = trimmed.match(
         /^```(?:json)?\s*([\s\S]*?)\s*```$/i
     );
 
-    return fencedMatch
-        ? fencedMatch[1].trim()
-        : trimmed;
+    return match ? match[1].trim() : trimmed;
 }
 
 function cleanText(value, maximumLength) {
@@ -117,93 +93,99 @@ function cleanText(value, maximumLength) {
 }
 
 function requireText(input, field, maximumLength) {
-    if (
-        typeof input[field] !== "string" ||
-        !input[field].trim()
-    ) {
+    const result = cleanText(
+        input[field],
+        maximumLength
+    );
+
+    if (!result) {
         throw new Error(
             `Missing or invalid required field: ${field}`
         );
     }
 
-    return cleanText(input[field], maximumLength);
+    return result;
 }
 
 function optionalText(value, maximumLength) {
     const result = cleanText(value, maximumLength);
-
     return result || null;
 }
 
-function finiteNumber(
+function validateNumber(
     value,
     {
         field,
         minimum = 0,
-        maximum = Number.MAX_SAFE_INTEGER,
+        maximum,
         integer = false,
     }
 ) {
     if (
-        value === "" ||
+        value === undefined ||
         value === null ||
-        value === undefined
+        value === ""
     ) {
         return 0;
     }
 
-    const result = Number(value);
+    const number = Number(value);
 
-    if (!Number.isFinite(result)) {
-        throw new Error(`${field} must be a valid number.`);
+    if (!Number.isFinite(number)) {
+        throw new Error(
+            `${field} must be a valid number.`
+        );
     }
 
-    if (result < minimum || result > maximum) {
+    if (
+        number < minimum ||
+        number > maximum
+    ) {
         throw new Error(
             `${field} must be between ${minimum} and ${maximum}.`
         );
     }
 
-    return integer ? Math.round(result) : result;
-}
-
-function isPrivateOrLocalHostname(hostname) {
-    return PRIVATE_OR_LOCAL_HOST_PATTERNS.some((pattern) =>
-        pattern.test(hostname)
-    );
+    return integer ? Math.round(number) : number;
 }
 
 function normalizeSourceUrl(value) {
-    if (typeof value !== "string") {
-        return null;
-    }
-
-    const safeUrl = safeExternalUrl(value, {
+    const url = safeExternalUrl(value, {
         allowLocalHttp: false,
     });
 
-    if (!safeUrl) {
-        return null;
-    }
+    if (!url) return null;
 
     try {
-        const url = new URL(safeUrl);
+        const parsed = new URL(url);
 
-        if (url.protocol !== "https:") {
+        if (
+            parsed.protocol !== "https:" ||
+            parsed.username ||
+            parsed.password
+        ) {
             return null;
         }
 
-        if (url.username || url.password) {
-            return null;
-        }
+        const hostname =
+            parsed.hostname.toLowerCase();
 
-        if (isPrivateOrLocalHostname(url.hostname)) {
-            return null;
-        }
+        const blocked =
+            hostname === "localhost" ||
+            hostname === "127.0.0.1" ||
+            hostname.endsWith(".local") ||
+            hostname.endsWith(".internal") ||
+            /^10\./.test(hostname) ||
+            /^192\.168\./.test(hostname) ||
+            /^172\.(1[6-9]|2\d|3[01])\./.test(
+                hostname
+            );
 
-        url.hash = "";
+        if (blocked) return null;
 
-        return url.toString();
+        parsed.hash = "";
+
+        return parsed.toString();
     } catch {
         return null;
     }
@@ -215,27 +197,28 @@ function normalizeSourceUrls(value) {
     }
 
     if (!Array.isArray(value)) {
-        throw new Error("sourceUrls must be an array.");
+        throw new Error(
+            "sourceUrls must be an array."
+        );
     }
 
-    const suppliedValues = value.slice(0, 20);
+    const supplied = value.slice(0, 20);
 
-    const validUrls = suppliedValues
-        .map(normalizeSourceUrl)
-        .filter(Boolean);
+    const valid = [
+        ...new Set(
+            supplied
+                .map(normalizeSourceUrl)
+                .filter(Boolean)
+        ),
+    ];
 
-    const uniqueUrls = [...new Set(validUrls)];
-
-    if (
-        suppliedValues.length > 0 &&
-        uniqueUrls.length === 0
-    ) {
+    if (supplied.length && !valid.length) {
         throw new Error(
             "No valid public HTTPS source URLs were provided."
         );
     }
 
-    return uniqueUrls;
+    return valid;
 }
 
 function normalizeRisks(value) {
@@ -250,25 +233,14 @@ function normalizeRisks(value) {
     return [
         ...new Set(
             value
-                .filter((item) => typeof item === "string")
+                .filter(
+                    (item) => typeof item === "string"
+                )
                 .map((item) => cleanText(item, 500))
                 .filter(Boolean)
                 .slice(0, 20)
         ),
     ];
-}
-
-function validateKnownFields(input) {
-    const unknownFields = Object.keys(input).filter(
-        (field) => !ALLOWED_FIELDS.has(field)
-    );
-
-    if (unknownFields.length) {
-        throw new Error(
-            `Unsupported field${unknownFields.length === 1 ? "" : "s"
-            }: ${unknownFields.join(", ")}`
-        );
-    }
 }
 
 function validateProposal(input) {
@@ -278,66 +250,43 @@ function validateProposal(input) {
         );
     }
 
-    validateKnownFields(input);
+    const unknownFields = Object.keys(
+        input
+    ).filter(
+        (field) => !ALLOWED_FIELDS.has(field)
+    );
 
-    for (const field of REQUIRED_STRING_FIELDS) {
-        if (
-            typeof input[field] !== "string" ||
-            !input[field].trim()
-        ) {
-            throw new Error(
-                `Missing or invalid required field: ${field}`
-            );
-        }
+    if (unknownFields.length) {
+        throw new Error(
+            `Unsupported field${unknownFields.length === 1 ? "" : "s"
+            }: ${unknownFields.join(", ")}`
+        );
     }
 
-    const estimatedCost = finiteNumber(
-        input.estimatedCost,
-        {
-            field: "estimatedCost",
-            minimum: 0,
-            maximum: 10,
-        }
-    );
-
-    const expectedPrice = finiteNumber(
-        input.expectedPrice,
-        {
-            field: "expectedPrice",
-            minimum: 0,
-            maximum: 100_000,
-        }
-    );
-
-    const estimatedHours = finiteNumber(
-        input.estimatedHours,
-        {
-            field: "estimatedHours",
-            minimum: 0,
-            maximum: 10_000,
-        }
-    );
-
-    const score = finiteNumber(input.score, {
-        field: "score",
-        minimum: 0,
-        maximum: 100,
-        integer: true,
-    });
-
     return {
-        title: requireText(input, "title", 180),
+        title: requireText(
+            input,
+            "title",
+            180
+        ),
+
         hypothesis: requireText(
             input,
             "hypothesis",
             3000
         ),
+
         target_customer: requireText(
             input,
             "targetCustomer",
             500
         ),
-        offer: requireText(input, "offer", 2000),
+
+        offer: requireText(
+            input,
+            "offer",
+            2000
+        ),
 
         validation_method: optionalText(
             input.validationMethod,
@@ -354,9 +303,39 @@ function validateProposal(input) {
             1000
         ),
 
-        estimated_hours: estimatedHours,
-        estimated_cost: estimatedCost,
-        expected_price: expectedPrice,
+        estimated_cost: validateNumber(
+            input.estimatedCost,
+            {
+                field: "estimatedCost",
+                minimum: 0,
+                maximum: 10,
+            }
+        ),
+
+        expected_price: validateNumber(
+            input.expectedPrice,
+            {
+                field: "expectedPrice",
+                minimum: 0,
+                maximum: 100_000,
+            }
+        ),
+
+        estimated_hours: validateNumber(
+            input.estimatedHours,
+            {
+                field: "estimatedHours",
+                minimum: 0,
+                maximum: 10_000,
+            }
+        ),
+
+        score: validateNumber(input.score, {
+            field: "score",
+            minimum: 0,
+            maximum: 100,
+            integer: true,
+        }),
 
         source_urls: normalizeSourceUrls(
             input.sourceUrls
@@ -364,7 +343,6 @@ function validateProposal(input) {
 
         risks: normalizeRisks(input.risks),
 
-        score,
         status: "proposed",
         visibility: "private",
     };
@@ -375,54 +353,40 @@ function explainSupabaseError(error) {
         error?.message ||
         "The opportunity could not be imported.";
 
-    const normalizedMessage = message.toLowerCase();
+    const normalized = message.toLowerCase();
 
     if (
-        normalizedMessage.includes(
+        normalized.includes("schema cache") ||
+        normalized.includes(
             "could not find the table"
-        ) &&
-        normalizedMessage.includes(
-            "business_experiments"
         )
     ) {
         return (
-            "The Opportunity Lab database migration is missing. " +
-            "Run supabase/v5-opportunity-lab.sql in the connected " +
-            "Supabase project, then reload the schema."
+            "The Opportunity Lab table is unavailable. " +
+            "Run supabase/v5-opportunity-lab.sql, then run: " +
+            "notify pgrst, 'reload schema';"
         );
     }
 
     if (
-        normalizedMessage.includes("schema cache") &&
-        normalizedMessage.includes(
-            "business_experiments"
-        )
-    ) {
-        return (
-            "Supabase has not loaded the Opportunity Lab schema. " +
-            "Run: notify pgrst, 'reload schema';"
-        );
-    }
-
-    if (
-        normalizedMessage.includes(
+        normalized.includes(
             "row-level security"
         )
     ) {
         return (
-            "Supabase rejected the import under its privacy policy. " +
-            "Confirm that this account belongs to the household and " +
-            "that the Opportunity Lab RLS policies are installed."
+            "Supabase rejected this import under its privacy rules. " +
+            "Confirm the account belongs to the household and that " +
+            "the Opportunity Lab RLS policies are installed."
         );
     }
 
     if (
-        normalizedMessage.includes(
+        normalized.includes(
             "violates check constraint"
         )
     ) {
         return (
-            "The proposal contains a value outside the database limits. " +
+            "A proposal value exceeds the database limits. " +
             "Review its cost, price, hours, score, and text lengths."
         );
     }
@@ -430,13 +394,14 @@ function explainSupabaseError(error) {
     return message;
 }
 
-function proposalFingerprint(proposal) {
-    return JSON.stringify({
-        title: proposal.title.toLowerCase(),
-        target_customer:
-            proposal.target_customer.toLowerCase(),
-        offer: proposal.offer.toLowerCase(),
-    });
+async function readClipboard() {
+    if (!navigator.clipboard?.readText) {
+        throw new Error(
+            "Clipboard reading is unavailable. Paste the JSON manually."
+        );
+    }
+
+    return navigator.clipboard.readText();
 }
 
 export default function OpportunityImporter({
@@ -444,14 +409,19 @@ export default function OpportunityImporter({
     currentUserId,
     onImported,
 }) {
-    const [jsonText, setJsonText] = useState("");
-    const [busy, setBusy] = useState(false);
-    const [message, setMessage] = useState("");
-    const [error, setError] = useState("");
+    const [jsonText, setJsonText] =
+        useState("");
 
-    const characterCount = jsonText.length;
+    const [busy, setBusy] =
+        useState(false);
 
-    const parsedPreview = useMemo(() => {
+    const [message, setMessage] =
+        useState("");
+
+    const [error, setError] =
+        useState("");
+
+    const preview = useMemo(() => {
         if (!jsonText.trim()) {
             return {
                 valid: false,
@@ -460,89 +430,80 @@ export default function OpportunityImporter({
             };
         }
 
-        if (jsonText.length > MAX_JSON_LENGTH) {
+        if (
+            jsonText.length > MAX_JSON_LENGTH
+        ) {
             return {
                 valid: false,
                 proposal: null,
                 error:
-                    `The import exceeds the ${MAX_JSON_LENGTH.toLocaleString()}-character limit.`,
+                    `Maximum length is ${MAX_JSON_LENGTH.toLocaleString()} characters.`,
             };
         }
 
         try {
-            const cleaned = removeMarkdownCodeFence(
-                jsonText
+            const parsed = JSON.parse(
+                stripMarkdownFence(jsonText)
             );
-
-            const parsed = JSON.parse(cleaned);
-            const proposal = validateProposal(parsed);
 
             return {
                 valid: true,
-                proposal,
+                proposal: validateProposal(parsed),
                 error: "",
             };
-        } catch (previewError) {
+        } catch (validationError) {
             return {
                 valid: false,
                 proposal: null,
                 error:
-                    previewError?.message ||
+                    validationError?.message ||
                     "The proposal JSON is invalid.",
             };
         }
     }, [jsonText]);
 
-    function resetFeedback() {
-        setError("");
+    function clearMessages() {
         setMessage("");
+        setError("");
     }
 
     function loadSample() {
-        resetFeedback();
+        clearMessages();
 
         setJsonText(
-            JSON.stringify(SAMPLE_PROPOSAL, null, 2)
+            JSON.stringify(
+                SAMPLE_PROPOSAL,
+                null,
+                2
+            )
         );
     }
 
-    function clearEditor() {
-        resetFeedback();
-        setJsonText("");
-    }
-
-    async function pasteFromClipboard() {
-        resetFeedback();
-
-        if (!navigator.clipboard?.readText) {
-            setError(
-                "Clipboard reading is unavailable. Paste the JSON into the editor manually."
-            );
-            return;
-        }
+    async function pasteProposal() {
+        clearMessages();
 
         try {
-            const clipboardText =
-                await navigator.clipboard.readText();
+            const text = await readClipboard();
 
-            if (!clipboardText.trim()) {
-                setError("The clipboard is empty.");
-                return;
+            if (!text.trim()) {
+                throw new Error(
+                    "The clipboard is empty."
+                );
             }
 
             if (
-                clipboardText.length > MAX_JSON_LENGTH
+                text.length > MAX_JSON_LENGTH
             ) {
-                setError(
-                    `The clipboard content exceeds the ${MAX_JSON_LENGTH.toLocaleString()}-character limit.`
+                throw new Error(
+                    "The clipboard content is too large."
                 );
-                return;
             }
 
-            setJsonText(clipboardText);
-        } catch {
+            setJsonText(text);
+        } catch (clipboardError) {
             setError(
-                "TwinPath could not read the clipboard. Paste the JSON manually."
+                clipboardError?.message ||
+                "TwinPath could not read the clipboard."
             );
         }
     }
@@ -552,7 +513,7 @@ export default function OpportunityImporter({
 
         if (busy) return;
 
-        resetFeedback();
+        clearMessages();
 
         if (!householdId || !currentUserId) {
             setError(
@@ -561,10 +522,10 @@ export default function OpportunityImporter({
             return;
         }
 
-        if (!parsedPreview.valid) {
+        if (!preview.valid) {
             setError(
-                parsedPreview.error ||
-                "Enter a valid proposal before importing."
+                preview.error ||
+                "Enter a valid proposal."
             );
             return;
         }
@@ -572,53 +533,32 @@ export default function OpportunityImporter({
         setBusy(true);
 
         try {
-            const proposal = parsedPreview.proposal;
+            const proposal = preview.proposal;
 
-            /*
-             * A lightweight duplicate check prevents accidental
-             * double-imports caused by repeated taps. Database RLS
-             * remains the authoritative access control.
-             */
-            const { data: existingRows, error: lookupError } =
+            const { data: duplicateRows, error: lookupError } =
                 await supabase
                     .from("business_experiments")
-                    .select(
-                        "id,title,target_customer,offer"
-                    )
+                    .select("id")
                     .eq("household_id", householdId)
                     .eq("owner_user_id", currentUserId)
-                    .limit(100);
+                    .ilike("title", proposal.title)
+                    .limit(1);
 
             if (lookupError) {
                 throw lookupError;
             }
 
-            const incomingFingerprint =
-                proposalFingerprint(proposal);
-
-            const duplicate = (
-                Array.isArray(existingRows)
-                    ? existingRows
-                    : []
-            ).some((item) => {
-                return (
-                    proposalFingerprint({
-                        title: item.title || "",
-                        target_customer:
-                            item.target_customer || "",
-                        offer: item.offer || "",
-                    }) === incomingFingerprint
-                );
-            });
-
-            if (duplicate) {
+            if (
+                Array.isArray(duplicateRows) &&
+                duplicateRows.length
+            ) {
                 throw new Error(
-                    "This opportunity already appears in your private experiment list."
+                    "An opportunity with this title already exists."
                 );
             }
 
             const {
-                data: insertedRecord,
+                data: inserted,
                 error: insertError,
             } = await supabase
                 .from("business_experiments")
@@ -627,7 +567,7 @@ export default function OpportunityImporter({
                     household_id: householdId,
                     owner_user_id: currentUserId,
                 })
-                .select("id,title,status,score")
+                .select("id,title,score,status")
                 .single();
 
             if (insertError) {
@@ -637,19 +577,14 @@ export default function OpportunityImporter({
             setJsonText("");
 
             setMessage(
-                `"${insertedRecord.title}" was imported privately with a score of ${insertedRecord.score}.`
+                `"${inserted.title}" was imported privately with a score of ${inserted.score}/100.`
             );
 
-            /*
-             * The database insert has already succeeded. A parent
-             * refresh failure must not incorrectly report that the
-             * proposal itself failed to import.
-             */
             try {
-                await onImported?.(insertedRecord);
+                await onImported?.(inserted);
             } catch (refreshError) {
                 console.error(
-                    "Opportunity imported, but parent refresh failed:",
+                    "Opportunity imported, but refresh failed:",
                     refreshError
                 );
             }
@@ -670,11 +605,14 @@ export default function OpportunityImporter({
                         AI OPPORTUNITY INBOX
                     </span>
 
-                    <h3>Import reviewed AI research</h3>
+                    <h3>
+                        Import reviewed AI research
+                    </h3>
 
                     <p>
-                        Paste one structured proposal. TwinPath validates
-                        it and stores it privately for human review.
+                        Paste one structured proposal.
+                        TwinPath validates it and stores it
+                        privately for review.
                     </p>
                 </div>
 
@@ -685,7 +623,7 @@ export default function OpportunityImporter({
                 <button
                     className="button secondary"
                     type="button"
-                    onClick={pasteFromClipboard}
+                    onClick={pasteProposal}
                     disabled={busy}
                 >
                     <ClipboardPaste size={16} />
@@ -699,13 +637,16 @@ export default function OpportunityImporter({
                     disabled={busy}
                 >
                     <FileJson size={16} />
-                    Load sample
+                    Sample
                 </button>
 
                 <button
                     className="button ghost"
                     type="button"
-                    onClick={clearEditor}
+                    onClick={() => {
+                        clearMessages();
+                        setJsonText("");
+                    }}
                     disabled={busy || !jsonText}
                 >
                     <RotateCcw size={16} />
@@ -723,14 +664,17 @@ export default function OpportunityImporter({
                     <textarea
                         required
                         rows="14"
+                        maxLength={MAX_JSON_LENGTH}
                         spellCheck="false"
                         autoCapitalize="none"
                         autoCorrect="off"
-                        maxLength={MAX_JSON_LENGTH}
                         value={jsonText}
                         onChange={(event) => {
-                            setJsonText(event.target.value);
-                            resetFeedback();
+                            setJsonText(
+                                event.target.value
+                            );
+
+                            clearMessages();
                         }}
                         aria-describedby="opportunity-json-status"
                         placeholder={`{
@@ -756,55 +700,56 @@ export default function OpportunityImporter({
                     className="opportunity-importer-status"
                 >
                     <span>
-                        {characterCount.toLocaleString()} /{" "}
+                        {jsonText.length.toLocaleString()}
+                        {" / "}
                         {MAX_JSON_LENGTH.toLocaleString()}
                     </span>
 
                     {jsonText.trim() && (
                         <span
                             className={
-                                parsedPreview.valid
+                                preview.valid
                                     ? "valid"
                                     : "invalid"
                             }
                         >
-                            {parsedPreview.valid
+                            {preview.valid
                                 ? "JSON validated"
-                                : parsedPreview.error}
+                                : preview.error}
                         </span>
                     )}
                 </div>
 
-                {parsedPreview.valid && (
+                {preview.valid && (
                     <div className="opportunity-preview">
                         <div>
                             <span>Title</span>
                             <strong>
-                                {parsedPreview.proposal.title}
+                                {preview.proposal.title}
                             </strong>
                         </div>
 
                         <div>
                             <span>Score</span>
                             <strong>
-                                {parsedPreview.proposal.score}/100
+                                {preview.proposal.score}/100
                             </strong>
                         </div>
 
                         <div>
-                            <span>Estimated cost</span>
+                            <span>Cost</span>
                             <strong>
                                 $
-                                {parsedPreview.proposal
+                                {preview.proposal
                                     .estimated_cost}
                             </strong>
                         </div>
 
                         <div>
-                            <span>Expected price</span>
+                            <span>Price</span>
                             <strong>
                                 $
-                                {parsedPreview.proposal
+                                {preview.proposal
                                     .expected_price}
                             </strong>
                         </div>
@@ -835,7 +780,7 @@ export default function OpportunityImporter({
                     type="submit"
                     disabled={
                         busy ||
-                        !parsedPreview.valid ||
+                        !preview.valid ||
                         !householdId ||
                         !currentUserId
                     }
@@ -859,10 +804,11 @@ export default function OpportunityImporter({
                 <ShieldCheck size={18} />
 
                 <span>
-                    Imported research is not permission to spend,
-                    publish, contact customers, submit applications,
-                    or perform financial activity. Verify sources and
-                    claims before acting.
+                    Importing research does not authorize
+                    spending, publishing, customer contact,
+                    application submission, or financial
+                    activity. Verify every source and claim
+                    before acting.
                 </span>
             </div>
         </section>

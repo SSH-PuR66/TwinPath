@@ -1999,6 +1999,120 @@ textarea {
   }
 }
 
+/* =========================================================
+   OPPORTUNITY IMPORTER STYLES
+   ========================================================= */
+
+.opportunity-importer-actions {
+  display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.opportunity-importer-status {
+  display: flex;
+  min-width: 0;
+  margin-top: -0.55rem;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  color: var(--subtle);
+  font-size: 0.64rem;
+  line-height: 1.4;
+}
+
+.opportunity-importer-status > span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.opportunity-importer-status .valid {
+  color: var(--success);
+}
+
+.opportunity-importer-status .invalid {
+  color: #ffabb5;
+  text-align: right;
+}
+
+.opportunity-preview {
+  display: grid;
+  min-width: 0;
+  gap: 0.6rem;
+  grid-template-columns:
+    repeat(4, minmax(0, 1fr));
+}
+
+.opportunity-preview > div {
+  display: grid;
+  min-width: 0;
+  padding: 0.7rem;
+  gap: 0.2rem;
+  background:
+    linear-gradient(
+      145deg,
+      color-mix(
+        in srgb,
+        var(--accent) 5%,
+        transparent
+      ),
+      transparent
+    ),
+    rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border);
+  border-radius: 13px;
+}
+
+.opportunity-preview span {
+  color: var(--muted);
+  font-size: 0.62rem;
+}
+
+.opportunity-preview strong {
+  min-width: 0;
+  overflow: hidden;
+  font-size: 0.78rem;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 680px) {
+  .opportunity-importer-actions {
+    display: grid;
+    grid-template-columns:
+      repeat(3, minmax(0, 1fr));
+  }
+
+  .opportunity-importer-actions .button {
+    min-width: 0;
+    padding-right: 0.5rem;
+    padding-left: 0.5rem;
+    font-size: 0.67rem;
+  }
+
+  .opportunity-importer-status {
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  .opportunity-importer-status .invalid {
+    text-align: left;
+  }
+
+  .opportunity-preview {
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 390px) {
+  .opportunity-importer-actions,
+  .opportunity-preview {
+    grid-template-columns: 1fr;
+  }
+}
+
+
 
 
 
