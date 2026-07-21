@@ -1860,5 +1860,77 @@ textarea {
   }
 }
 
+/* =========================================================
+   SAVINGS STATUS PATCH
+   ========================================================= */
+
+.savings-status {
+  max-width: 145px;
+  overflow: hidden;
+  padding: 0.32rem 0.5rem;
+  color: var(--muted);
+  font-size: 0.61rem;
+  font-weight: 750;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  text-transform: capitalize;
+  white-space: nowrap;
+  background: rgba(255, 255, 255, 0.055);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+}
+
+.savings-status.approved {
+  color: var(--success);
+  background: rgba(82, 224, 160, 0.08);
+  border-color: rgba(82, 224, 160, 0.18);
+}
+
+.savings-status.applying,
+.savings-status.submitted,
+.savings-status.documents-requested,
+.savings-status.renewal-due {
+  color: var(--warning);
+  background: rgba(255, 198, 109, 0.07);
+  border-color: rgba(255, 198, 109, 0.16);
+}
+
+.savings-status.denied,
+.savings-status.closed {
+  color: #ff9fac;
+  background: rgba(255, 90, 110, 0.07);
+  border-color: rgba(255, 90, 110, 0.15);
+}
+
+.savings-status.researching,
+.savings-status.potential {
+  color: var(--accent);
+  background:
+    color-mix(in srgb, var(--accent) 7%, transparent);
+  border-color:
+    color-mix(in srgb, var(--accent) 15%, transparent);
+}
+
+.savings-route-actions .button {
+  min-height: 42px;
+}
+
+.savings-route-actions select:disabled,
+.savings-route-actions button:disabled {
+  cursor: wait;
+  opacity: 0.55;
+}
+
+@media (max-width: 680px) {
+  .savings-status {
+    max-width: 110px;
+  }
+
+  .savings-route-header {
+    gap: 0.55rem;
+  }
+}
+
+
 
 
