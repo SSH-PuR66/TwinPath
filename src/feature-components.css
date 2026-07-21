@@ -1931,6 +1931,75 @@ textarea {
   }
 }
 
+/* =========================================================
+   FINANCIAL HUB REFINEMENTS
+   ========================================================= */
+
+.money-planner .field > small,
+.paypal-link-builder .field > small {
+  color: var(--subtle);
+  font-size: 0.64rem;
+  line-height: 1.45;
+}
+
+.planner-toggle input {
+  width: 22px;
+  height: 22px;
+  min-height: 22px;
+  flex: 0 0 auto;
+  accent-color: var(--accent);
+}
+
+.payment-link-preview .icon-button {
+  flex: 0 0 auto;
+}
+
+.route-score {
+  max-width: 48%;
+  line-height: 1.35;
+}
+
+.financial-route-card .button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+@media (max-width: 680px) {
+  .planner-toggle {
+    align-items: flex-start;
+  }
+
+  .payment-link-preview {
+    display: grid;
+    grid-template-columns:
+      minmax(0, 1fr)
+      auto
+      auto;
+  }
+
+  .payment-link-preview > span {
+    width: auto;
+    min-width: 0;
+    flex-basis: auto;
+  }
+}
+
+@media (max-width: 390px) {
+  .payment-link-preview {
+    grid-template-columns: 1fr auto auto;
+  }
+
+  .route-card-top {
+    flex-direction: column;
+  }
+
+  .route-score {
+    max-width: 100%;
+    text-align: left;
+  }
+}
+
+
 
 
 

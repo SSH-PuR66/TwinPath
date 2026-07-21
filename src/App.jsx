@@ -1763,13 +1763,23 @@ function AppointmentModal({ onClose, onSave }) {
     );
 }
 
-function OpportunityModal({ onClose, onSave }) {
+function OpportunityModal({ initialRoute, onClose, onSave }) {
     const [form, setForm] = useState({
-        title: "",
+        title: initialRoute?.title || "",
         organization: "",
         status: "Idea",
         estimated_monthly: "",
-        notes: "",
+        notes: initialRoute
+            ? [
+                initialRoute.description,
+                initialRoute.reportingNote,
+                initialRoute.officialUrl
+                    ? `Official source: ${initialRoute.officialUrl}`
+                    : "",
+            ]
+                .filter(Boolean)
+                .join("\n\n")
+            : "",
         visibility: "shared",
     });
     const [busy, setBusy] = useState(false);
@@ -2112,6 +2122,7 @@ export default function App() {
     const [transactionModal, setTransactionModal] = useState(false);
     const [appointmentModal, setAppointmentModal] = useState(false);
     const [opportunityModal, setOpportunityModal] = useState(false);
+    const [opportunityDraft, setOpportunityDraft] = useState(null);
     const [settingsOpen, setSettingsOpen] = useState(false);
     const [uploading, setUploading] = useState(false);
     const [privateMode, setPrivateMode] = useState(false);
@@ -2662,7 +2673,10 @@ export default function App() {
                             <FinancialHub
                                 privateMode={privateMode}
                                 onLogTransaction={() => setTransactionModal(true)}
-                                onAddOpportunity={() => setOpportunityModal(true)}
+                                onAddOpportunity={(route) => {
+                                    setOpportunityDraft(route || null);
+                                    setOpportunityModal(true);
+                                }}
                             />
 
                             <OpportunityImporter
@@ -2734,7 +2748,11 @@ export default function App() {
 
             {opportunityModal && (
                 <OpportunityModal
-                    onClose={() => setOpportunityModal(false)}
+                    initialRoute={opportunityDraft}
+                    onClose={() => {
+                        setOpportunityModal(false);
+                        setOpportunityDraft(null);
+                    }}
                     onSave={saveOpportunity}
                 />
             )}

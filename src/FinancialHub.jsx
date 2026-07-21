@@ -1,9 +1,15 @@
-import { useEffect, useMemo, useState } from "react";
+import {
+    useEffect,
+    useMemo,
+    useState,
+} from "react";
+
 import {
     ArrowUpRight,
     Baby,
     Banknote,
     BriefcaseBusiness,
+    Check,
     Copy,
     ExternalLink,
     PiggyBank,
@@ -20,6 +26,9 @@ const currency = new Intl.NumberFormat("en-US", {
     currency: "USD",
 });
 
+const MAX_PLANNING_AMOUNT = 1_000_000;
+const MAX_PAYPAL_HANDLE_LENGTH = 64;
+
 const likelihoodFactors = {
     high: 1,
     medium: 0.6,
@@ -27,78 +36,349 @@ const likelihoodFactors = {
     unknown: 0.4,
 };
 
-function calculateAllocation(amount, reserveReady) {
-    const safeAmount = Math.max(0, Number(amount) || 0);
+const speedFactors = {
+    immediate: 1,
+    fast: 0.9,
+    medium: 0.65,
+    slow: 0.4,
+    unpredictable: 0.25,
+};
 
-    if (reserveReady) {
-        return [
+const officialAccountLinks = {
+    paypal: "https://www.paypal.com/myaccount/",
+    chime: "https://www.chime.com/",
+};
+
+function safeNumber(
+    value,
+    {
+        minimum = 0,
+        maximum = MAX_PLANNING_AMOUNT,
+        fallback = 0,
+    } = {}
+) {
+    const result = Number(value);
+
+    if (!Number.isFinite(result)) {
+        return fallback;
+    }
+
+    return Math.min(
+        maximum,
+        Math.max(minimum, result)
+    );
+}
+
+function roundCurrency(value) {
+    return (
+        Math.round(
+            (safeNumber(value) + Number.EPSILON) * 100
+        ) / 100
+    );
+}
+
+function calculateAllocation(amount, reserveReady) {
+    const safeAmount = safeNumber(amount);
+
+    const allocationRules = reserveReady
+        ? [
             {
                 name: "Emergency reserve",
-                amount: safeAmount * 0.4,
+                percentage: 0.4,
                 icon: ShieldCheck,
                 explanation:
                     "Continue strengthening liquid emergency savings.",
             },
             {
                 name: "Baby and transportation",
-                amount: safeAmount * 0.25,
+                percentage: 0.25,
                 icon: Baby,
                 explanation:
                     "Protect near-term family and transportation needs.",
             },
             {
                 name: "Career growth",
-                amount: safeAmount * 0.2,
+                percentage: 0.2,
                 icon: BriefcaseBusiness,
                 explanation:
                     "Use for a measured opportunity with a likely return.",
             },
             {
                 name: "Long-term investing",
-                amount: safeAmount * 0.15,
+                percentage: 0.15,
                 icon: TrendingUp,
                 explanation:
-                    "Invest only if this money is not needed soon and you understand the risk.",
+                    "Invest only when this money is not needed soon and you understand the risk.",
+            },
+        ]
+        : [
+            {
+                name: "Emergency reserve",
+                percentage: 0.6,
+                icon: ShieldCheck,
+                explanation:
+                    "Keep liquid for urgent transportation, food, healthcare, or housing.",
+            },
+            {
+                name: "Baby and transportation",
+                percentage: 0.3,
+                icon: Baby,
+                explanation:
+                    "Use for necessary family preparation and reliable transportation.",
+            },
+            {
+                name: "Career growth",
+                percentage: 0.1,
+                icon: BriefcaseBusiness,
+                explanation:
+                    "Use only for a specific tool or action with a likely measured return.",
             },
         ];
+
+    return allocationRules.map((rule) => ({
+        ...rule,
+        amount: roundCurrency(
+            safeAmount * rule.percentage
+        ),
+    }));
+}
+
+function normalizeLikelihood(value) {
+    const normalized = String(value || "")
+        .trim()
+        .toLowerCase();
+
+    return Object.hasOwn(
+        likelihoodFactors,
+        normalized
+    )
+        ? normalized
+        : "unknown";
+}
+
+function determineSpeedFactor(value) {
+    const normalized = String(value || "")
+        .trim()
+        .toLowerCase();
+
+    if (
+        normalized.includes("immediate") ||
+        normalized.includes("same day")
+    ) {
+        return speedFactors.immediate;
     }
 
-    return [
-        {
-            name: "Emergency reserve",
-            amount: safeAmount * 0.6,
-            icon: ShieldCheck,
-            explanation:
-                "Keep liquid for urgent transportation, food, healthcare or housing.",
-        },
-        {
-            name: "Baby and transportation",
-            amount: safeAmount * 0.3,
-            icon: Baby,
-            explanation:
-                "Use for necessary family preparation and reliable transportation.",
-        },
-        {
-            name: "Career growth",
-            amount: safeAmount * 0.1,
-            icon: BriefcaseBusiness,
-            explanation:
-                "Use only for a specific tool or action with a likely return.",
-        },
-    ];
+    if (
+        normalized.includes("day") ||
+        normalized.includes("1–2 week") ||
+        normalized.includes("1-2 week")
+    ) {
+        return speedFactors.fast;
+    }
+
+    if (
+        normalized.includes("week") ||
+        normalized.includes("month")
+    ) {
+        return speedFactors.medium;
+    }
+
+    if (
+        normalized.includes("long term") ||
+        normalized.includes("long-term")
+    ) {
+        return speedFactors.slow;
+    }
+
+    if (
+        normalized.includes("unpredictable") ||
+        normalized.includes("varies")
+    ) {
+        return speedFactors.unpredictable;
+    }
+
+    return 0.5;
 }
 
 function routeScore(route) {
     const likelihood =
-        likelihoodFactors[route.likelihood] ??
-        likelihoodFactors.unknown;
+        likelihoodFactors[
+        normalizeLikelihood(route.likelihood)
+        ];
 
-    const transportation = route.carRequired ? 0.25 : 1;
-    const cost = route.startupCost > 50 ? 0.45 : 1;
+    const transportation =
+        route.carRequired === true ? 0.25 : 1;
 
-    return Math.round(
-        likelihood * transportation * cost * 100
+    const startupCost = safeNumber(
+        route.startupCost,
+        {
+            maximum: 1_000_000,
+        }
     );
+
+    let costFactor = 1;
+
+    if (startupCost > 100) {
+        costFactor = 0.25;
+    } else if (startupCost > 50) {
+        costFactor = 0.45;
+    } else if (startupCost > 15) {
+        costFactor = 0.7;
+    }
+
+    const speed = determineSpeedFactor(
+        route.speed
+    );
+
+    const score =
+        likelihood *
+        transportation *
+        costFactor *
+        speed *
+        100;
+
+    return Math.max(
+        0,
+        Math.min(100, Math.round(score))
+    );
+}
+
+function cleanPayPalHandle(value) {
+    return String(value || "")
+        .trim()
+        .replace(/^@/, "")
+        .replace(/[^a-zA-Z0-9._-]/g, "")
+        .slice(0, MAX_PAYPAL_HANDLE_LENGTH);
+}
+
+function readSavedPayPalHandle() {
+    try {
+        return cleanPayPalHandle(
+            window.localStorage.getItem(
+                "twinpath-paypal-handle"
+            ) || ""
+        );
+    } catch {
+        return "";
+    }
+}
+
+function savePayPalHandle(value) {
+    try {
+        if (value) {
+            window.localStorage.setItem(
+                "twinpath-paypal-handle",
+                value
+            );
+        } else {
+            window.localStorage.removeItem(
+                "twinpath-paypal-handle"
+            );
+        }
+
+        return true;
+    } catch {
+        return false;
+    }
+}
+
+async function copyText(value) {
+    if (
+        navigator.clipboard &&
+        typeof navigator.clipboard.writeText ===
+        "function"
+    ) {
+        await navigator.clipboard.writeText(value);
+        return;
+    }
+
+    const textarea =
+        document.createElement("textarea");
+
+    textarea.value = value;
+    textarea.setAttribute("readonly", "");
+    textarea.style.position = "fixed";
+    textarea.style.left = "-9999px";
+    textarea.style.opacity = "0";
+
+    document.body.appendChild(textarea);
+    textarea.select();
+
+    const copied = document.execCommand("copy");
+
+    textarea.remove();
+
+    if (!copied) {
+        throw new Error(
+            "Clipboard access is unavailable."
+        );
+    }
+}
+
+function cleanRoute(route, index) {
+    if (
+        !route ||
+        typeof route !== "object" ||
+        Array.isArray(route)
+    ) {
+        return null;
+    }
+
+    const title = String(route.title || "")
+        .trim()
+        .slice(0, 180);
+
+    const category = String(
+        route.category || "Other"
+    )
+        .trim()
+        .slice(0, 80);
+
+    if (!title) {
+        return null;
+    }
+
+    const officialUrl = safeExternalUrl(
+        route.url,
+        {
+            allowLocalHttp: false,
+        }
+    );
+
+    return {
+        ...route,
+        id:
+            String(route.id || "").trim() ||
+            `route-${index}`,
+        title,
+        category,
+        description: String(
+            route.description || ""
+        )
+            .trim()
+            .slice(0, 1500),
+        reportingNote: String(
+            route.reportingNote ||
+            "Verify current details and reporting obligations through the official organization."
+        )
+            .trim()
+            .slice(0, 1500),
+        carRequired: route.carRequired === true,
+        startupCost: safeNumber(
+            route.startupCost,
+            {
+                maximum: 1_000_000,
+            }
+        ),
+        speed: String(route.speed || "Varies")
+            .trim()
+            .slice(0, 80),
+        likelihood: normalizeLikelihood(
+            route.likelihood
+        ),
+        officialUrl,
+        score: routeScore(route),
+    };
 }
 
 export default function FinancialHub({
@@ -107,69 +387,183 @@ export default function FinancialHub({
     privateMode = false,
 }) {
     const [amount, setAmount] = useState("50");
-    const [reserveReady, setReserveReady] = useState(false);
-    const [category, setCategory] = useState("All");
-    const [paypalHandle, setPaypalHandle] = useState(
-        () => localStorage.getItem("twinpath-paypal-handle") || ""
-    );
+    const [reserveReady, setReserveReady] =
+        useState(false);
+
+    const [category, setCategory] =
+        useState("All");
+
+    const [paypalHandle, setPaypalHandle] =
+        useState(readSavedPayPalHandle);
+
     const [copied, setCopied] = useState(false);
+    const [copyError, setCopyError] =
+        useState("");
+
+    const [storageWarning, setStorageWarning] =
+        useState("");
+
+    const safePayPalAccountUrl =
+        safeExternalUrl(
+            officialAccountLinks.paypal,
+            {
+                allowLocalHttp: false,
+                allowedHosts: ["paypal.com"],
+            }
+        );
+
+    const safeChimeUrl = safeExternalUrl(
+        officialAccountLinks.chime,
+        {
+            allowLocalHttp: false,
+            allowedHosts: ["chime.com"],
+        }
+    );
+
+    const normalizedRoutes = useMemo(() => {
+        const source = Array.isArray(financialRoutes)
+            ? financialRoutes
+            : [];
+
+        return source
+            .map(cleanRoute)
+            .filter(Boolean);
+    }, []);
 
     const allocation = useMemo(
-        () => calculateAllocation(amount, reserveReady),
+        () =>
+            calculateAllocation(
+                amount,
+                reserveReady
+            ),
         [amount, reserveReady]
     );
 
-    const categories = useMemo(
+    const routeCategories = useMemo(
         () => [
             "All",
             ...new Set(
-                financialRoutes.map((route) => route.category)
+                normalizedRoutes.map(
+                    (route) => route.category
+                )
             ),
         ],
-        []
+        [normalizedRoutes]
     );
 
-    const visibleRoutes =
-        category === "All"
-            ? financialRoutes
-            : financialRoutes.filter(
-                (route) => route.category === category
-            );
+    const visibleRoutes = useMemo(() => {
+        if (category === "All") {
+            return normalizedRoutes;
+        }
+
+        return normalizedRoutes.filter(
+            (route) =>
+                route.category === category
+        );
+    }, [
+        category,
+        normalizedRoutes,
+    ]);
+
+    const cleanedPayPalHandle = useMemo(
+        () => cleanPayPalHandle(paypalHandle),
+        [paypalHandle]
+    );
+
+    const paypalLink = useMemo(() => {
+        if (!cleanedPayPalHandle) {
+            return null;
+        }
+
+        return safeExternalUrl(
+            `https://www.paypal.me/${cleanedPayPalHandle}`,
+            {
+                allowLocalHttp: false,
+                allowedHosts: ["paypal.me"],
+            }
+        );
+    }, [cleanedPayPalHandle]);
 
     useEffect(() => {
-        const cleaned = paypalHandle
-            .trim()
-            .replace(/^@/, "")
-            .replace(/[^a-zA-Z0-9._-]/g, "");
+        const stored = savePayPalHandle(
+            cleanedPayPalHandle
+        );
 
-        if (cleaned) {
-            localStorage.setItem(
-                "twinpath-paypal-handle",
-                cleaned
-            );
-        } else {
-            localStorage.removeItem("twinpath-paypal-handle");
+        setStorageWarning(
+            stored
+                ? ""
+                : "This browser blocked local storage. The public handle will not be remembered on this device."
+        );
+    }, [cleanedPayPalHandle]);
+
+    useEffect(() => {
+        if (
+            category !== "All" &&
+            !routeCategories.includes(category)
+        ) {
+            setCategory("All");
         }
-    }, [paypalHandle]);
+    }, [category, routeCategories]);
 
-    const cleanedPayPalHandle = paypalHandle
-        .trim()
-        .replace(/^@/, "")
-        .replace(/[^a-zA-Z0-9._-]/g, "");
+    function handleAmountChange(event) {
+        const value = event.target.value;
 
-    const paypalLink = cleanedPayPalHandle
-        ? `https://www.paypal.me/${cleanedPayPalHandle}`
-        : "";
+        if (value === "") {
+            setAmount("");
+            return;
+        }
+
+        const parsed = Number(value);
+
+        if (!Number.isFinite(parsed)) {
+            return;
+        }
+
+        setAmount(
+            String(
+                Math.min(
+                    MAX_PLANNING_AMOUNT,
+                    Math.max(0, parsed)
+                )
+            )
+        );
+    }
 
     async function copyPayPalLink() {
         if (!paypalLink) return;
 
-        await navigator.clipboard.writeText(paypalLink);
-        setCopied(true);
+        setCopyError("");
 
-        window.setTimeout(() => {
+        try {
+            await copyText(paypalLink);
+            setCopied(true);
+
+            window.setTimeout(() => {
+                setCopied(false);
+            }, 1500);
+        } catch {
             setCopied(false);
-        }, 1500);
+
+            setCopyError(
+                "TwinPath could not copy the link. Press and hold the displayed link to copy it manually."
+            );
+        }
+    }
+
+    function logTransaction() {
+        if (
+            typeof onLogTransaction === "function"
+        ) {
+            onLogTransaction();
+        }
+    }
+
+    function trackRoute(route) {
+        if (
+            typeof onAddOpportunity === "function"
+        ) {
+            onAddOpportunity(route);
+        }
     }
 
     return (
@@ -180,10 +574,13 @@ export default function FinancialHub({
                         <span className="eyebrow">
                             SMALL-MONEY PLANNER
                         </span>
+
                         <h3>Give every dollar a job</h3>
+
                         <p>
-                            This is a planning tool. It does not transfer
-                            money automatically.
+                            This planning tool does not transfer
+                            money, connect accounts, or count
+                            potential income as available cash.
                         </p>
                     </div>
 
@@ -191,7 +588,7 @@ export default function FinancialHub({
                 </div>
 
                 <label className="field">
-                    <span>Amount available</span>
+                    <span>Amount actually available</span>
 
                     <div className="money-input">
                         <span>$</span>
@@ -199,22 +596,33 @@ export default function FinancialHub({
                         <input
                             type="number"
                             min="0"
-                            step="1"
+                            max={MAX_PLANNING_AMOUNT}
+                            step="0.01"
                             inputMode="decimal"
                             value={amount}
-                            onChange={(event) =>
-                                setAmount(event.target.value)
-                            }
+                            onChange={handleAmountChange}
+                            aria-describedby="money-planner-help"
                         />
                     </div>
+
+                    <small id="money-planner-help">
+                        Use cash you already have—not expected
+                        refunds, pending benefits, unpaid orders,
+                        or unsettled payouts.
+                    </small>
                 </label>
 
                 <label className="toggle-row planner-toggle">
                     <span>
-                        <strong>Core reserve already funded</strong>
+                        <strong>
+                            Core reserve already funded
+                        </strong>
+
                         <small>
-                            Turn this on only if your near-term emergency,
-                            transportation, food and healthcare needs are covered.
+                            Turn this on only when near-term
+                            emergency, transportation, food,
+                            healthcare, and family needs are
+                            covered.
                         </small>
                     </span>
 
@@ -222,7 +630,9 @@ export default function FinancialHub({
                         type="checkbox"
                         checked={reserveReady}
                         onChange={(event) =>
-                            setReserveReady(event.target.checked)
+                            setReserveReady(
+                                event.target.checked
+                            )
                         }
                     />
                 </label>
@@ -242,11 +652,15 @@ export default function FinancialHub({
 
                                 <div>
                                     <span>{item.name}</span>
+
                                     <strong>
                                         {privateMode
                                             ? "••••"
-                                            : currency.format(item.amount)}
+                                            : currency.format(
+                                                item.amount
+                                            )}
                                     </strong>
+
                                     <p>{item.explanation}</p>
                                 </div>
                             </article>
@@ -258,40 +672,49 @@ export default function FinancialHub({
                     <button
                         className="button secondary"
                         type="button"
-                        onClick={onLogTransaction}
+                        onClick={logTransaction}
+                        disabled={
+                            typeof onLogTransaction !==
+                            "function"
+                        }
                     >
                         <WalletCards size={17} />
                         Log money received or spent
                     </button>
 
-                    <a
-                        className="button secondary"
-                        href="https://www.paypal.com/myaccount/"
-                        target="_blank"
-                        rel="noreferrer"
-                    >
-                        Open PayPal
-                        <ArrowUpRight size={16} />
-                    </a>
+                    {safePayPalAccountUrl && (
+                        <a
+                            className="button secondary"
+                            href={safePayPalAccountUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                        >
+                            Open PayPal
+                            <ArrowUpRight size={16} />
+                        </a>
+                    )}
 
-                    <a
-                        className="button secondary"
-                        href="https://www.chime.com/"
-                        target="_blank"
-                        rel="noreferrer"
-                    >
-                        Open Chime
-                        <ArrowUpRight size={16} />
-                    </a>
+                    {safeChimeUrl && (
+                        <a
+                            className="button secondary"
+                            href={safeChimeUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                        >
+                            Open Chime
+                            <ArrowUpRight size={16} />
+                        </a>
+                    )}
                 </div>
 
                 <div className="warning-inline">
                     <ShieldCheck size={18} />
+
                     <span>
-                        Moving your own money between accounts is not
-                        income or an expense. Record only actual income,
-                        actual expenses and actual business profit in the
-                        transaction ledger.
+                        Moving money between your own accounts
+                        is not income or an expense. Record only
+                        actual income, expenses, fees, refunds,
+                        and business profit.
                     </span>
                 </div>
             </section>
@@ -301,31 +724,51 @@ export default function FinancialHub({
                     <span className="eyebrow">
                         OPTIONAL PAYMENT LINK
                     </span>
+
                     <h3>PayPal.me receiving link</h3>
+
                     <p>
-                        Store only your public PayPal.me handle locally on
-                        this device. TwinPath never stores your PayPal
-                        password.
+                        Store only a public PayPal.me handle
+                        locally on this device. TwinPath does not
+                        request or store a PayPal password,
+                        account number, or authentication code.
                     </p>
                 </div>
 
                 <label className="field">
-                    <span>PayPal.me handle</span>
+                    <span>Public PayPal.me handle</span>
 
                     <input
                         value={paypalHandle}
+                        maxLength={
+                            MAX_PAYPAL_HANDLE_LENGTH
+                        }
                         placeholder="YourPublicHandle"
                         autoCapitalize="none"
                         autoCorrect="off"
-                        onChange={(event) =>
-                            setPaypalHandle(event.target.value)
-                        }
+                        spellCheck="false"
+                        onChange={(event) => {
+                            setPaypalHandle(
+                                cleanPayPalHandle(
+                                    event.target.value
+                                )
+                            );
+
+                            setCopyError("");
+                        }}
                     />
+
+                    <small>
+                        This handle is public to anyone who
+                        receives the payment link.
+                    </small>
                 </label>
 
-                {safeExternalUrl(paypalLink) && (
+                {paypalLink && (
                     <div className="payment-link-preview">
-                        <span>{safeExternalUrl(paypalLink)}</span>
+                        <span title={paypalLink}>
+                            {paypalLink}
+                        </span>
 
                         <button
                             className="icon-button"
@@ -333,12 +776,16 @@ export default function FinancialHub({
                             onClick={copyPayPalLink}
                             aria-label="Copy PayPal link"
                         >
-                            {copied ? "✓" : <Copy size={17} />}
+                            {copied ? (
+                                <Check size={17} />
+                            ) : (
+                                <Copy size={17} />
+                            )}
                         </button>
 
                         <a
                             className="icon-button"
-                            href={safeExternalUrl(paypalLink)}
+                            href={paypalLink}
                             target="_blank"
                             rel="noopener noreferrer"
                             aria-label="Open PayPal link"
@@ -347,43 +794,70 @@ export default function FinancialHub({
                         </a>
                     </div>
                 )}
+
+                {copyError && (
+                    <div
+                        className="error-box"
+                        role="alert"
+                    >
+                        {copyError}
+                    </div>
+                )}
+
+                {storageWarning && (
+                    <div className="route-reporting-note">
+                        <ShieldCheck size={15} />
+                        <span>{storageWarning}</span>
+                    </div>
+                )}
             </section>
 
             <section className="route-explorer">
                 <div className="section-title">
                     <div>
                         <span className="eyebrow">
-                            LEGITIMATE ROUTES
+                            VERIFIED-SOURCE ROUTES
                         </span>
-                        <h3>Opportunity and resource map</h3>
+
+                        <h3>
+                            Opportunity and resource map
+                        </h3>
+
                         <p>
-                            Potential routes only. Verify details through the
-                            official organization.
+                            These are research starting points,
+                            not guaranteed eligibility, income,
+                            awards, or investment returns.
                         </p>
                     </div>
 
                     <TrendingUp size={24} />
                 </div>
 
-                <div className="chip-row">
-                    {categories.map((item) => (
+                <div
+                    className="chip-row"
+                    aria-label="Financial route categories"
+                >
+                    {routeCategories.map((item) => (
                         <button
-                            className={`chip ${category === item ? "active" : ""
+                            className={`chip ${category === item
+                                    ? "active"
+                                    : ""
                                 }`}
                             type="button"
                             key={item}
                             onClick={() => setCategory(item)}
+                            aria-pressed={
+                                category === item
+                            }
                         >
                             {item}
                         </button>
                     ))}
                 </div>
 
-                <div className="financial-route-grid">
-                    {visibleRoutes.map((route) => {
-                        const officialUrl = safeExternalUrl(route.url);
-
-                        return (
+                {visibleRoutes.length ? (
+                    <div className="financial-route-grid">
+                        {visibleRoutes.map((route) => (
                             <article
                                 className="financial-route-card"
                                 key={route.id}
@@ -394,25 +868,34 @@ export default function FinancialHub({
                                     </span>
 
                                     <span className="route-score">
-                                        Priority fit: {routeScore(route)}
+                                        Planning fit: {route.score}/100
                                     </span>
                                 </div>
 
                                 <h4>{route.title}</h4>
-                                <p>{route.description}</p>
+
+                                {route.description && (
+                                    <p>{route.description}</p>
+                                )}
 
                                 <dl className="route-facts">
                                     <div>
                                         <dt>Startup</dt>
+
                                         <dd>
-                                            {currency.format(route.startupCost)}
+                                            {currency.format(
+                                                route.startupCost
+                                            )}
                                         </dd>
                                     </div>
 
                                     <div>
                                         <dt>Car</dt>
+
                                         <dd>
-                                            {route.carRequired ? "Required" : "No"}
+                                            {route.carRequired
+                                                ? "Required"
+                                                : "No"}
                                         </dd>
                                     </div>
 
@@ -424,34 +907,57 @@ export default function FinancialHub({
 
                                 <div className="route-reporting-note">
                                     <Banknote size={15} />
-                                    <span>{route.reportingNote}</span>
+
+                                    <span>
+                                        {route.reportingNote}
+                                    </span>
                                 </div>
 
                                 <div className="financial-action-row">
-                                    {officialUrl && (
+                                    {route.officialUrl ? (
                                         <a
                                             className="button secondary"
-                                            href={officialUrl}
+                                            href={route.officialUrl}
                                             target="_blank"
                                             rel="noopener noreferrer"
                                         >
                                             Official site
                                             <ExternalLink size={15} />
                                         </a>
+                                    ) : (
+                                        <button
+                                            className="button secondary"
+                                            type="button"
+                                            disabled
+                                            title="The source URL failed validation."
+                                        >
+                                            Source unavailable
+                                        </button>
                                     )}
 
                                     <button
                                         className="button ghost"
                                         type="button"
-                                        onClick={onAddOpportunity}
+                                        onClick={() =>
+                                            trackRoute(route)
+                                        }
+                                        disabled={
+                                            typeof onAddOpportunity !==
+                                            "function"
+                                        }
                                     >
                                         Track route
                                     </button>
                                 </div>
                             </article>
-                        );
-                    })}
-                </div>
+                        ))}
+                    </div>
+                ) : (
+                    <div className="empty">
+                        No valid routes are available in this
+                        category.
+                    </div>
+                )}
             </section>
         </div>
     );
