@@ -1,0 +1,44 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "el-plan-control-plane",
+  "main": "src/index.js",
+  "compatibility_date": "2026-07-20",
+  "compatibility_flags": ["nodejs_compat"],
+  "vars": {
+    "ENVIRONMENT": "sandbox",
+    "ALLOWED_ORIGINS": "https://YOUR_APP_DOMAIN",
+    "SUPABASE_URL": "https://YOUR_PROJECT.supabase.co",
+    "HOUSEHOLD_MEMBERS_TABLE": "household_members"
+  },
+  "queues": {
+    "producers": [
+      {
+        "binding": "AGENT_JOBS",
+        "queue": "twinpath-agent-jobs"
+      }
+    ],
+    "consumers": [
+      {
+        "queue": "twinpath-agent-jobs",
+        "max_batch_size": 10,
+        "max_batch_timeout": 5,
+        "max_retries": 3,
+        "dead_letter_queue": "twinpath-agent-jobs-dlq"
+      }
+    ]
+  },
+  "triggers": {
+    "crons": ["*/5 * * * *"]
+  },
+  "observability": {
+    "enabled": true,
+    "logs": {
+      "enabled": true,
+      "head_sampling_rate": 1
+    },
+    "traces": {
+      "enabled": true,
+      "head_sampling_rate": 0.1
+    }
+  }
+}

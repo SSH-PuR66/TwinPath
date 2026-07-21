@@ -7,9 +7,14 @@
         "dev": "vite",
         "audit:imports": "node scripts/audit-imports.mjs",
         "audit:css": "node scripts/audit-css-classes.mjs",
-        "audit": "npm run audit:imports && npm run audit:css",
+        "audit:control-plane": "node scripts/audit-control-plane.mjs",
+        "audit": "npm run audit:imports && npm run audit:css && npm run audit:control-plane",
         "build": "npm run audit && vite build",
-        "preview": "vite preview"
+        "preview": "vite preview",
+        "test:worker": "node --test workers/control-plane/test/*.test.js",
+        "worker:dev": "wrangler dev --config workers/control-plane/wrangler.jsonc",
+        "worker:types": "wrangler types --config workers/control-plane/wrangler.jsonc workers/control-plane/src/worker-configuration.d.ts",
+        "worker:dry-run": "wrangler deploy --dry-run --config workers/control-plane/wrangler.jsonc"
     },
     "dependencies": {
         "@react-three/drei": "^9.114.3",
@@ -24,6 +29,7 @@
     },
     "devDependencies": {
         "@vitejs/plugin-react": "4.4.1",
-        "vite": "^6.4.3"
+        "vite": "^6.4.3",
+        "wrangler": "^4.112.0"
     }
 }

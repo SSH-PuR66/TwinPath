@@ -1,4 +1,4 @@
-const CACHE = "twinpath-shell-v2";
+const CACHE = "twinpath-shell-v3";
 const SHELL = ["/", "/manifest.webmanifest", "/icon.svg"];
 
 self.addEventListener("install", (event) => {
@@ -36,6 +36,13 @@ self.addEventListener("fetch", (event) => {
     // provider). Caching API responses would persist private account
     // data in Cache Storage and serve stale data offline.
     if (url.origin !== self.location.origin) return;
+
+    if (
+        url.pathname.startsWith("/api/operations") ||
+        url.pathname.startsWith("/api/control-plane")
+    ) {
+        return;
+    }
 
     event.respondWith(
         fetch(request)

@@ -59,6 +59,9 @@ const FinancialHub = lazy(() => import("./FinancialHub.jsx"));
 const OpportunityImporter = lazy(() => import("./OpportunityImporter.jsx"));
 const ExperimentBudget = lazy(() => import("./ExperimentBudget.jsx"));
 const ConnectorCenter = lazy(() => import("./ConnectorCenter.jsx"));
+const OperationsControlPlane = lazy(
+    () => import("./OperationsControlPlane.jsx")
+);
 
 const moneyFormatter = new Intl.NumberFormat("en-US", {
     style: "currency",
@@ -2697,6 +2700,12 @@ export default function App() {
                             }
                         >
                             <div className="page-stack">
+                                <OperationsControlPlane
+                                    householdId={household.id}
+                                    currentUserId={session.user.id}
+                                    privateMode={privateMode}
+                                />
+
                                 <FinancialHub
                                     privateMode={privateMode}
                                     onLogTransaction={() =>
@@ -2723,7 +2732,10 @@ export default function App() {
                                     privateMode={privateMode}
                                 />
 
-                                <ConnectorCenter />
+                                <ConnectorCenter
+                                    householdId={household.id}
+                                    currentUserId={session.user.id}
+                                />
                             </div>
                         </Suspense>
                     )}

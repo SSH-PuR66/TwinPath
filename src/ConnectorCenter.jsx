@@ -1,16 +1,19 @@
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
     Check,
     Clipboard,
     ExternalLink,
     FileCheck2,
     Link2,
+    Loader2,
+    RefreshCw,
     ShieldCheck,
     Trash2,
 } from "lucide-react";
 
 import { connectorCatalog } from "./connectorCatalog";
 import { safeExternalUrl } from "./safeUrl";
+import { supabase } from "./supabase";
 
 const emptyProfile = {
     legalName: "",
@@ -38,12 +41,34 @@ const profileLabels = {
     currentIncome: "Current income",
 };
 
-export default function ConnectorCenter() {
+export default function ConnectorCenter({ householdId, currentUserId }) {
     const [profile, setProfile] = useState(emptyProfile);
     const [selectedConnector, setSelectedConnector] = useState(
         connectorCatalog[0]
     );
     const [copiedField, setCopiedField] = useState("");
+    const [saasDrafts, setSaasDrafts] = useState([]);
+    const [draftsLoading, setDraftsLoading] = useState(false);
+
+    const loadSaasDrafts = useCallback(async () => {
+        if (!householdId || !currentUserId) return;
+        setDraftsLoading(true);
+        const { data, error } = await supabase
+            .from("agent_artifacts")
+            .select("id,file_name,metadata,created_at")
+            .eq("household_id", householdId)
+            .eq("owner_user_id", currentUserId)
+            .eq("artifact_type", "connector_listing")
+            .contains("metadata", { engine_id: "micro_saas" })
+            .order("created_at", { ascending: false })
+            .limit(12);
+        if (!error) setSaasDrafts(Array.isArray(data) ? data : []);
+        setDraftsLoading(false);
+    }, [currentUserId, householdId]);
+
+    useEffect(() => {
+        loadSaasDrafts();
+    }, [loadSaasDrafts]);
 
     const completedFields = useMemo(() => {
         return Object.values(profile).filter((value) =>
@@ -113,6 +138,48 @@ export default function ConnectorCenter() {
                     Never enter passwords, Social Security numbers, benefit
                     IDs, account numbers, card details or authentication codes.
                 </span>
+            </div>
+
+            <div className="connector-draft-list">
+                <div className="connector-profile-heading">
+                    <div>
+                        <h4>Micro-SaaS listing drafts</h4>
+                        <small>
+                            Sandboxed drafts from the Operations Control Plane
+                        </small>
+                    </div>
+                    <button
+                        className="icon-button"
+                        type="button"
+                        onClick={loadSaasDrafts}
+                        disabled={draftsLoading}
+                        aria-label="Refresh SaaS listing drafts"
+                    >
+                        {draftsLoading ? (
+                            <Loader2 className="spin" size={17} />
+                        ) : (
+                            <RefreshCw size={17} />
+                        )}
+                    </button>
+                </div>
+
+                {saasDrafts.length ? (
+                    saasDrafts.map((draft) => (
+                        <article className="connector-draft-card" key={draft.id}>
+                            <span className="pill blue">Unpublished draft</span>
+                            <strong>
+                                {draft.metadata?.title || draft.file_name}
+                            </strong>
+                            <small>
+                                Review in Operations before any public listing.
+                            </small>
+                        </article>
+                    ))
+                ) : (
+                    <div className="empty compact">
+                        No approved SaaS listing drafts yet.
+                    </div>
+                )}
             </div>
 
             <div className="connector-layout">

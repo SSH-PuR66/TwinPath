@@ -48,3 +48,17 @@ official administering organization.
 
 ```bash
 npm install
+```
+
+## Autonomous Operations Control Plane
+
+TwinPath includes an optional sandbox-first control plane backed by Supabase
+and a separate Cloudflare Worker. It can model four deterministic experiment
+workflows and stage private artifacts and approvals. It does not perform real
+deployment, spending, vulnerability disclosure, asset purchasing, scanning,
+or publishing.
+
+Apply `supabase/v13-autonomous-operations.sql` after the earlier schema files,
+configure the Worker secrets, and set `VITE_CONTROL_PLANE_URL` to its origin.
+See [docs/autonomous-operations.md](docs/autonomous-operations.md) for setup,
+policy boundaries, migration guidance, and emergency shutdown.
