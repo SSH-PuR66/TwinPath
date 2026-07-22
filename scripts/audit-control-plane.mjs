@@ -91,11 +91,11 @@ for (const table of [
 }
 
 if (
-    !/PROVIDER_MODE"\s*:\s*"disabled"/u.test(workerConfig) ||
+    !/PROVIDER_MODE"\s*:\s*"production"/u.test(workerConfig) ||
     !/"ratelimits"/u.test(workerConfig)
 ) {
     throw new Error(
-        "Worker providers must deploy disabled with a rate-limit binding."
+        "Worker providers must deploy in production mode with a rate-limit binding."
     );
 }
 
