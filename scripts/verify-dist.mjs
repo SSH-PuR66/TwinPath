@@ -1,7 +1,8 @@
 import { readdir, readFile } from "node:fs/promises";
+import { fileURLToPath } from "node:url";
 import { join } from "node:path";
 
-const assetsDir = new URL("../dist/assets/", import.meta.url).pathname;
+const assetsDir = fileURLToPath(new URL("../dist/assets/", import.meta.url));
 
 const REQUIRED = [
     {

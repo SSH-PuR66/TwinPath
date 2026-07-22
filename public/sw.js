@@ -1,11 +1,28 @@
-const CACHE = "twinpath-shell-v4";
-const SHELL = ["/", "/manifest.webmanifest", "/icon.svg"];
+const CACHE = "twinpath-shell-v5";
+const SHELL = ["/", "/offline.html", "/manifest.webmanifest", "/icon.svg"];
+
+function assetUrlsFromDocument(html) {
+    const urls = new Set(SHELL);
+    for (const match of html.matchAll(/(?:src|href)=["']([^"']+)["']/g)) {
+        const value = match[1];
+        if (value.startsWith("/assets/") || value.startsWith("/icons/")) {
+            urls.add(value);
+        }
+    }
+    return [...urls];
+}
+
+async function precacheAppShell() {
+    const cache = await caches.open(CACHE);
+    const response = await fetch("/", { cache: "reload" });
+    if (!response.ok) throw new Error("Unable to cache the application shell.");
+    const html = await response.clone().text();
+    await cache.put("/", response);
+    await cache.addAll(assetUrlsFromDocument(html));
+}
 
 self.addEventListener("install", (event) => {
-    event.waitUntil(
-        caches.open(CACHE).then((cache) => cache.addAll(SHELL))
-    );
-
+    event.waitUntil(precacheAppShell());
     self.skipWaiting();
 });
 
@@ -25,52 +42,52 @@ self.addEventListener("activate", (event) => {
     self.clients.claim();
 });
 
+async function cacheResponse(request, response) {
+    if (response.ok && response.type === "basic" && response.status === 200) {
+        const cache = await caches.open(CACHE);
+        await cache.put(request, response.clone());
+    }
+    return response;
+}
+
+async function navigationResponse(request) {
+    try {
+        return await cacheResponse(request, await fetch(request));
+    } catch {
+        return (await caches.match(request))
+            || (await caches.match("/"))
+            || (await caches.match("/offline.html"));
+    }
+}
+
+async function staticResponse(request) {
+    const cached = await caches.match(request);
+    if (cached) return cached;
+    return cacheResponse(request, await fetch(request));
+}
+
 self.addEventListener("fetch", (event) => {
     const request = event.request;
-
     if (request.method !== "GET") return;
 
     const url = new URL(request.url);
 
-    // Never cache cross-origin responses (Supabase API, control-plane
-    // Worker, Plaid, Stripe, checkout providers). Caching API responses
-    // would persist private account data in Cache Storage.
+    // Never cache API responses, provider responses, or authenticated data.
     if (url.origin !== self.location.origin) return;
-
     if (
-        url.pathname.startsWith("/api/operations") ||
-        url.pathname.startsWith("/api/control-plane") ||
-        url.pathname.startsWith("/api/financial") ||
-        url.pathname.startsWith("/v1/") ||
-        url.pathname.startsWith("/webhooks")
+        url.pathname.startsWith("/api/")
+        || url.pathname.startsWith("/v1/")
+        || url.pathname.startsWith("/webhooks")
     ) {
         return;
     }
 
-    event.respondWith(
-        fetch(request)
-            .then((response) => {
-                if (
-                    response.ok &&
-                    response.type === "basic" &&
-                    response.status === 200
-                ) {
-                    const copy = response.clone();
+    if (request.mode === "navigate") {
+        event.respondWith(navigationResponse(request));
+        return;
+    }
 
-                    caches
-                        .open(CACHE)
-                        .then((cache) => cache.put(request, copy))
-                        .catch(() => {
-                            // Quota/scheme errors must never break the page.
-                        });
-                }
-
-                return response;
-            })
-            .catch(() =>
-                caches.match(request).then((cached) => {
-                    return cached || caches.match("/");
-                })
-            )
-    );
+    if (url.pathname.startsWith("/assets/") || url.pathname.startsWith("/icons/")) {
+        event.respondWith(staticResponse(request));
+    }
 });
