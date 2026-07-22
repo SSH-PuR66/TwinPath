@@ -1,79 +1,7 @@
 import { useEffect, useState } from "react";
+import { resolveThemeKey, themes } from "./themeCatalog";
 
-export const themes = {
-    campus: {
-        name: "Campus",
-        background: "#0b1513",
-        accent: "#8ce0bd",
-        accent2: "#e6b86a",
-        scene: "campus",
-    },
-    "midnight-ledger": {
-        name: "Midnight Ledger",
-        background: "#060a12",
-        accent: "#7bdcb5",
-        accent2: "#7e9cff",
-        scene: "ledger",
-    },
-    "aurora-grid": {
-        name: "Aurora Grid",
-        background: "#07101c",
-        accent: "#65e8ff",
-        accent2: "#9b7cff",
-        scene: "aurora-grid",
-    },
-    aurora: {
-        name: "Aurora Glass",
-        background: "#07111f",
-        accent: "#65e8ff",
-        accent2: "#8b7cff",
-        scene: "aurora",
-    },
-    orbit: {
-        name: "Midnight Orbit",
-        background: "#05070d",
-        accent: "#d8e2ff",
-        accent2: "#487dff",
-    },
-    rose: {
-        name: "Rose Nebula",
-        background: "#170817",
-        accent: "#ff79bd",
-        accent2: "#ffbf69",
-    },
-    ocean: {
-        name: "Ocean Pearl",
-        background: "#041617",
-        accent: "#52e0cf",
-        accent2: "#b8fff5",
-    },
-    cyber: {
-        name: "Cyber Grid",
-        background: "#03070c",
-        accent: "#00e5ff",
-        accent2: "#2d65ff",
-    },
-    sunrise: {
-        name: "Sunrise Home",
-        background: "#21130f",
-        accent: "#ffb16e",
-        accent2: "#ffe2a8",
-    },
-};
-
-const sceneClasses = {
-    campus: "theme-campus",
-    ledger: "theme-ledger",
-    "aurora-grid": "theme-aurora-grid",
-    grid: "theme-grid",
-    aurora: "theme-aurora",
-};
-
-export default function ThemeScene({
-    themeKey = "aurora",
-    reducedMotion = false,
-    privateMode = false,
-}) {
+export function usePageHidden() {
     const [pageHidden, setPageHidden] = useState(
         typeof document !== "undefined" ? document.hidden : false
     );
@@ -84,20 +12,24 @@ export default function ThemeScene({
         return () => document.removeEventListener("visibilitychange", updateVisibility);
     }, []);
 
-    const validThemeKey =
-        typeof themeKey === "string" && themes[themeKey]
-            ? themeKey
-            : "aurora";
+    return pageHidden;
+}
 
+function ThemeArtwork({ themeKey, motionOff = false, preview = false }) {
+    const validThemeKey = resolveThemeKey(themeKey);
     const theme = themes[validThemeKey];
 
     return (
         <div
-            className={`static-theme ${sceneClasses[theme.scene || validThemeKey] || ""} ${
-                reducedMotion || privateMode || pageHidden ? "theme-motion-off" : ""
+            className={`${preview ? "theme-preview" : "static-theme"} theme-${theme.scene} ${
+                motionOff ? "theme-motion-off" : ""
             }`}
             aria-hidden="true"
+            data-theme={validThemeKey}
             style={{
+                "--accent": theme.accent,
+                "--accent-2": theme.accent2,
+                "--theme-background": theme.background,
                 backgroundColor: theme.background,
                 backgroundImage: [
                     `radial-gradient(circle at 18% 18%, ${theme.accent}55 0%, transparent 42%)`,
@@ -111,5 +43,24 @@ export default function ThemeScene({
             <span className="theme-layer theme-layer-two" />
             <span className="theme-layer theme-layer-three" />
         </div>
+    );
+}
+
+export function ThemePreview({ themeKey, motionOff = false }) {
+    return <ThemeArtwork themeKey={themeKey} motionOff={motionOff} preview />;
+}
+
+export default function ThemeScene({
+    themeKey = "aurora",
+    reducedMotion = false,
+    privateMode = false,
+}) {
+    const pageHidden = usePageHidden();
+
+    return (
+        <ThemeArtwork
+            themeKey={themeKey}
+            motionOff={reducedMotion || privateMode || pageHidden}
+        />
     );
 }

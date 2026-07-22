@@ -30,7 +30,10 @@ import {
 } from "./persistence-v13.js";
 import { consumeAgentJobs } from "./queue.js";
 import { providerReadiness } from "./provider-mode.js";
-import { listStripeLifecycleEvents } from "./provider-persistence-v15.js";
+import {
+  getStripeCustomer,
+  listStripeLifecycleEvents,
+} from "./provider-persistence-v15.js";
 import {
   createBillingPortalSession,
   createCheckoutSession,
@@ -93,10 +96,11 @@ async function handleAuthenticated(request, env, pathname) {
 
   if (request.method === "GET" && pathname === "/v1/financial/connections") {
     const readiness = providerReadiness(env);
-    const accounts = readiness.plaid.ready ? await getPlaidAccounts(env, auth) : [];
-    const lifecycle = readiness.stripe.ready
-      ? await listStripeLifecycleEvents(env, auth)
-      : [];
+    const [accounts, lifecycle, stripeCustomer] = await Promise.all([
+      readiness.plaid.ready ? getPlaidAccounts(env, auth) : [],
+      readiness.stripe.ready ? listStripeLifecycleEvents(env, auth) : [],
+      readiness.stripe.ready ? getStripeCustomer(env, auth) : null,
+    ]);
     const connections = [...accounts.reduce((items, account) => {
       const item = account.plaid_items || {};
       const key = account.plaid_item_id;
@@ -137,7 +141,8 @@ async function handleAuthenticated(request, env, pathname) {
       connections,
       billing: {
         checkout_ready: readiness.stripe.ready,
-        portal_ready: readiness.stripe.ready,
+        customer_ready: Boolean(stripeCustomer),
+        portal_ready: readiness.stripe.ready && Boolean(stripeCustomer),
         lifecycle,
       },
     });

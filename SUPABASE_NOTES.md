@@ -47,6 +47,12 @@ policy/grant drift. Apply `supabase/v14-family-gallery-storage-fix.sql`; it
 restores the required helper grants and recreates the gallery policies with
 `can_read_family_photo_path`.
 
+The later one-valid/one-broken gallery state was a separate consistency issue:
+the old client deleted the Storage object before its `family_photos` row. Apply
+`supabase/v16-family-gallery-consistency.sql` once to prune metadata whose exact
+Storage object is already missing. The updated client deletes metadata first,
+confirms the affected row, and then performs idempotent Storage cleanup.
+
 ## Financial integrations
 
 Apply `supabase/v15-financial-integrations.sql` before enabling Plaid or

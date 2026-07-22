@@ -14,6 +14,13 @@ import {
 
 import { supabase } from "./supabase";
 import { processFamilyImage } from "./imageProcessing";
+import {
+    deleteFamilyPhoto,
+    FAMILY_GALLERY_BUCKET,
+    galleryErrorMessage,
+    isMissingStorageObject,
+    uploadFamilyPhoto,
+} from "./galleryStorage";
 
 const albums = [
     "Family",
@@ -24,46 +31,17 @@ const albums = [
     "Equipment",
 ];
 
-function galleryErrorMessage(error, action, fallback) {
-    const status = Number(error?.statusCode ?? error?.status);
-    const message = String(error?.message || "");
-    const isPermissionError =
-        status === 401 ||
-        status === 403 ||
-        /row-level security|permission denied|not authorized|unauthorized|forbidden|access denied|jwt/i.test(
-            message
-        );
-
-    if (isPermissionError) {
-        return `Gallery storage access needs repair before you can ${action}. Ask the app administrator to apply the latest storage update, then retry.`;
-    }
-
-    return message || fallback;
-}
-
 export default function FamilyGallery({
     householdId,
     currentUserId,
 }) {
     const [photos, setPhotos] = useState([]);
     const [selectedAlbum, setSelectedAlbum] = useState("All");
-    const [viewerPhoto, setViewerPhoto] = useState(null);
+    const [viewerPhotoId, setViewerPhotoId] = useState(null);
     const [loading, setLoading] = useState(true);
     const [uploading, setUploading] = useState(false);
+    const [deletingPhotoId, setDeletingPhotoId] = useState(null);
     const [error, setError] = useState("");
-
-    useEffect(() => {
-        if (!viewerPhoto) return undefined;
-
-        const previousOverflow =
-            document.body.style.overflow;
-
-        document.body.style.overflow = "hidden";
-
-        return () => {
-            document.body.style.overflow = previousOverflow;
-        };
-    }, [viewerPhoto]);
 
     const [form, setForm] = useState({
         album: "Family",
@@ -73,6 +51,10 @@ export default function FamilyGallery({
     });
 
     const objectUrlsRef = useRef(new Set());
+    const loadRequestRef = useRef(0);
+    const viewerCloseButtonRef = useRef(null);
+    const viewerDialogRef = useRef(null);
+    const viewerTriggerRef = useRef(null);
 
     const revokeObjectUrls = useCallback(() => {
         objectUrlsRef.current.forEach((url) => {
@@ -82,26 +64,120 @@ export default function FamilyGallery({
         objectUrlsRef.current.clear();
     }, []);
 
+    const replaceObjectUrls = useCallback((nextUrls) => {
+        objectUrlsRef.current.forEach((url) => {
+            URL.revokeObjectURL(url);
+        });
+
+        objectUrlsRef.current = nextUrls;
+    }, []);
+
+    const viewerPhoto = useMemo(
+        () => photos.find((photo) => photo.id === viewerPhotoId) || null,
+        [photos, viewerPhotoId]
+    );
+
+    const closeViewer = useCallback((restoreFocus = true) => {
+        setViewerPhotoId(null);
+
+        if (restoreFocus) {
+            window.setTimeout(() => {
+                viewerTriggerRef.current?.focus();
+            }, 0);
+        }
+    }, []);
+
+    useEffect(() => {
+        if (!viewerPhoto) return undefined;
+
+        const previousOverflow = document.body.style.overflow;
+        const focusTimer = window.setTimeout(() => {
+            viewerCloseButtonRef.current?.focus();
+        }, 0);
+
+        function handleKeyDown(event) {
+            if (event.key === "Escape") {
+                event.preventDefault();
+                closeViewer();
+                return;
+            }
+
+            if (event.key !== "Tab") return;
+
+            const focusable = Array.from(
+                viewerDialogRef.current?.querySelectorAll(
+                    "button:not([disabled]), a[href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex='-1'])"
+                ) || []
+            );
+
+            if (!focusable.length) {
+                event.preventDefault();
+                viewerDialogRef.current?.focus();
+                return;
+            }
+
+            const first = focusable[0];
+            const last = focusable[focusable.length - 1];
+
+            if (event.shiftKey && document.activeElement === first) {
+                event.preventDefault();
+                last.focus();
+            } else if (
+                !event.shiftKey &&
+                document.activeElement === last
+            ) {
+                event.preventDefault();
+                first.focus();
+            }
+        }
+
+        document.body.style.overflow = "hidden";
+        document.addEventListener("keydown", handleKeyDown);
+
+        return () => {
+            window.clearTimeout(focusTimer);
+            document.body.style.overflow = previousOverflow;
+            document.removeEventListener("keydown", handleKeyDown);
+        };
+    }, [closeViewer, viewerPhoto?.id]);
+
     const loadPhotos = useCallback(async () => {
-        if (!householdId) return;
+        const requestId = ++loadRequestRef.current;
+
+        if (!householdId) {
+            replaceObjectUrls(new Set());
+            setPhotos([]);
+            setLoading(false);
+            return;
+        }
 
         setLoading(true);
         setError("");
 
-        revokeObjectUrls();
+        let data;
+        let queryError;
 
-        const { data, error: queryError } = await supabase
-            .from("family_photos")
-            .select("*")
-            .eq("household_id", householdId)
-            .order("captured_on", {
-                ascending: false,
-                nullsFirst: false,
-            })
-            .order("created_at", {
-                ascending: false,
-            })
-            .limit(24);
+        try {
+            const result = await supabase
+                .from("family_photos")
+                .select("*")
+                .eq("household_id", householdId)
+                .order("captured_on", {
+                    ascending: false,
+                    nullsFirst: false,
+                })
+                .order("created_at", {
+                    ascending: false,
+                })
+                .limit(24);
+
+            data = result.data;
+            queryError = result.error;
+        } catch (unexpectedError) {
+            queryError = unexpectedError;
+        }
+
+        if (requestId !== loadRequestRef.current) return;
 
         if (queryError) {
             setError(
@@ -111,6 +187,7 @@ export default function FamilyGallery({
                     "The family gallery could not be loaded."
                 )
             );
+            replaceObjectUrls(new Set());
             setPhotos([]);
             setLoading(false);
             return;
@@ -118,12 +195,22 @@ export default function FamilyGallery({
 
         const records = Array.isArray(data) ? data : [];
 
+        const nextObjectUrls = new Set();
         const downloadedRecords = await Promise.all(
             records.map(async (photo) => {
-                const { data: imageBlob, error: downloadError } =
-                    await supabase.storage
-                        .from("family-gallery")
+                let imageBlob;
+                let downloadError;
+
+                try {
+                    const result = await supabase.storage
+                        .from(FAMILY_GALLERY_BUCKET)
                         .download(photo.storage_path);
+
+                    imageBlob = result.data;
+                    downloadError = result.error;
+                } catch (unexpectedError) {
+                    downloadError = unexpectedError;
+                }
 
                 if (downloadError || !imageBlob) {
                     if (import.meta.env.DEV) {
@@ -139,6 +226,8 @@ export default function FamilyGallery({
                     return {
                         ...photo,
                         objectUrl: null,
+                        storageMissing:
+                            isMissingStorageObject(downloadError),
                         imageError:
                             galleryErrorMessage(
                                 downloadError,
@@ -149,24 +238,32 @@ export default function FamilyGallery({
                 }
 
                 const objectUrl = URL.createObjectURL(imageBlob);
-                objectUrlsRef.current.add(objectUrl);
+                nextObjectUrls.add(objectUrl);
 
                 return {
                     ...photo,
                     objectUrl,
+                    storageMissing: false,
                     imageError: null,
                 };
             })
         );
 
+        if (requestId !== loadRequestRef.current) {
+            nextObjectUrls.forEach((url) => URL.revokeObjectURL(url));
+            return;
+        }
+
+        replaceObjectUrls(nextObjectUrls);
         setPhotos(downloadedRecords);
         setLoading(false);
-    }, [householdId, revokeObjectUrls]);
+    }, [householdId, replaceObjectUrls]);
 
     useEffect(() => {
         loadPhotos();
 
         return () => {
+            loadRequestRef.current += 1;
             revokeObjectUrls();
         };
     }, [loadPhotos, revokeObjectUrls]);
@@ -185,30 +282,19 @@ export default function FamilyGallery({
         setUploading(true);
         setError("");
 
-        let uploadedPath = null;
-
         try {
             const processed = await processFamilyImage(selectedFile);
             const extension =
                 processed.file.type === "image/webp" ? "webp" : "jpg";
 
-            uploadedPath =
+            const uploadedPath =
                 `${householdId}/${currentUserId}/` +
                 `${crypto.randomUUID()}.${extension}`;
 
-            const { error: uploadError } = await supabase.storage
-                .from("family-gallery")
-                .upload(uploadedPath, processed.file, {
-                    upsert: false,
-                    contentType: processed.file.type,
-                    cacheControl: "3600",
-                });
-
-            if (uploadError) throw uploadError;
-
-            const { error: metadataError } = await supabase
-                .from("family_photos")
-                .insert({
+            await uploadFamilyPhoto(supabase, {
+                storagePath: uploadedPath,
+                file: processed.file,
+                metadata: {
                     household_id: householdId,
                     owner_user_id: currentUserId,
                     visibility: form.visibility,
@@ -221,9 +307,8 @@ export default function FamilyGallery({
                     album: form.album,
                     caption: form.caption.trim() || null,
                     captured_on: form.captured_on || null,
-                });
-
-            if (metadataError) throw metadataError;
+                },
+            });
 
             setForm((current) => ({
                 ...current,
@@ -233,12 +318,6 @@ export default function FamilyGallery({
 
             await loadPhotos();
         } catch (uploadError) {
-            if (uploadedPath) {
-                await supabase.storage
-                    .from("family-gallery")
-                    .remove([uploadedPath]);
-            }
-
             setError(
                 galleryErrorMessage(
                     uploadError,
@@ -254,12 +333,21 @@ export default function FamilyGallery({
     async function downloadPhoto(photo) {
         setError("");
 
-        const { data, error: downloadError } =
-            await supabase.storage
-                .from("family-gallery")
+        let data;
+        let downloadError;
+
+        try {
+            const result = await supabase.storage
+                .from(FAMILY_GALLERY_BUCKET)
                 .download(photo.storage_path);
 
-        if (downloadError) {
+            data = result.data;
+            downloadError = result.error;
+        } catch (unexpectedError) {
+            downloadError = unexpectedError;
+        }
+
+        if (downloadError || !data) {
             setError(
                 galleryErrorMessage(
                     downloadError,
@@ -283,6 +371,8 @@ export default function FamilyGallery({
     }
 
     async function deletePhoto(photo) {
+        if (deletingPhotoId) return;
+
         const confirmed = window.confirm(
             "Delete this photo permanently?"
         );
@@ -290,41 +380,72 @@ export default function FamilyGallery({
         if (!confirmed) return;
 
         setError("");
+        setDeletingPhotoId(photo.id);
 
-        const { error: storageError } = await supabase.storage
-            .from("family-gallery")
-            .remove([photo.storage_path]);
+        try {
+            const { storageCleanupError } = await deleteFamilyPhoto(
+                supabase,
+                {
+                    photoId: photo.id,
+                    ownerUserId: currentUserId,
+                    storagePath: photo.storage_path,
+                }
+            );
 
-        if (storageError) {
+            if (photo.objectUrl) {
+                URL.revokeObjectURL(photo.objectUrl);
+                objectUrlsRef.current.delete(photo.objectUrl);
+            }
+
+            setPhotos((current) =>
+                current.filter((item) => item.id !== photo.id)
+            );
+            closeViewer(false);
+            await loadPhotos();
+
+            if (storageCleanupError) {
+                setError(
+                    "The gallery entry was removed, but cleanup of its stored file could not be confirmed."
+                );
+            }
+        } catch (deleteError) {
             setError(
                 galleryErrorMessage(
-                    storageError,
+                    deleteError,
                     "delete this family photo",
                     "The photo could not be deleted."
                 )
             );
-            return;
+        } finally {
+            setDeletingPhotoId(null);
+        }
+    }
+
+    function openViewer(photoId, trigger) {
+        viewerTriggerRef.current = trigger;
+        setViewerPhotoId(photoId);
+    }
+
+    function markImageUnavailable(photoId) {
+        const failedPhoto = photos.find((photo) => photo.id === photoId);
+
+        if (failedPhoto?.objectUrl) {
+            URL.revokeObjectURL(failedPhoto.objectUrl);
+            objectUrlsRef.current.delete(failedPhoto.objectUrl);
         }
 
-        const { error: metadataError } = await supabase
-            .from("family_photos")
-            .delete()
-            .eq("id", photo.id)
-            .eq("owner_user_id", currentUserId);
-
-        if (metadataError) {
-            setError(
-                galleryErrorMessage(
-                    metadataError,
-                    "delete this family photo",
-                    "The photo record could not be deleted."
-                )
-            );
-            return;
-        }
-
-        setViewerPhoto(null);
-        await loadPhotos();
+        setPhotos((current) =>
+            current.map((photo) =>
+                photo.id === photoId
+                    ? {
+                        ...photo,
+                        objectUrl: null,
+                        imageError:
+                            "The stored image could not be displayed.",
+                    }
+                    : photo
+            )
+        );
     }
 
     return (
@@ -343,9 +464,10 @@ export default function FamilyGallery({
                     className="icon-button"
                     type="button"
                     onClick={loadPhotos}
+                    disabled={loading}
                     aria-label="Refresh gallery"
                 >
-                    <RefreshCw size={18} />
+                    <RefreshCw className={loading ? "spin" : ""} size={18} />
                 </button>
             </div>
 
@@ -480,51 +602,79 @@ export default function FamilyGallery({
             ) : visiblePhotos.length ? (
                 <div className="family-photo-grid">
                     {visiblePhotos.map((photo) => (
-                        <button
-                            className="family-photo-card"
-                            type="button"
+                        <article
+                            className={`family-photo-card${photo.objectUrl ? "" : " is-unavailable"}`}
                             key={photo.id}
-                            onClick={() => setViewerPhoto(photo)}
                         >
-                            {photo.objectUrl ? (
-                                <img
-                                    src={photo.objectUrl}
-                                    alt={photo.caption || `${photo.album} photo`}
-                                    loading="lazy"
-                                    decoding="async"
-                                    onError={(event) => {
-                                        event.currentTarget.style.display = "none";
-                                    }}
-                                />
-                            ) : (
-                                <div className="gallery-image-unavailable">
-                                    <span>Image unavailable</span>
+                            <button
+                                className="family-photo-open"
+                                type="button"
+                                onClick={(event) =>
+                                    openViewer(
+                                        photo.id,
+                                        event.currentTarget
+                                    )
+                                }
+                                aria-label={`Open ${photo.caption || `${photo.album} photo`}`}
+                            >
+                                {photo.objectUrl ? (
+                                    <img
+                                        src={photo.objectUrl}
+                                        alt={photo.caption || `${photo.album} photo`}
+                                        loading="lazy"
+                                        decoding="async"
+                                        onError={() =>
+                                            markImageUnavailable(photo.id)
+                                        }
+                                    />
+                                ) : (
+                                    <div className="gallery-image-unavailable">
+                                        <span>
+                                            {photo.storageMissing
+                                                ? "Stored image missing"
+                                                : "Image unavailable"}
+                                        </span>
+                                    </div>
+                                )}
 
-                                    {photo.imageError && (
-                                        <small>{photo.imageError}</small>
+                                <div className="family-photo-overlay">
+                                    <span>{photo.album}</span>
+
+                                    {photo.visibility === "private" && (
+                                        <LockKeyhole size={14} />
                                     )}
+                                </div>
+                            </button>
 
+                            {!photo.objectUrl && (
+                                <div className="gallery-card-actions">
                                     <button
                                         className="button ghost"
                                         type="button"
-                                        onClick={(event) => {
-                                            event.stopPropagation();
-                                            loadPhotos();
-                                        }}
+                                        onClick={loadPhotos}
+                                        disabled={loading}
                                     >
                                         Retry
                                     </button>
+
+                                    {photo.owner_user_id === currentUserId && (
+                                        <button
+                                            className="button danger"
+                                            type="button"
+                                            onClick={() => deletePhoto(photo)}
+                                            disabled={deletingPhotoId === photo.id}
+                                        >
+                                            {deletingPhotoId === photo.id ? (
+                                                <Loader2 className="spin" size={14} />
+                                            ) : (
+                                                <Trash2 size={14} />
+                                            )}
+                                            Remove
+                                        </button>
+                                    )}
                                 </div>
                             )}
-
-                            <div className="family-photo-overlay">
-                                <span>{photo.album}</span>
-
-                                {photo.visibility === "private" && (
-                                    <LockKeyhole size={14} />
-                                )}
-                            </div>
-                        </button>
+                        </article>
                     ))}
                 </div>
             ) : (
@@ -545,16 +695,26 @@ export default function FamilyGallery({
             {viewerPhoto && (
                 <div
                     className="gallery-viewer"
-                    onMouseDown={() => setViewerPhoto(null)}
+                    onMouseDown={(event) => {
+                        if (event.target === event.currentTarget) {
+                            closeViewer();
+                        }
+                    }}
                 >
                     <div
+                        ref={viewerDialogRef}
                         className="gallery-viewer-card"
                         onMouseDown={(event) => event.stopPropagation()}
+                        role="dialog"
+                        aria-modal="true"
+                        aria-label="Family photo viewer"
+                        tabIndex={-1}
                     >
                         <button
+                            ref={viewerCloseButtonRef}
                             className="gallery-viewer-close"
                             type="button"
-                            onClick={() => setViewerPhoto(null)}
+                            onClick={() => closeViewer()}
                             aria-label="Close photo"
                         >
                             <X size={21} />
@@ -565,10 +725,21 @@ export default function FamilyGallery({
                                 src={viewerPhoto.objectUrl}
                                 alt={viewerPhoto.caption || "Family photo"}
                                 decoding="async"
+                                onError={() =>
+                                    markImageUnavailable(viewerPhoto.id)
+                                }
                             />
                         ) : (
                             <div className="gallery-image-unavailable">
-                                Image unavailable
+                                <span>
+                                    {viewerPhoto.storageMissing
+                                        ? "Stored image missing"
+                                        : "Image unavailable"}
+                                </span>
+
+                                {viewerPhoto.imageError && (
+                                    <small>{viewerPhoto.imageError}</small>
+                                )}
                             </div>
                         )}
 
@@ -593,22 +764,39 @@ export default function FamilyGallery({
                             </div>
 
                             <div className="gallery-viewer-actions">
-                                <button
-                                    className="button secondary"
-                                    type="button"
-                                    onClick={() => downloadPhoto(viewerPhoto)}
-                                >
-                                    <Download size={16} />
-                                    Download
-                                </button>
+                                {viewerPhoto.objectUrl ? (
+                                    <button
+                                        className="button secondary"
+                                        type="button"
+                                        onClick={() => downloadPhoto(viewerPhoto)}
+                                    >
+                                        <Download size={16} />
+                                        Download
+                                    </button>
+                                ) : (
+                                    <button
+                                        className="button secondary"
+                                        type="button"
+                                        onClick={loadPhotos}
+                                        disabled={loading}
+                                    >
+                                        <RefreshCw size={16} />
+                                        Retry
+                                    </button>
+                                )}
 
                                 {viewerPhoto.owner_user_id === currentUserId && (
                                     <button
                                         className="button danger"
                                         type="button"
                                         onClick={() => deletePhoto(viewerPhoto)}
+                                        disabled={deletingPhotoId === viewerPhoto.id}
                                     >
-                                        <Trash2 size={16} />
+                                        {deletingPhotoId === viewerPhoto.id ? (
+                                            <Loader2 className="spin" size={16} />
+                                        ) : (
+                                            <Trash2 size={16} />
+                                        )}
                                         Delete
                                     </button>
                                 )}

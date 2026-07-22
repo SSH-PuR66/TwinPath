@@ -5,7 +5,69 @@ begin;
 -- Secrets, cursors, and webhook state are service-role only.
 -- Browser clients may read only the deliberately safe account metadata table.
 -- Plaid is import-only; this migration creates no payment/transfer primitives.
+-- Prerequisites: schema.sql through v13-autonomous-operations.sql
+-- (especially public.integration_connections and public.revenue_events).
 -- =========================================================
+
+do $$
+declare
+  missing_objects text[] := '{}'::text[];
+begin
+  if to_regclass('public.transactions') is null then
+    missing_objects := array_append(missing_objects, 'public.transactions');
+  end if;
+
+  if to_regclass('public.integration_connections') is null then
+    missing_objects := array_append(
+      missing_objects,
+      'public.integration_connections'
+    );
+  end if;
+
+  if to_regclass('public.revenue_events') is null then
+    missing_objects := array_append(missing_objects, 'public.revenue_events');
+  end if;
+
+  if to_regclass('public.households') is null then
+    missing_objects := array_append(missing_objects, 'public.households');
+  end if;
+
+  if to_regclass('public.household_members') is null then
+    missing_objects := array_append(
+      missing_objects,
+      'public.household_members'
+    );
+  end if;
+
+  if array_length(missing_objects, 1) is not null then
+    raise exception
+      'v15 prerequisite check failed. Missing objects: %. Apply supabase/v13-autonomous-operations.sql first.',
+      array_to_string(missing_objects, ', ');
+  end if;
+
+  if not exists (
+    select 1
+    from pg_proc p
+    join pg_namespace n on n.oid = p.pronamespace
+    where n.nspname = 'public'
+      and p.proname = 'set_updated_at'
+  ) then
+    raise exception
+      'v15 prerequisite check failed: public.set_updated_at() is missing';
+  end if;
+
+  if not exists (
+    select 1
+    from pg_proc p
+    join pg_namespace n on n.oid = p.pronamespace
+    where n.nspname = 'public'
+      and p.proname = 'prevent_record_reassignment'
+  ) then
+    raise exception
+      'v15 prerequisite check failed: public.prevent_record_reassignment() is missing';
+  end if;
+end
+$$;
 
 alter table public.transactions
   add column if not exists external_source text,

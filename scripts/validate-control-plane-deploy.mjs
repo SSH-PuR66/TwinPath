@@ -32,13 +32,15 @@ const productionEnv = await readFile(
     "utf8"
 );
 
-if (
-    !productionEnv.includes(
-        "VITE_CONTROL_PLANE_URL=https://twinpath-control-plane.srodriguez46.workers.dev"
-    )
-) {
+const productionControlPlane = productionEnv
+    .split(/\r?\n/)
+    .find((line) => /^\s*VITE_CONTROL_PLANE_URL\s*=/.test(line))
+    ?.split("=", 2)[1]
+    ?.trim();
+
+if (productionControlPlane) {
     throw new Error(
-        "The production frontend is not pinned to the control-plane Worker."
+        "The production frontend must stay fail-closed until the control-plane Worker is separately deployed and verified."
     );
 }
 

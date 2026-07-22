@@ -46,10 +46,10 @@ on public.experiment_budgets
 for select
 to authenticated
 using (
-  owner_user_id = auth.uid()
+  owner_user_id = (select auth.uid())
   and public.is_household_member(
     household_id,
-    auth.uid()
+    (select auth.uid())
   )
 );
 
@@ -58,10 +58,10 @@ on public.experiment_budgets
 for insert
 to authenticated
 with check (
-  owner_user_id = auth.uid()
+  owner_user_id = (select auth.uid())
   and public.is_household_member(
     household_id,
-    auth.uid()
+    (select auth.uid())
   )
 );
 
@@ -70,13 +70,13 @@ on public.experiment_budgets
 for update
 to authenticated
 using (
-  owner_user_id = auth.uid()
+  owner_user_id = (select auth.uid())
 )
 with check (
-  owner_user_id = auth.uid()
+  owner_user_id = (select auth.uid())
   and public.is_household_member(
     household_id,
-    auth.uid()
+    (select auth.uid())
   )
 );
 
@@ -85,7 +85,7 @@ on public.experiment_budgets
 for delete
 to authenticated
 using (
-  owner_user_id = auth.uid()
+  owner_user_id = (select auth.uid())
 );
 
 grant select, insert, update, delete

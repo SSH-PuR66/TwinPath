@@ -45,7 +45,11 @@ function ProductCard({ product }) {
             </div>
 
             <span className="store-category">{product.category}</span>
-            <h3>{product.title}</h3>
+            <h3>
+                <a className="store-product-title" href={`/shop/product/${product.id}`}>
+                    {product.title}
+                </a>
+            </h3>
             <p>{product.description}</p>
 
             <ul className="store-benefits">
@@ -99,6 +103,11 @@ function ProductCard({ product }) {
                     </button>
                 )}
             </div>
+
+            <a className="store-product-details" href={`/shop/product/${product.id}`}>
+                View product details
+                <ArrowRight size={15} />
+            </a>
 
             <small className="store-delivery">{product.delivery}</small>
         </article>

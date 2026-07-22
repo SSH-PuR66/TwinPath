@@ -1,12 +1,15 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
     BadgeCheck,
+    CircleOff,
     CreditCard,
+    Landmark,
     Link2,
     Loader2,
     RefreshCw,
     ShieldCheck,
     Unlink,
+    WalletCards,
 } from "lucide-react";
 import { safeCheckoutUrl, safeExternalUrl } from "./safeUrl";
 import { supabase } from "./supabase";
@@ -46,6 +49,7 @@ export default function FinancialConnectionsPanel({
     householdId,
     currentUserId,
     privateMode = false,
+    onOpenWallet,
 }) {
     const controlPlaneUrl = (
         safeExternalUrl(String(import.meta.env.VITE_CONTROL_PLANE_URL || "").trim(), {
@@ -61,6 +65,7 @@ export default function FinancialConnectionsPanel({
     const [busy, setBusy] = useState("");
     const [error, setError] = useState("");
     const oauthResumeAttempted = useRef(false);
+    const providerDisabled = state.provider_mode === "disabled";
 
     const apiRequest = useCallback(async (path, options = {}) => {
         if (!controlPlaneUrl) throw new Error("Financial connections are not configured.");
@@ -220,15 +225,43 @@ export default function FinancialConnectionsPanel({
             <header className="grow-feature-heading">
                 <div>
                     <span className="eyebrow">CONNECTIONS</span>
-                    <h2>Financial data, on your terms</h2>
+                    <h2>Read-only financial connections</h2>
                     <p>
-                        Plaid Link is loaded only when you choose Connect. TwinPath never
-                        asks for bank credentials directly and all control-plane calls require
-                        your authenticated household session.
+                        Plaid imports account data only after you choose Connect.
+                        TwinPath never asks you to type bank credentials into this app.
                     </p>
                 </div>
                 <Link2 size={30} />
             </header>
+
+            <div className="money-boundary-grid" aria-label="Financial feature boundaries">
+                <article>
+                    <Landmark size={20} />
+                    <div>
+                        <strong>Plaid connections</strong>
+                        <span>Read-only balances and transactions. No transfers or purchases.</span>
+                    </div>
+                </article>
+                <article>
+                    <CreditCard size={20} />
+                    <div>
+                        <strong>Stripe billing</strong>
+                        <span>Pays only for TwinPath plans. It does not fund wallet proposals.</span>
+                    </div>
+                </article>
+                <article>
+                    <WalletCards size={20} />
+                    <div>
+                        <strong>Approval wallet</strong>
+                        <span>A manual decision ledger that never charges a connected account.</span>
+                    </div>
+                    {onOpenWallet && (
+                        <button className="button ghost" type="button" onClick={onOpenWallet}>
+                            Open wallet
+                        </button>
+                    )}
+                </article>
+            </div>
 
             <div className="connection-status-grid">
                 <article>
@@ -249,8 +282,17 @@ export default function FinancialConnectionsPanel({
                 <div className="grow-notice">
                     <ShieldCheck size={18} />
                     <span>
-                        VITE_CONTROL_PLANE_URL is not configured. Provider controls remain
-                        disabled; no fallback credentials or unauthenticated calls are used.
+                        Financial providers are not enabled in this deployment. Controls stay
+                        safely disabled and no unauthenticated fallback is used.
+                    </span>
+                </div>
+            )}
+            {controlPlaneUrl && providerDisabled && (
+                <div className="grow-notice">
+                    <ShieldCheck size={18} />
+                    <span>
+                        The provider service is intentionally disabled. Configure and verify
+                        Plaid or Stripe before these controls can be used.
                     </span>
                 </div>
             )}
@@ -260,7 +302,11 @@ export default function FinancialConnectionsPanel({
                 <div className="readiness-list">
                     {state.readiness.map((check, index) => (
                         <div key={check.id || index}>
-                            <BadgeCheck size={17} />
+                            {check.status === "ready" || check.status === "passed" ? (
+                                <BadgeCheck size={17} />
+                            ) : (
+                                <CircleOff size={17} />
+                            )}
                             <span>
                                 <strong>{check.label || check.name || "Provider check"}</strong>
                                 <small>{check.message || check.summary || check.status}</small>
@@ -296,7 +342,7 @@ export default function FinancialConnectionsPanel({
                     disabled={!controlPlaneUrl || Boolean(busy) ||
                         !state.readiness.some((item) => item.id === "plaid" && item.status === "ready")}>
                     {busy === "connect" ? <Loader2 className="spin" size={17} /> : <Link2 size={17} />}
-                    Connect institution
+                    Start read-only connection
                 </button>
                 <button className="button secondary" type="button" onClick={refresh}
                     disabled={!controlPlaneUrl || Boolean(busy)}>
@@ -304,11 +350,11 @@ export default function FinancialConnectionsPanel({
                 </button>
                 <button className="button secondary" type="button" onClick={() => openBilling("checkout")}
                     disabled={!controlPlaneUrl || Boolean(busy) || !state.billing.checkout_ready}>
-                    <CreditCard size={17} /> Checkout
+                    <CreditCard size={17} /> TwinPath checkout
                 </button>
                 <button className="button ghost" type="button" onClick={() => openBilling("portal")}
                     disabled={!controlPlaneUrl || Boolean(busy) || !state.billing.portal_ready}>
-                    Billing portal
+                    Manage TwinPath billing
                 </button>
             </div>
 

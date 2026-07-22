@@ -5,6 +5,7 @@ import {
     ChartNoAxesCombined,
     GraduationCap,
     Landmark,
+    WalletCards,
 } from "lucide-react";
 import ConnectorCenter from "./ConnectorCenter";
 import ExperimentBudget from "./ExperimentBudget";
@@ -16,11 +17,12 @@ import ProfitabilityWorkspace from "./ProfitabilityWorkspace";
 import StudentPerks from "./StudentPerks";
 
 const growTabs = [
-    { id: "profit", label: "Profit plan", icon: ChartNoAxesCombined },
-    { id: "connections", label: "Connections", icon: Landmark },
-    { id: "automations", label: "Automations", icon: Bot },
-    { id: "student", label: "Student perks", icon: GraduationCap },
-    { id: "connectors", label: "Connectors", icon: Cable },
+    { id: "profit", label: "Profit plan", shortLabel: "Profit", icon: ChartNoAxesCombined },
+    { id: "connections", label: "Connections", shortLabel: "Connect", icon: Landmark },
+    { id: "wallet", label: "Approval wallet", shortLabel: "Wallet", icon: WalletCards },
+    { id: "automations", label: "Automations", shortLabel: "Auto", icon: Bot },
+    { id: "student", label: "Student perks", shortLabel: "Perks", icon: GraduationCap },
+    { id: "connectors", label: "Connectors", shortLabel: "Apply", icon: Cable },
 ];
 
 export default function GrowWorkspace({
@@ -49,7 +51,8 @@ export default function GrowWorkspace({
                             onClick={() => setActiveTab(item.id)}
                         >
                             <Icon size={18} />
-                            <span>{item.label}</span>
+                            <span className="grow-tab-label-full">{item.label}</span>
+                            <span className="grow-tab-label-short">{item.shortLabel}</span>
                         </button>
                     );
                 })}
@@ -80,6 +83,16 @@ export default function GrowWorkspace({
                         householdId={householdId}
                         currentUserId={currentUserId}
                         privateMode={privateMode}
+                        onOpenWallet={() => setActiveTab("wallet")}
+                    />
+                )}
+
+                {activeTab === "wallet" && (
+                    <ExperimentBudget
+                        householdId={householdId}
+                        currentUserId={currentUserId}
+                        privateMode={privateMode}
+                        onOpenConnections={() => setActiveTab("connections")}
                     />
                 )}
 
@@ -94,11 +107,6 @@ export default function GrowWorkspace({
                             householdId={householdId}
                             currentUserId={currentUserId}
                             onImported={onImported}
-                        />
-                        <ExperimentBudget
-                            householdId={householdId}
-                            currentUserId={currentUserId}
-                            privateMode={privateMode}
                         />
                     </div>
                 )}
@@ -115,6 +123,8 @@ export default function GrowWorkspace({
                     <ConnectorCenter
                         householdId={householdId}
                         currentUserId={currentUserId}
+                        onOpenConnections={() => setActiveTab("connections")}
+                        onOpenWallet={() => setActiveTab("wallet")}
                     />
                 )}
             </div>

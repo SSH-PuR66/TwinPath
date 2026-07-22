@@ -221,8 +221,8 @@ on public.spend_proposals
 for insert
 to authenticated
 with check (
-  owner_user_id = auth.uid()
-  and public.is_household_member(household_id, auth.uid())
+  owner_user_id = (select auth.uid())
+  and public.is_household_member(household_id, (select auth.uid()))
   and amount <= 5
   and recurring = false
 );
@@ -231,10 +231,10 @@ create policy "Owners update their spend proposals"
 on public.spend_proposals
 for update
 to authenticated
-using (owner_user_id = auth.uid())
+using (owner_user_id = (select auth.uid()))
 with check (
-  owner_user_id = auth.uid()
-  and public.is_household_member(household_id, auth.uid())
+  owner_user_id = (select auth.uid())
+  and public.is_household_member(household_id, (select auth.uid()))
   and amount <= 5
   and recurring = false
 );
@@ -243,7 +243,7 @@ create policy "Owners delete their spend proposals"
 on public.spend_proposals
 for delete
 to authenticated
-using (owner_user_id = auth.uid());
+using (owner_user_id = (select auth.uid()));
 
 grant select, insert, update, delete
   on public.business_experiments

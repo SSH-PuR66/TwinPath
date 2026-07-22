@@ -34,7 +34,9 @@ import {
 } from "lucide-react";
 
 import { supabase } from "./supabase";
-import ThemeScene, { themes } from "./ThemeScene";
+import ThemeScene, { ThemePreview, usePageHidden } from "./ThemeScene";
+import ThemeMarketplace from "./ThemeMarketplace";
+import { includedThemes, resolveThemeKey, themes } from "./themeCatalog";
 
 import {
     initialAllocation,
@@ -1897,6 +1899,7 @@ function SettingsModal({
     setThemeKey,
     reducedMotion,
     setReducedMotion,
+    privateMode,
     onClose,
 }) {
     const [copied, setCopied] = useState(false);
@@ -1907,6 +1910,8 @@ function SettingsModal({
     const [newPassword, setNewPassword] = useState("");
     const [passwordBusy, setPasswordBusy] = useState(false);
     const [passwordMessage, setPasswordMessage] = useState("");
+    const pageHidden = usePageHidden();
+    const themeMotionOff = reducedMotion || privateMode || pageHidden;
 
     async function savePassword(event) {
         event.preventDefault();
@@ -2014,21 +2019,43 @@ function SettingsModal({
                 <div>
                     <span className="field-label">Live theme</span>
 
+                    <div className="theme-catalog-note">
+                        <strong>19 live themes, included free</strong>
+                        <small>
+                            No subscription, locked packs or paid visual upgrades.
+                        </small>
+                    </div>
+
                     <div className="theme-grid">
-                        {Object.entries(themes).map(([key, theme]) => (
+                        {Object.entries(includedThemes).map(([key, theme]) => (
                             <button
                                 key={key}
+                                type="button"
                                 className={`theme-option ${themeKey === key ? "active" : ""}`}
                                 onClick={() => setThemeKey(key)}
-                                style={{
-                                    background: `linear-gradient(135deg, ${theme.background}, ${theme.accent}70, ${theme.accent2}70)`,
-                                }}
+                                aria-pressed={themeKey === key}
                             >
-                                <Palette size={17} />
-                                <span>{theme.name}</span>
+                                <ThemePreview
+                                    themeKey={key}
+                                    motionOff={themeMotionOff}
+                                />
+                                <span className="theme-option-copy">
+                                    <strong>
+                                        <Palette size={15} />
+                                        {theme.name}
+                                    </strong>
+                                    <small>{theme.description}</small>
+                                    <span>Included free</span>
+                                </span>
                             </button>
                         ))}
                     </div>
+
+                    <ThemeMarketplace
+                        themeKey={themeKey}
+                        onSelectTheme={setThemeKey}
+                        motionOff={themeMotionOff}
+                    />
                 </div>
 
                 <label className="toggle-row">
@@ -2160,7 +2187,7 @@ export default function App() {
     ]);
 
     const [themeKey, setThemeKeyState] = useState(
-        localStorage.getItem("twinpath-theme") || "aurora"
+        resolveThemeKey(localStorage.getItem("twinpath-theme"))
     );
 
     const [reducedMotion, setReducedMotionState] = useState(
@@ -2176,8 +2203,9 @@ export default function App() {
     }, [transactions]);
 
     function setThemeKey(value) {
-        setThemeKeyState(value);
-        localStorage.setItem("twinpath-theme", value);
+        const nextThemeKey = resolveThemeKey(value);
+        setThemeKeyState(nextThemeKey);
+        localStorage.setItem("twinpath-theme", nextThemeKey);
     }
 
     function setReducedMotion(value) {
@@ -2788,6 +2816,7 @@ export default function App() {
                     setThemeKey={setThemeKey}
                     reducedMotion={reducedMotion}
                     setReducedMotion={setReducedMotion}
+                    privateMode={privateMode}
                     onClose={() => setSettingsOpen(false)}
                 />
             )}

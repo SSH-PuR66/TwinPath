@@ -4,11 +4,13 @@ import {
     Clipboard,
     ExternalLink,
     FileCheck2,
+    Landmark,
     Link2,
     Loader2,
     RefreshCw,
     ShieldCheck,
     Trash2,
+    WalletCards,
 } from "lucide-react";
 
 import { connectorCatalog } from "./connectorCatalog";
@@ -41,7 +43,30 @@ const profileLabels = {
     currentIncome: "Current income",
 };
 
-export default function ConnectorCenter({ householdId, currentUserId }) {
+async function writeClipboard(text) {
+    if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(text);
+        return;
+    }
+
+    const textarea = document.createElement("textarea");
+    textarea.value = text;
+    textarea.setAttribute("readonly", "");
+    textarea.style.position = "fixed";
+    textarea.style.opacity = "0";
+    document.body.appendChild(textarea);
+    textarea.select();
+    const copied = document.execCommand("copy");
+    textarea.remove();
+    if (!copied) throw new Error("Clipboard access is unavailable.");
+}
+
+export default function ConnectorCenter({
+    householdId,
+    currentUserId,
+    onOpenConnections,
+    onOpenWallet,
+}) {
     const [profile, setProfile] = useState(emptyProfile);
     const [selectedConnector, setSelectedConnector] = useState(
         connectorCatalog[0]
@@ -49,10 +74,13 @@ export default function ConnectorCenter({ householdId, currentUserId }) {
     const [copiedField, setCopiedField] = useState("");
     const [saasDrafts, setSaasDrafts] = useState([]);
     const [draftsLoading, setDraftsLoading] = useState(false);
+    const [connectorNotice, setConnectorNotice] = useState("");
+    const [connectorError, setConnectorError] = useState("");
 
     const loadSaasDrafts = useCallback(async () => {
         if (!householdId || !currentUserId) return;
         setDraftsLoading(true);
+        setConnectorError("");
         const { data, error } = await supabase
             .from("agent_artifacts")
             .select("id,file_name,metadata,created_at")
@@ -62,7 +90,11 @@ export default function ConnectorCenter({ householdId, currentUserId }) {
             .contains("metadata", { engine_id: "micro_saas" })
             .order("created_at", { ascending: false })
             .limit(12);
-        if (!error) setSaasDrafts(Array.isArray(data) ? data : []);
+        if (error) {
+            setConnectorError(error.message || "Application drafts could not be loaded.");
+        } else {
+            setSaasDrafts(Array.isArray(data) ? data : []);
+        }
         setDraftsLoading(false);
     }, [currentUserId, householdId]);
 
@@ -81,12 +113,19 @@ export default function ConnectorCenter({ householdId, currentUserId }) {
 
         if (!value) return;
 
-        await navigator.clipboard.writeText(value);
-        setCopiedField(key);
+        setConnectorError("");
+        setConnectorNotice("");
+        try {
+            await writeClipboard(value);
+            setCopiedField(key);
+            setConnectorNotice(`${profileLabels[key]} copied.`);
 
-        window.setTimeout(() => {
-            setCopiedField("");
-        }, 1200);
+            window.setTimeout(() => {
+                setCopiedField("");
+            }, 1200);
+        } catch (error) {
+            setConnectorError(error.message || "This value could not be copied.");
+        }
     }
 
     async function sharePacket() {
@@ -99,21 +138,38 @@ export default function ConnectorCenter({ householdId, currentUserId }) {
 
         if (!text) return;
 
-        if (navigator.share) {
-            await navigator.share({
-                title: "TwinPath application packet",
-                text,
-            });
+        setConnectorError("");
+        setConnectorNotice("");
+        try {
+            if (navigator.share) {
+                try {
+                    await navigator.share({
+                        title: "TwinPath application packet",
+                        text,
+                    });
+                    setConnectorNotice("Application packet shared.");
+                    return;
+                } catch (shareError) {
+                    if (shareError?.name === "AbortError") return;
+                }
+            }
 
-            return;
+            await writeClipboard(text);
+            setConnectorNotice(
+                navigator.share
+                    ? "Sharing was unavailable, so the application packet was copied."
+                    : "Application packet copied."
+            );
+        } catch (error) {
+            setConnectorError(error.message || "The application packet could not be shared.");
         }
-
-        await navigator.clipboard.writeText(text);
     }
 
     function clearPacket() {
         setProfile(emptyProfile);
         setCopiedField("");
+        setConnectorError("");
+        setConnectorNotice("Temporary application packet cleared.");
     }
 
     return (
@@ -139,6 +195,40 @@ export default function ConnectorCenter({ householdId, currentUserId }) {
                     IDs, account numbers, card details or authentication codes.
                 </span>
             </div>
+
+            <div className="connector-context-actions">
+                <article>
+                    <Landmark size={20} />
+                    <div>
+                        <strong>Financial connections stay separate</strong>
+                        <span>They import read-only account data and never fill this packet.</span>
+                    </div>
+                    {onOpenConnections && (
+                        <button className="button ghost" type="button" onClick={onOpenConnections}>
+                            Open connections
+                        </button>
+                    )}
+                </article>
+                <article>
+                    <WalletCards size={20} />
+                    <div>
+                        <strong>Purchases require a separate approval</strong>
+                        <span>The approval wallet records decisions and never moves money.</span>
+                    </div>
+                    {onOpenWallet && (
+                        <button className="button ghost" type="button" onClick={onOpenWallet}>
+                            Open wallet
+                        </button>
+                    )}
+                </article>
+            </div>
+
+            {connectorError && (
+                <div className="error-box" role="alert">{connectorError}</div>
+            )}
+            {connectorNotice && (
+                <div className="success-box" role="status">{connectorNotice}</div>
+            )}
 
             <div className="connector-draft-list">
                 <div className="connector-profile-heading">
@@ -204,11 +294,17 @@ export default function ConnectorCenter({ householdId, currentUserId }) {
 
                     <div className="connector-profile-grid">
                         {Object.entries(profile).map(([key, value]) => (
-                            <label className="field" key={key}>
-                                <span>{profileLabels[key]}</span>
+                            <div className="field" key={key}>
+                                <label
+                                    className="field-label connector-field-label"
+                                    htmlFor={`connector-${key}`}
+                                >
+                                    {profileLabels[key]}
+                                </label>
 
                                 <div className="connector-copy-field">
                                     <input
+                                        id={`connector-${key}`}
                                         value={value}
                                         autoComplete="off"
                                         onChange={(event) =>
@@ -232,7 +328,7 @@ export default function ConnectorCenter({ householdId, currentUserId }) {
                                         )}
                                     </button>
                                 </div>
-                            </label>
+                            </div>
                         ))}
                     </div>
 

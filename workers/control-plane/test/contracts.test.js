@@ -69,5 +69,25 @@ test("provider runtime and frontend contracts use the same routes", async () => 
   }
   assert.match(worker, /\/v1\/billing\/checkout/);
   assert.match(worker, /\/v1\/billing\/portal/);
+  assert.match(worker, /getStripeCustomer/);
+  assert.match(
+    worker,
+    /portal_ready:\s*readiness\.stripe\.ready\s*&&\s*Boolean\(stripeCustomer\)/,
+  );
   assert.match(panel, /\/v1\/billing\/\$\{kind\}/);
+});
+
+test("approval wallet policies cache auth context and keep the RPC scoped", async () => {
+  const [migration, rpc] = await Promise.all([
+    read("supabase/migrations/20260721202311_wallet_rls_initplan_optimization.sql"),
+    read("supabase/v7-budget-enforcement.sql"),
+  ]);
+  assert.match(migration, /owner_user_id = \(select auth\.uid\(\)\)/i);
+  assert.match(
+    migration,
+    /is_household_member\([\s\S]*?\(select auth\.uid\(\)\)[\s\S]*?\)/i,
+  );
+  assert.doesNotMatch(migration, /owner_user_id = auth\.uid\(\)/i);
+  assert.match(rpc, /security definer[\s\S]*set search_path = ''/i);
+  assert.match(rpc, /owner_user_id = current_user_id/i);
 });

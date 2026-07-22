@@ -10,7 +10,7 @@ It provides:
 - Income-opportunity tracking
 - Legal resource navigation
 - Private/shared document storage
-- Six animated 3D themes
+- Nineteen animated 3D themes plus a 190-theme in-app Theme Shop
 - Reduced-motion mode
 - Passwordless authentication
 - Household invitation codes

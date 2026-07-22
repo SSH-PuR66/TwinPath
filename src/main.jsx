@@ -2,9 +2,13 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 
 import App from "./App";
+import { resolveApplicationRoute } from "./appRoutes";
 import ErrorBoundary from "./ErrorBoundary";
+import PublicProduct from "./PublicProduct";
 import PublicStorefront from "./PublicStorefront";
+import RouteNotFound from "./RouteNotFound";
 import StoreLegal from "./StoreLegal";
+import { storeProducts } from "./storeProducts";
 
 import "./styles.css";
 import "./feature-components.css";
@@ -17,32 +21,26 @@ if (import.meta.env.PROD && "serviceWorker" in navigator) {
   });
 }
 
-const normalizedPath =
-  window.location.pathname
-    .replace(/\/+$/, "")
-    .toLowerCase() || "/";
-
 function RoutedApplication() {
-  if (
-    normalizedPath === "/shop" ||
-    normalizedPath.startsWith("/shop/product/")
-  ) {
-    return <PublicStorefront />;
-  }
+  const route = resolveApplicationRoute(
+    window.location.pathname,
+    storeProducts.map((product) => product.id)
+  );
 
-  if (normalizedPath === "/shop/privacy") {
-    return <StoreLegal page="privacy" />;
+  switch (route.kind) {
+    case "private-app":
+      return <App />;
+    case "storefront":
+      return <PublicStorefront />;
+    case "product": {
+      const product = storeProducts.find((item) => item.id === route.productId);
+      return <PublicProduct product={product} />;
+    }
+    case "legal":
+      return <StoreLegal page={route.page} />;
+    default:
+      return <RouteNotFound />;
   }
-
-  if (normalizedPath === "/shop/terms") {
-    return <StoreLegal page="terms" />;
-  }
-
-  if (normalizedPath === "/shop/refunds") {
-    return <StoreLegal page="refunds" />;
-  }
-
-  return <App />;
 }
 
 ReactDOM.createRoot(document.getElementById("root")).render(

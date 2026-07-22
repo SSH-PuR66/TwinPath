@@ -52,6 +52,9 @@ function extractLiteralClasses(source) {
 
         if (
           normalized &&
+          // A template such as `theme-${theme.scene}` becomes `theme-` after
+          // expression removal. It is a dynamic prefix, not a CSS class.
+          !normalized.endsWith("-") &&
           /^[a-zA-Z_-][a-zA-Z0-9_-]*$/.test(normalized)
         ) {
           classes.add(normalized);

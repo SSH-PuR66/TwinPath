@@ -7,7 +7,7 @@ create or replace function public.review_spend_proposal(
 returns public.spend_proposals
 language plpgsql
 security definer
-set search_path = public
+set search_path = ''
 as $$
 declare
   current_user_id uuid := auth.uid();
