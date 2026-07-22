@@ -27,10 +27,18 @@ if (/YOUR_|replace_with|example\.com/i.test(config)) {
     );
 }
 
-const productionEnv = await readFile(
-    new URL("../.env.production", import.meta.url),
-    "utf8"
-);
+let productionEnv = "";
+
+try {
+    productionEnv = await readFile(
+        new URL("../.env.production", import.meta.url),
+        "utf8"
+    );
+} catch (error) {
+    if (error?.code !== "ENOENT") {
+        throw error;
+    }
+}
 
 const productionControlPlane = productionEnv
     .split(/\r?\n/)
