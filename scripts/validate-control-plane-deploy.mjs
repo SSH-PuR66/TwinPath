@@ -8,7 +8,7 @@ const config = await readFile(
 const requiredFragments = [
     '"name": "twinpath-control-plane"',
     '"binding": "AGENT_JOBS"',
-    '"PROVIDER_MODE": "disabled"',
+    '"PROVIDER_MODE": "production"',
     '"ALLOWED_ORIGINS": "https://twinpath.srodriguez46.workers.dev"',
     '"SUPABASE_URL": "https://wtdmjybpfimmsojsdobx.supabase.co"',
 ];

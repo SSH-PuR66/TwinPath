@@ -6,11 +6,11 @@
   "compatibility_flags": ["nodejs_compat"],
   "vars": {
     "ENVIRONMENT": "production",
-    "PROVIDER_MODE": "disabled",
+    "PROVIDER_MODE": "production",
     "ALLOWED_ORIGINS": "https://twinpath.srodriguez46.workers.dev",
     "SUPABASE_URL": "https://wtdmjybpfimmsojsdobx.supabase.co",
     "HOUSEHOLD_MEMBERS_TABLE": "household_members",
-    "PLAID_ENV": "sandbox",
+    "PLAID_ENV": "production",
     "PLAID_WEBHOOK_URL": "https://twinpath-control-plane.srodriguez46.workers.dev/v1/webhooks/plaid",
     "PLAID_REDIRECT_URI": "https://twinpath.srodriguez46.workers.dev/",
     "STRIPE_ALLOWED_PRICE_IDS": "",
