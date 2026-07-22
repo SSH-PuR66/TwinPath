@@ -1,5 +1,5 @@
 import { authenticate } from "./auth.js";
-import { enqueueDueSandboxRuns } from "./cron.js";
+import { enqueueDueSandboxRuns, runAutonomousPlaidSync } from "./cron.js";
 import {
   assertObject,
   enforceOrigin,
@@ -16,6 +16,7 @@ import {
   exchangePlaidPublicToken,
   getPlaidAccounts,
   handlePlaidWebhook,
+  isAutonomousPlaidSyncEnabled,
   syncPlaidTransactions,
 } from "./plaid.js";
 import {
@@ -261,12 +262,13 @@ async function handleFetch(request, env) {
     enforceOrigin(request, env);
     if (request.method === "GET" && url.pathname === "/health") {
       const providers = providerReadiness(env);
+      const autonomousPlaidSync = isAutonomousPlaidSyncEnabled(env) && providers.plaid.ready;
       return json(request, env, {
         ok: true,
         service: "twinpath-control-plane",
         mode: env.ENVIRONMENT || "sandbox",
-        external_actions_enabled: false,
-        autonomous_runs: "sandbox_only",
+        external_actions_enabled: autonomousPlaidSync,
+        autonomous_runs: autonomousPlaidSync ? "plaid_sync_only" : "sandbox_only",
         providers,
       });
     }
@@ -318,6 +320,9 @@ export default {
   },
 
   async scheduled(event, env) {
-    await enqueueDueSandboxRuns(event, env);
+    await Promise.allSettled([
+      enqueueDueSandboxRuns(event, env),
+      runAutonomousPlaidSync(event, env),
+    ]);
   },
 };

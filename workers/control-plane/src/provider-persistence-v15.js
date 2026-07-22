@@ -81,6 +81,15 @@ export async function getPlaidItems(env, auth) {
   }));
 }
 
+export async function listPlaidItemsForAutonomousSync(env, limit = 20) {
+  return selectRows(env, "PLAID_ITEMS_TABLE", new URLSearchParams({
+    select: "*",
+    status: "eq.active",
+    order: "last_synced_at.asc.nullsfirst",
+    limit: String(Math.max(1, Math.min(Number(limit) || 20, 50))),
+  }).toString());
+}
+
 export async function getPlaidItemById(env, auth, itemId) {
   const rows = await selectRows(env, "PLAID_ITEMS_TABLE", householdQuery(auth, {
     select: "*",
@@ -109,14 +118,22 @@ export async function updatePlaidCursor(env, item, cursor) {
 }
 
 export async function savePlaidAccounts(env, auth, itemId, accounts) {
+  return savePlaidItemAccounts(env, {
+    id: itemId,
+    household_id: auth.household.id,
+    owner_user_id: auth.user.id,
+  }, accounts);
+}
+
+export async function savePlaidItemAccounts(env, item, accounts) {
   if (!accounts.length) return [];
   return upsertRows(
     env,
     "PLAID_ACCOUNTS_TABLE",
     accounts.map((account) => ({
-      household_id: auth.household.id,
-      owner_user_id: auth.user.id,
-      plaid_item_id: itemId,
+      household_id: item.household_id,
+      owner_user_id: item.owner_user_id,
+      plaid_item_id: item.id,
       account_id: account.account_id,
       name: String(account.name || "").slice(0, 180),
       mask: account.mask || null,

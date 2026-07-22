@@ -8,9 +8,11 @@ import {
   getPlaidItemById,
   getPlaidItemByItemId,
   getPlaidItems,
+  listPlaidItemsForAutonomousSync,
   listPlaidAccounts,
   releaseProviderWebhook,
   savePlaidAccounts,
+  savePlaidItemAccounts,
   savePlaidItem,
   updatePlaidCursor,
   writeProviderAudit,
@@ -18,6 +20,23 @@ import {
 import { providerMode, requireProvider } from "./provider-mode.js";
 
 const MAX_SYNC_PAGES = 20;
+const DEFAULT_STALE_MINUTES = 30;
+
+function autonomousPlaidSyncEnabled(env) {
+  return providerMode(env) === "production"
+    && String(env.PLAID_ENV || "").toLowerCase() === "production"
+    && String(env.AUTONOMOUS_PLAID_SYNC || "").toLowerCase() === "true";
+}
+
+function staleMinutes(env) {
+  const value = Number(env.PLAID_SYNC_STALE_MINUTES);
+  return Number.isFinite(value) ? Math.max(15, Math.min(Math.floor(value), 24 * 60)) : DEFAULT_STALE_MINUTES;
+}
+
+function isStale(item, now, minutes) {
+  const lastSynced = Date.parse(item.last_synced_at || "");
+  return !Number.isFinite(lastSynced) || now - lastSynced >= minutes * 60_000;
+}
 
 function plaidBaseUrl(env) {
   return providerMode(env) === "production" && String(env.PLAID_ENV).toLowerCase() === "production"
@@ -74,7 +93,9 @@ async function syncItem(env, item) {
     aggregate.removed.push(...(result.removed || []));
     cursor = result.next_cursor;
     if (!result.has_more) {
+      const accountResult = await plaidRequest(env, "/accounts/get", { access_token: accessToken });
       await applyPlaidTransactions(env, item, aggregate);
+      await savePlaidItemAccounts(env, item, accountResult.accounts || []);
       await updatePlaidCursor(env, item, cursor);
       return {
         added: aggregate.added.length,
@@ -84,6 +105,35 @@ async function syncItem(env, item) {
     }
   }
   throw new HttpError(502, "plaid_sync_limit", "Plaid transaction sync exceeded the page limit");
+}
+
+export async function syncAutonomousPlaidTransactions(env, now = Date.now()) {
+  if (!autonomousPlaidSyncEnabled(env)) {
+    return { enabled: false, inspected: 0, synced: 0, failed: 0 };
+  }
+  requireProvider(env, "plaid");
+  const items = await listPlaidItemsForAutonomousSync(env);
+  const eligible = items.filter((item) => isStale(item, now, staleMinutes(env)));
+  let synced = 0;
+  let failed = 0;
+  for (const item of eligible) {
+    try {
+      await syncItem(env, item);
+      await writeProviderAudit(env, {
+        householdId: item.household_id,
+        ownerUserId: item.owner_user_id,
+        eventType: "plaid.autonomous_sync_completed",
+      });
+      synced += 1;
+    } catch {
+      failed += 1;
+    }
+  }
+  return { enabled: true, inspected: items.length, synced, failed };
+}
+
+export function isAutonomousPlaidSyncEnabled(env) {
+  return autonomousPlaidSyncEnabled(env);
 }
 
 export async function createPlaidLinkToken(request, env, auth) {

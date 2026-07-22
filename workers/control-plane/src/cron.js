@@ -4,6 +4,7 @@ import {
   listDueSandboxProjects,
   markRunEnqueueFailed,
 } from "./persistence-v13.js";
+import { syncAutonomousPlaidTransactions } from "./plaid.js";
 
 async function enqueueDueProject(env, project) {
   const run = await createScheduledRun(env, project);
@@ -31,6 +32,17 @@ export async function enqueueDueSandboxRuns(event, env) {
     log("info", "cron_due_runs_processed", { due: due.length, queued, failed, cron: event.cron });
   } catch (error) {
     logError("cron_processing_failed", error, { cron: event.cron });
+    throw error;
+  }
+}
+
+export async function runAutonomousPlaidSync(event, env) {
+  try {
+    const result = await syncAutonomousPlaidTransactions(env, event.scheduledTime);
+    log("info", "cron_plaid_sync_processed", { ...result, cron: event.cron });
+    return result;
+  } catch (error) {
+    logError("cron_plaid_sync_failed", error, { cron: event.cron });
     throw error;
   }
 }
