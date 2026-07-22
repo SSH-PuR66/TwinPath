@@ -66,6 +66,11 @@ export default function FinancialConnectionsPanel({
     const [error, setError] = useState("");
     const oauthResumeAttempted = useRef(false);
     const providerDisabled = state.provider_mode === "disabled";
+    const plaidReady = state.readiness.some((item) => item.id === "plaid" && item.status === "ready");
+    const autonomousSyncReady = state.provider_mode === "production" && plaidReady;
+    const syncState = autonomousSyncReady
+        ? (state.connections.length ? "automatic" : "ready")
+        : "manual";
 
     const apiRequest = useCallback(async (path, options = {}) => {
         if (!controlPlaneUrl) throw new Error("Financial connections are not configured.");
@@ -225,10 +230,11 @@ export default function FinancialConnectionsPanel({
             <header className="grow-feature-heading">
                 <div>
                     <span className="eyebrow">CONNECTIONS</span>
-                    <h2>Read-only financial connections</h2>
+                    <h2>Live financial connections</h2>
                     <p>
-                        Plaid imports account data only after you choose Connect.
-                        TwinPath never asks you to type bank credentials into this app.
+                        Connect once through Plaid, then TwinPath keeps balances and transactions current
+                        with bank-supplied updates and scheduled, read-only sync. We never ask you to type
+                        bank credentials into TwinPath.
                     </p>
                 </div>
                 <Link2 size={30} />
@@ -238,8 +244,12 @@ export default function FinancialConnectionsPanel({
                 <article>
                     <Landmark size={20} />
                     <div>
-                        <strong>Plaid connections</strong>
-                        <span>Read-only balances and transactions. No transfers or purchases.</span>
+                        <strong>Live Plaid sync</strong>
+                        <span>
+                            {autonomousSyncReady
+                                ? "Automatic, read-only balance and transaction refreshes. No transfers or purchases."
+                                : "Read-only balances and transactions. No transfers or purchases."}
+                        </span>
                     </div>
                 </article>
                 <article>
@@ -263,7 +273,7 @@ export default function FinancialConnectionsPanel({
                 </article>
             </div>
 
-            <div className="connection-status-grid">
+            <div className="connection-status-grid" aria-live="polite">
                 <article>
                     <span>Provider mode</span>
                     <strong>{state.provider_mode.replaceAll("_", " ")}</strong>
@@ -273,8 +283,8 @@ export default function FinancialConnectionsPanel({
                     <strong>{state.connections.length}</strong>
                 </article>
                 <article>
-                    <span>Readiness checks</span>
-                    <strong>{state.readiness.filter((item) => item.status === "ready" || item.status === "passed").length}/{state.readiness.length}</strong>
+                    <span>Sync status</span>
+                    <strong>{syncState}</strong>
                 </article>
             </div>
 
@@ -340,13 +350,13 @@ export default function FinancialConnectionsPanel({
             <div className="connection-actions">
                 <button className="button primary" type="button" onClick={connectPlaid}
                     disabled={!controlPlaneUrl || Boolean(busy) ||
-                        !state.readiness.some((item) => item.id === "plaid" && item.status === "ready")}>
+                        !plaidReady}>
                     {busy === "connect" ? <Loader2 className="spin" size={17} /> : <Link2 size={17} />}
-                    Start read-only connection
+                    Connect financial institution
                 </button>
                 <button className="button secondary" type="button" onClick={refresh}
                     disabled={!controlPlaneUrl || Boolean(busy)}>
-                    <RefreshCw className={busy === "refresh" ? "spin" : ""} size={17} /> Refresh
+                    <RefreshCw className={busy === "refresh" ? "spin" : ""} size={17} /> Refresh now
                 </button>
                 <button className="button secondary" type="button" onClick={() => openBilling("checkout")}
                     disabled={!controlPlaneUrl || Boolean(busy) || !state.billing.checkout_ready}>
@@ -367,8 +377,8 @@ export default function FinancialConnectionsPanel({
                             <small>
                                 {connection.status || "connected"}
                                 {connection.last_synced_at
-                                    ? ` · synced ${new Date(connection.last_synced_at).toLocaleString()}`
-                                    : " · not synced yet"}
+                                    ? ` · automatically synced ${new Date(connection.last_synced_at).toLocaleString()}`
+                                    : autonomousSyncReady ? " · automatic sync is standing by" : " · not synced yet"}
                             </small>
                         </div>
                         <div className="connection-card-actions">
