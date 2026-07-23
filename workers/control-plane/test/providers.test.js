@@ -33,7 +33,7 @@ test("Plaid country and consented product configuration is constrained", () => {
   assert.deepEqual(plaidCountryCodes({ PLAID_COUNTRY_CODES: "us, CA, invalid, GB, us" }), ["US", "CA", "GB"]);
   assert.deepEqual(
     plaidAdditionalConsentedProducts({ PLAID_ADDITIONAL_CONSENTED_PRODUCTS: "liabilities,identity,investments,liabilities" }),
-    ["liabilities", "investments"],
+    ["liabilities"],
   );
 });
 

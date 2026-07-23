@@ -29,6 +29,12 @@ import {
   markRunEnqueueFailed,
   pauseRun,
 } from "./persistence-v13.js";
+import {
+  allocateAmount,
+  listBenefits,
+  upsertEnrollment,
+} from "./benefits.js";
+import { watchDeposits } from "./deposit-watch.js";
 import { financialSummary, importCsvTransactions } from "./imports.js";
 import {
   createProposal,
@@ -261,6 +267,20 @@ async function handleAuthenticated(request, env, pathname) {
     return json(request, env, await financialSummary(env, auth));
   }
 
+  if (request.method === "GET" && pathname === "/v1/benefits") {
+    return json(request, env, await listBenefits(env, auth));
+  }
+
+  if (request.method === "POST" && pathname === "/v1/benefits/enrollment") {
+    const body = assertObject(await readJson(request));
+    return json(request, env, { enrollment: await upsertEnrollment(env, auth, body) }, { status: 201 });
+  }
+
+  if (request.method === "POST" && pathname === "/v1/financial/allocate") {
+    const body = assertObject(await readJson(request));
+    return json(request, env, await allocateAmount(env, auth, body));
+  }
+
   if (request.method === "GET" && pathname === "/v1/proposals") {
     const status = new URL(request.url).searchParams.get("status");
     return json(request, env, { proposals: await listProposals(env, auth, status) });
@@ -362,6 +382,7 @@ export default {
     await Promise.allSettled([
       enqueueDueSandboxRuns(event, env),
       runAutonomousPlaidSync(event, env),
+      watchDeposits(event, env),
     ]);
   },
 };

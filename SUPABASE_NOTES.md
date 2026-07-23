@@ -59,3 +59,8 @@ Apply `supabase/v15-financial-integrations.sql` before enabling Plaid or
 Stripe provider routes. Provider credentials remain encrypted and inaccessible
 to browser roles. M&T Bank and Chime synchronization is read-only through
 Plaid; the integration does not support transfers or automated spending.
+
+Apply `supabase/v17-agent-proposals.sql` and then
+`supabase/v18-plaid-product-streams.sql` before deploying the corresponding
+Worker code. v18 keeps Liabilities and recurring streams product-scoped,
+household/owner constrained, RLS-protected, and service-role-write-only.

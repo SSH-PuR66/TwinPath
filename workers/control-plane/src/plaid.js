@@ -10,10 +10,16 @@ import {
   getPlaidItems,
   listPlaidItemsForAutonomousSync,
   listPlaidAccounts,
+  listPlaidLiabilities,
+  listPlaidProductStatuses,
+  listPlaidRecurringStreams,
   releaseProviderWebhook,
   savePlaidAccounts,
   savePlaidItemAccounts,
   savePlaidItem,
+  savePlaidLiabilities,
+  savePlaidProductStatus,
+  savePlaidRecurringStreams,
   updatePlaidCursor,
   writeProviderAudit,
 } from "./provider-persistence-v15.js";
@@ -26,6 +32,11 @@ import {
 
 const MAX_SYNC_PAGES = 20;
 const DEFAULT_STALE_MINUTES = 30;
+const OPTIONAL_PRODUCT_UNAVAILABLE = new Set([
+  "PRODUCT_NOT_READY", "PRODUCT_NOT_SUPPORTED", "PRODUCTS_NOT_SUPPORTED",
+  "PRODUCTS_NOT_AVAILABLE", "INSTITUTION_NOT_SUPPORTED", "INSTITUTION_NOT_AVAILABLE",
+  "NO_LIABILITY_ACCOUNTS", "NO_ACCOUNTS", "INVALID_PRODUCT",
+]);
 
 function autonomousPlaidSyncEnabled(env) {
   return providerMode(env) === "production"
@@ -83,6 +94,89 @@ async function accessTokenFor(env, item) {
   );
 }
 
+function recurringEnabled(env) {
+  return String(env.PLAID_RECURRING_ENABLED || "").toLowerCase() === "true";
+}
+
+function liabilitiesEnabled(env) {
+  return plaidAdditionalConsentedProducts(env).includes("liabilities");
+}
+
+function optionalProductError(error) {
+  const code = String(error?.details?.error_code || "").toUpperCase();
+  return OPTIONAL_PRODUCT_UNAVAILABLE.has(code) ? code : null;
+}
+
+export function normalizePlaidLiabilities(payload) {
+  const normalize = (entries, liabilityType) => (Array.isArray(entries) ? entries : [])
+    .filter((entry) => typeof entry?.account_id === "string" && entry.account_id.length > 0)
+    .map((entry) => ({
+      account_id: entry.account_id,
+      liability_type: liabilityType,
+      current_balance: entry.current_balance ?? null,
+      minimum_payment: entry.minimum_payment_amount ?? entry.minimum_payment ?? null,
+      next_payment_due_date: entry.next_payment_due_date ?? null,
+      interest_rate: entry.interest_rate_percentage ?? entry.apr_percentage ?? null,
+      currency: entry.iso_currency_code ?? null,
+    }));
+  const liabilities = payload?.liabilities || {};
+  return [
+    ...normalize(liabilities.credit, "credit"),
+    ...normalize(liabilities.mortgage, "mortgage"),
+    ...normalize(liabilities.student, "student"),
+  ];
+}
+
+export function normalizePlaidRecurringStreams(payload) {
+  const normalize = (entries, kind) => (Array.isArray(entries) ? entries : [])
+    .filter((stream) => typeof stream?.stream_id === "string" && stream.stream_id.length > 0)
+    .map((stream) => ({
+      stream_id: stream.stream_id,
+      account_id: stream.account_id ?? null,
+      kind,
+      description: String(stream.description || stream.merchant_name || "Recurring transaction").slice(0, 500),
+      merchant_name: stream.merchant_name ? String(stream.merchant_name).slice(0, 180) : null,
+      average_amount: stream.average_amount?.amount ?? stream.average_amount ?? null,
+      frequency: stream.frequency ?? null,
+      last_date: stream.last_date ?? null,
+      next_date: stream.predicted_next_date ?? stream.next_date ?? null,
+      currency: stream.iso_currency_code ?? null,
+    }));
+  return [
+    ...normalize(payload?.inflow_streams, "inflow"),
+    ...normalize(payload?.outflow_streams, "outflow"),
+  ];
+}
+
+async function syncOptionalProducts(env, item, accessToken) {
+  const result = { liabilities: "unavailable", recurring: "unavailable" };
+  if (liabilitiesEnabled(env)) {
+    try {
+      const response = await plaidRequest(env, "/liabilities/get", { access_token: accessToken });
+      await savePlaidLiabilities(env, item, normalizePlaidLiabilities(response));
+      await savePlaidProductStatus(env, item, "liabilities", { status: "enabled" });
+      result.liabilities = "enabled";
+    } catch (error) {
+      const code = optionalProductError(error);
+      if (!code) throw error;
+      await savePlaidProductStatus(env, item, "liabilities", { status: "unavailable", errorCode: code });
+    }
+  }
+  if (recurringEnabled(env)) {
+    try {
+      const response = await plaidRequest(env, "/transactions/recurring/get", { access_token: accessToken });
+      await savePlaidRecurringStreams(env, item, normalizePlaidRecurringStreams(response));
+      await savePlaidProductStatus(env, item, "recurring", { status: "enabled" });
+      result.recurring = "enabled";
+    } catch (error) {
+      const code = optionalProductError(error);
+      if (!code) throw error;
+      await savePlaidProductStatus(env, item, "recurring", { status: "unavailable", errorCode: code });
+    }
+  }
+  return result;
+}
+
 async function syncItem(env, item) {
   const accessToken = await accessTokenFor(env, item);
   let cursor = item.cursor || null;
@@ -101,11 +195,15 @@ async function syncItem(env, item) {
       const accountResult = await plaidRequest(env, "/accounts/get", { access_token: accessToken });
       await applyPlaidTransactions(env, item, aggregate);
       await savePlaidItemAccounts(env, item, accountResult.accounts || []);
+      await savePlaidProductStatus(env, item, "balances", { status: "enabled" });
+      await savePlaidProductStatus(env, item, "transactions", { status: "enabled" });
+      const optional = await syncOptionalProducts(env, item, accessToken);
       await updatePlaidCursor(env, item, cursor);
       return {
         added: aggregate.added.length,
         modified: aggregate.modified.length,
         removed: aggregate.removed.length,
+        optional,
       };
     }
   }
@@ -146,7 +244,7 @@ export async function createPlaidLinkToken(request, env, auth) {
   const additionalConsentedProducts = plaidAdditionalConsentedProducts(env);
   const result = await plaidRequest(env, "/link/token/create", {
     user: { client_user_id: auth.user.id },
-    client_name: "El Plan",
+    client_name: "TwinPath",
     products: ["transactions"],
     country_codes: plaidCountryCodes(env),
     language: "en",
@@ -197,6 +295,14 @@ export async function exchangePlaidPublicToken(request, env, auth) {
   }
   const accountResult = await plaidRequest(env, "/accounts/get", { access_token: exchanged.access_token });
   await savePlaidAccounts(env, auth, item.id, accountResult.accounts || []);
+  await savePlaidProductStatus(env, item, "balances", { status: "enabled" });
+  await savePlaidProductStatus(env, item, "transactions", { status: "pending" });
+  await savePlaidProductStatus(env, item, "liabilities", {
+    status: liabilitiesEnabled(env) ? "pending" : "unavailable",
+  });
+  await savePlaidProductStatus(env, item, "recurring", {
+    status: recurringEnabled(env) ? "pending" : "unavailable",
+  });
   await writeProviderAudit(env, {
     householdId: auth.household.id,
     ownerUserId: auth.user.id,
@@ -209,6 +315,31 @@ export async function exchangePlaidPublicToken(request, env, auth) {
 export async function getPlaidAccounts(env, auth) {
   requireProvider(env, "plaid");
   return listPlaidAccounts(env, auth);
+}
+
+export async function getPlaidOverview(env, auth) {
+  requireProvider(env, "plaid");
+  const [accounts, liabilities, recurring, productStatus] = await Promise.all([
+    listPlaidAccounts(env, auth),
+    listPlaidLiabilities(env, auth),
+    listPlaidRecurringStreams(env, auth),
+    listPlaidProductStatuses(env, auth),
+  ]);
+  const sum = (rows, predicate, field) => rows
+    .filter(predicate)
+    .reduce((total, row) => total + (Number(row[field]) || 0), 0);
+  return {
+    accounts,
+    liabilities,
+    recurring,
+    product_status: productStatus,
+    aggregation: {
+      available_cash: sum(accounts, (account) => ["depository", "cash"].includes(account.type), "available_balance"),
+      deposit_balance: sum(accounts, (account) => ["depository", "cash"].includes(account.type), "current_balance"),
+      debt_balance: sum(accounts, (account) => ["credit", "loan"].includes(account.type), "current_balance"),
+      liability_balance: sum(liabilities, () => true, "current_balance"),
+    },
+  };
 }
 
 export async function syncPlaidTransactions(request, env, auth) {

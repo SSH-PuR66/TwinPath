@@ -155,6 +155,87 @@ export async function listPlaidAccounts(env, auth) {
   }));
 }
 
+export async function savePlaidProductStatus(env, item, product, {
+  status,
+  errorCode = null,
+  syncedAt = status === "enabled" ? new Date().toISOString() : null,
+} = {}) {
+  return upsertRows(env, "PLAID_PRODUCT_SYNC_STATUS_TABLE", [{
+    household_id: item.household_id,
+    owner_user_id: item.owner_user_id,
+    plaid_item_id: item.id,
+    product,
+    status,
+    provider_error_code: errorCode,
+    last_synced_at: syncedAt,
+  }], "plaid_item_id,product");
+}
+
+export async function listPlaidProductStatuses(env, auth) {
+  return selectRows(env, "PLAID_PRODUCT_SYNC_STATUS_TABLE", householdQuery(auth, {
+    select: "plaid_item_id,product,status,provider_error_code,last_synced_at,updated_at",
+    order: "product.asc",
+    limit: "200",
+  }));
+}
+
+export async function savePlaidLiabilities(env, item, liabilities) {
+  await deleteRows(env, "PLAID_LIABILITIES_TABLE", new URLSearchParams({
+    plaid_item_id: `eq.${item.id}`,
+  }).toString());
+  if (!liabilities.length) return [];
+  return upsertRows(env, "PLAID_LIABILITIES_TABLE", liabilities.map((liability) => ({
+    household_id: item.household_id,
+    owner_user_id: item.owner_user_id,
+    plaid_item_id: item.id,
+    account_id: liability.account_id,
+    liability_type: liability.liability_type,
+    current_balance: liability.current_balance ?? null,
+    minimum_payment: liability.minimum_payment ?? null,
+    next_payment_due_date: liability.next_payment_due_date ?? null,
+    interest_rate: liability.interest_rate ?? null,
+    currency: liability.currency ?? null,
+  })), "plaid_item_id,account_id,liability_type");
+}
+
+export async function savePlaidRecurringStreams(env, item, streams) {
+  await deleteRows(env, "PLAID_RECURRING_STREAMS_TABLE", new URLSearchParams({
+    plaid_item_id: `eq.${item.id}`,
+  }).toString());
+  if (!streams.length) return [];
+  return upsertRows(env, "PLAID_RECURRING_STREAMS_TABLE", streams.map((stream) => ({
+    household_id: item.household_id,
+    owner_user_id: item.owner_user_id,
+    plaid_item_id: item.id,
+    stream_id: stream.stream_id,
+    account_id: stream.account_id ?? null,
+    kind: stream.kind,
+    description: stream.description,
+    merchant_name: stream.merchant_name ?? null,
+    average_amount: stream.average_amount ?? null,
+    frequency: stream.frequency ?? null,
+    last_date: stream.last_date ?? null,
+    next_date: stream.next_date ?? null,
+    currency: stream.currency ?? null,
+  })), "plaid_item_id,stream_id,kind");
+}
+
+export async function listPlaidLiabilities(env, auth) {
+  return selectRows(env, "PLAID_LIABILITIES_TABLE", householdQuery(auth, {
+    select: "id,plaid_item_id,account_id,liability_type,current_balance,minimum_payment,next_payment_due_date,interest_rate,currency,updated_at",
+    order: "next_payment_due_date.asc.nullslast",
+    limit: "100",
+  }));
+}
+
+export async function listPlaidRecurringStreams(env, auth) {
+  return selectRows(env, "PLAID_RECURRING_STREAMS_TABLE", householdQuery(auth, {
+    select: "id,plaid_item_id,stream_id,account_id,kind,description,merchant_name,average_amount,frequency,last_date,next_date,currency,updated_at",
+    order: "next_date.asc.nullslast",
+    limit: "200",
+  }));
+}
+
 export async function applyPlaidTransactions(env, item, sync) {
   const base = {
     household_id: item.household_id,

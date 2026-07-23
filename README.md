@@ -10,7 +10,7 @@ It provides:
 - Income-opportunity tracking
 - Legal resource navigation
 - Private/shared document storage
-- Nineteen animated 3D themes plus a 190-theme in-app Theme Shop
+- Built-in animated depth themes plus an optional, locally packaged theme catalog
 - Reduced-motion mode
 - Passwordless authentication
 - Household invitation codes
@@ -59,7 +59,7 @@ deployment, spending, vulnerability disclosure, asset purchasing, scanning,
 or publishing.
 
 Apply the versioned SQL files through
-`supabase/v15-financial-integrations.sql`, configure the Worker secrets, and
+`supabase/v18-plaid-product-streams.sql` in order (after v15 and v17), configure the Worker secrets, and
 set `VITE_CONTROL_PLANE_URL` to its origin.
 See [docs/autonomous-operations.md](docs/autonomous-operations.md) for setup,
 policy boundaries, migration guidance, and emergency shutdown.
@@ -70,6 +70,12 @@ Plaid can provide read-only account data for supported institutions such as
 M&T Bank and Chime. Stripe can provide allowlisted Checkout and Billing
 sessions. Provider access is disabled until credentials, signed webhooks, and
 readiness checks are configured.
+
+Liabilities and recurring-stream analysis are optional per provider. Their
+unavailability never prevents balance or Transactions sync, and the UI shows
+that state rather than example financial data. See [theme-assets/README.md](theme-assets/README.md)
+for the reviewed local-only theme intake process and [docs/IOS-BUILD.md](docs/IOS-BUILD.md)
+for the intentionally manual future Capacitor path.
 
 See [docs/financial-integrations.md](docs/financial-integrations.md) for the
 security model and activation process. Profit goals and opportunity scores are

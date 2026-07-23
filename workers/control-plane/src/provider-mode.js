@@ -1,7 +1,9 @@
 import { HttpError } from "./http.js";
 
 const MODES = new Set(["disabled", "sandbox", "production"]);
-const PLAID_ADDITIONAL_CONSENTED_PRODUCTS = new Set(["liabilities", "investments"]);
+// This is an explicit server-side allowlist, not a client choice. Leave the
+// environment value blank until Plaid has enabled Liabilities for production.
+const PLAID_ADDITIONAL_CONSENTED_PRODUCTS = new Set(["liabilities"]);
 
 function commaSeparated(env, name, fallback = []) {
   const value = String(env[name] || "").trim();
