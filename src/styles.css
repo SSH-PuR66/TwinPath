@@ -2922,6 +2922,29 @@ textarea {
 
 .money-action-center { display: grid; gap: 0.75rem; }
 .benefits-total { padding: 0.8rem; background: rgba(140,224,189,0.1); border-radius: 12px; }
+.twins-checklist { display: grid; gap: 0.65rem; padding: 0.9rem; background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 15%, transparent), color-mix(in srgb, var(--accent-2) 8%, transparent)); border: 1px solid color-mix(in srgb, var(--accent) 46%, var(--border)); border-radius: 14px; }
+.twins-checklist-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 0.75rem; }
+.twins-checklist-heading h4 { margin: 0.1rem 0 0; }
+.twins-checklist-heading > span { flex: 0 0 auto; padding: 0.25rem 0.5rem; color: var(--accent); background: rgba(0,0,0,0.16); border-radius: 999px; font-size: 0.75rem; font-weight: 700; }
+.twins-checklist-items { display: grid; gap: 0.45rem; }
+.twins-checklist-item { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 0.65rem; width: 100%; padding: 0.7rem; color: var(--text); text-align: left; background: rgba(4, 9, 17, 0.18); border: 1px solid rgba(255,255,255,0.08); border-radius: 11px; cursor: pointer; }
+.twins-checklist-item:hover { border-color: var(--accent); }
+.twins-checklist-item > span:nth-child(2) { display: grid; gap: 0.18rem; }
+.twins-checklist-item small { color: var(--muted); line-height: 1.35; }
+.twins-checkmark { display: grid; place-items: center; width: 1.25rem; height: 1.25rem; color: #061017; border: 1px solid var(--accent); border-radius: 50%; }
+.twins-checklist-item.complete .twins-checkmark { background: var(--accent); }
+.theme-credits { display: grid; gap: 0.45rem; margin-top: 1rem; padding: 0.9rem; background: rgba(255,255,255,0.035); border: 1px solid var(--border); border-radius: 14px; }
+.theme-credits h3, .theme-credits p { margin: 0; }
+.theme-credits > div { display: flex; flex-wrap: wrap; gap: 0.55rem; }
+.theme-credits a { display: inline-flex; align-items: center; gap: 0.25rem; color: var(--accent); font-size: 0.82rem; }
+.static-theme[data-theme^="catppuccin-"], .static-theme[data-theme="nord"], .static-theme[data-theme^="rose-pine"], .static-theme[data-theme="tokyo-night"], .static-theme[data-theme="everforest"] { background-size: 165% 165%; animation: community-palette-gradient 18s ease-in-out infinite; }
+.static-theme[data-theme="nord"] { animation-duration: 22s; }
+.static-theme[data-theme^="rose-pine"] { animation-duration: 20s; }
+.static-theme[data-theme="tokyo-night"] { animation-duration: 16s; }
+.static-theme[data-theme="everforest"] { animation-duration: 24s; }
+.theme-motion-off.static-theme { animation: none; }
+@keyframes community-palette-gradient { 0%, 100% { background-position: 0% 35%; } 50% { background-position: 100% 65%; } }
+@media (prefers-reduced-motion: reduce) { .static-theme[data-theme^="catppuccin-"], .static-theme[data-theme="nord"], .static-theme[data-theme^="rose-pine"], .static-theme[data-theme="tokyo-night"], .static-theme[data-theme="everforest"] { animation: none; } }
 .benefit-grid { grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
 .benefit-card > .button { justify-self: start; }
 .status-chip { padding: 0.2rem 0.45rem; border-radius: 999px; text-transform: capitalize; font-size: 0.72rem; background: rgba(255,255,255,0.1); }

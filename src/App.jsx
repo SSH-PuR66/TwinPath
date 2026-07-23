@@ -37,7 +37,7 @@ import {
 import { supabase } from "./supabase";
 import ThemeScene, { ThemePreview, usePageHidden } from "./ThemeScene";
 import ThemeMarketplace from "./ThemeMarketplace";
-import { includedThemes, resolveThemeKey, themes } from "./themeCatalog";
+import { communityThemeCredits, includedThemes, resolveThemeKey, themes } from "./themeCatalog";
 import ProposalsPanel from "./ProposalsPanel";
 import { useFeatureFlags } from "./useFeatureFlags";
 import DepositRouter from "./DepositRouter";
@@ -1073,6 +1073,12 @@ function MoneyTab({
 
     return (
         <div className="page-stack">
+            <MoneyActionCenter
+                householdId={householdId}
+                currentUserId={currentUserId}
+                onImported={onImported}
+                onToast={onToast}
+            />
             <Suspense fallback={<FeatureLoader label="Opening live money overview…" />}>
                 <FinancialConnectionsPanel
                     householdId={householdId}
@@ -1080,12 +1086,6 @@ function MoneyTab({
                     privateMode={privateMode}
                 />
             </Suspense>
-            <MoneyActionCenter
-                householdId={householdId}
-                currentUserId={currentUserId}
-                onImported={onImported}
-                onToast={onToast}
-            />
             <div className="page-heading">
                 <div>
                     <p className="eyebrow">MONEY</p>
@@ -2137,7 +2137,7 @@ function SettingsModal({
                     <span className="field-label">Live theme</span>
 
                     <div className="theme-catalog-note">
-                        <strong>19 live themes, included free</strong>
+                        <strong>{Object.keys(includedThemes).length} live themes, included free</strong>
                         <small>
                             No subscription, locked packs or paid visual upgrades.
                         </small>
@@ -2167,6 +2167,13 @@ function SettingsModal({
                             </button>
                         ))}
                     </div>
+
+                    <section className="theme-credits" aria-labelledby="theme-credits-title">
+                        <span className="eyebrow">ABOUT THE PALETTES</span>
+                        <h3 id="theme-credits-title">Community palette credits</h3>
+                        <p>Catppuccin, Nord, Rosé Pine, Tokyo Night, and Everforest remain the work of their respective communities.</p>
+                        <div>{communityThemeCredits.map((credit) => <a key={credit.name} href={safeExternalUrl(credit.url) || undefined} target="_blank" rel="noopener noreferrer">{credit.name}<ExternalLink size={13} /></a>)}</div>
+                    </section>
 
                     {showThemeCatalog ? (
                         <ThemeMarketplace
@@ -2282,6 +2289,15 @@ export default function App() {
     const [toast, setToast] = useState("");
     const { isEnabled: isFeatureEnabled, refresh: refreshFeatureFlags } = useFeatureFlags(household?.id);
     const onProposalCount = useCallback((count) => setProposalCount(Number(count) || 0), []);
+    const refreshPendingProposalCount = useCallback(async () => {
+        if (!household?.id) return;
+        const { count, error: countError } = await supabase
+            .from("agent_proposals")
+            .select("id", { count: "exact", head: true })
+            .eq("household_id", household.id)
+            .eq("status", "pending");
+        if (!countError) onProposalCount(count);
+    }, [household?.id, onProposalCount]);
     const showToast = useCallback((message) => {
         setToast(message);
         window.setTimeout(() => setToast((current) => current === message ? "" : current), 5000);
@@ -2379,6 +2395,7 @@ export default function App() {
         if (!household?.id) return;
 
         loadData();
+        refreshPendingProposalCount();
 
         const channel = supabase
             .channel(`household-${household.id}`)
@@ -2416,6 +2433,7 @@ export default function App() {
                 "postgres_changes",
                 { event: "*", schema: "public", table: "agent_proposals", filter: `household_id=eq.${household.id}` },
                 (payload) => {
+                    refreshPendingProposalCount();
                     setProposalRefreshKey((value) => value + 1);
                     if (payload.eventType === "INSERT" && payload.new?.status === "pending") {
                         showToast("A new suggested next step is ready for your review.");
@@ -2427,7 +2445,7 @@ export default function App() {
         return () => {
             supabase.removeChannel(channel);
         };
-    }, [household?.id]);
+    }, [household?.id, refreshPendingProposalCount]);
 
     async function loadIdentity() {
         setLoading(true);

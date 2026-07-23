@@ -1,3 +1,5 @@
+import { validateImportedTheme } from "./themeValidation";
+
 export const DEFAULT_THEME_KEY = "aurora";
 
 export const includedThemes = {
@@ -173,6 +175,34 @@ export const includedThemes = {
     included: true,
   },
 };
+
+// These retain each project's canonical base and accent swatches. Keep the
+// metadata separate so the theme records remain compatible with the same
+// validation contract used for proposed/imported themes.
+const communityThemeRecords = {
+  "catppuccin-mocha": { name: "Catppuccin Mocha", description: "The soothing pastel Mocha palette, with blue and mauve highlights.", background: "#1e1e2e", accent: "#89b4fa", accent2: "#cba6f7", scene: "aurora", included: true },
+  "catppuccin-latte": { name: "Catppuccin Latte", description: "The light Catppuccin flavor, tuned for a bright, gentle workspace.", background: "#eff1f5", accent: "#1e66f5", accent2: "#8839ef", scene: "aurora", included: true },
+  nord: { name: "Nord", description: "An arctic blue-gray palette with frost and aurora accents.", background: "#2e3440", accent: "#88c0d0", accent2: "#a3be8c", scene: "aurora", included: true },
+  "rose-pine": { name: "Rosé Pine", description: "A muted pine-and-iris dusk palette for calmer financial planning.", background: "#191724", accent: "#9ccfd8", accent2: "#c4a7e7", scene: "aurora", included: true },
+  "rose-pine-dawn": { name: "Rosé Pine Dawn", description: "The warm daylight Rosé Pine variant with pine and iris accents.", background: "#faf4ed", accent: "#286983", accent2: "#907aa9", scene: "aurora", included: true },
+  "tokyo-night": { name: "Tokyo Night", description: "A deep indigo night with electric blue and soft violet accents.", background: "#1a1b26", accent: "#7aa2f7", accent2: "#bb9af7", scene: "aurora", included: true },
+  everforest: { name: "Everforest", description: "A low-contrast forest palette with sage and teal highlights.", background: "#2b3339", accent: "#a7c080", accent2: "#7fbbb3", scene: "aurora", included: true },
+};
+
+for (const [key, theme] of Object.entries(communityThemeRecords)) {
+  const validation = validateImportedTheme(key, theme);
+  if (!validation.valid) throw new Error(`Invalid built-in community theme ${key}: ${validation.problems.join(" ")}`);
+}
+
+export const communityThemeCredits = [
+  { name: "Catppuccin", url: "https://github.com/catppuccin/catppuccin" },
+  { name: "Nord", url: "https://www.nordtheme.com/" },
+  { name: "Rosé Pine", url: "https://rosepinetheme.com/palette/" },
+  { name: "Tokyo Night", url: "https://github.com/folke/tokyonight.nvim" },
+  { name: "Everforest", url: "https://github.com/sainnhe/everforest" },
+];
+
+Object.assign(includedThemes, communityThemeRecords);
 
 const shopPalettes = [
   { id: "lullaby", pack: "Cozy baby", name: "Lullaby", background: "#211722", accent: "#ffc1d9", accent2: "#b7d8ff" },
