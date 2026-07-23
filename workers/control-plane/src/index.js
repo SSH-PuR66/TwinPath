@@ -35,6 +35,13 @@ import {
   upsertEnrollment,
 } from "./benefits.js";
 import { watchDeposits } from "./deposit-watch.js";
+import { getProfile, putProfile } from "./profile.js";
+import {
+  addWatcher,
+  checkWatchedSources,
+  deactivateWatcher,
+  listWatchers,
+} from "./watchers.js";
 import { financialSummary, importCsvTransactions } from "./imports.js";
 import {
   createProposal,
@@ -299,6 +306,29 @@ async function handleAuthenticated(request, env, pathname) {
     return json(request, env, { proposal });
   }
 
+  if (request.method === "GET" && pathname === "/v1/watchers") {
+    return json(request, env, { watchers: await listWatchers(env, auth) });
+  }
+
+  if (request.method === "POST" && pathname === "/v1/watchers") {
+    const body = assertObject(await readJson(request));
+    return json(request, env, { watcher: await addWatcher(env, auth, body) }, { status: 201 });
+  }
+
+  const watcherOff = routeMatch(pathname, /^\/v1\/watchers\/([^/]+)\/deactivate$/);
+  if (request.method === "POST" && watcherOff) {
+    return json(request, env, { watcher: await deactivateWatcher(env, auth, watcherOff[0]) });
+  }
+
+  if (request.method === "GET" && pathname === "/v1/profile") {
+    return json(request, env, await getProfile(env, auth));
+  }
+
+  if (request.method === "PUT" && pathname === "/v1/profile") {
+    const body = assertObject(await readJson(request, 32_768));
+    return json(request, env, { profile: await putProfile(env, auth, body) });
+  }
+
   if (request.method === "GET" && pathname === "/v1/flags") {
     return json(request, env, { flags: await listFlags(env, auth) });
   }
@@ -383,6 +413,7 @@ export default {
       enqueueDueSandboxRuns(event, env),
       runAutonomousPlaidSync(event, env),
       watchDeposits(event, env),
+      checkWatchedSources(event, env),
     ]);
   },
 };

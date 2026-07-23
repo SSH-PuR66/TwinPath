@@ -165,3 +165,51 @@ deadline, checklist, est value). The Radar's tracked-annual-value number
 becomes the family scoreboard; deadlines feed proposals; VITA/tax items
 recur annually. Codex: render Tier 1 as the "Before the Twins" checklist
 front and center.
+
+
+---
+
+# APPENDIX A — The $20,396 Gap: federally VERIFIED mechanics
+### (Research pass 4, July 24 2026 — each claim confirmed 3-0 against the 2026-27 FSA Handbook, fsapartners.ed.gov)
+
+## The exact path to Pell/TAP — verified
+1. **Professional judgment is real and Iona MUST have a process.** FAAs may
+   adjust cost-of-attendance or SAI inputs case-by-case; the statute
+   explicitly lists "child or dependent care expenses" and income changes
+   as qualifying special circumstances. Schools may deny individual
+   requests, but may NOT blanket-deny and MUST publicly disclose that
+   students can request adjustments. (AVG Ch. 5, verified 3-0)
+2. **CORRECTION — parenthood is NOT a "dependency override."** Overrides
+   are limited to trafficking, refugee status, abandonment, incarceration.
+   Becoming a parent changes status through the FAFSA itself instead:
+   a student with a legal dependent is independent. (Ch. 5, 3-0)
+3. **The twins count only after birth** — and then the school MUST update
+   both dependency status and family size mid-year. That is the December
+   unlock: birth → update FAFSA → independent with 2 dependents → SAI
+   recalculated on YOUR near-zero income → Pell/TAP relevant for spring.
+   (Ch. 2 + Ch. 4, both 3-0)
+4. **The support test is the gate.** The twins must live with Sergio and
+   receive MORE THAN HALF their support from Sergio (+partner) through
+   June 30, 2027 — documentable. (Ch. 2, 3-0)
+5. **THE FAILURE MODE TO PLAN AROUND:** if either set of grandparents
+   directly OR INDIRECTLY provides >50% of the babies' support, Sergio
+   cannot claim them as dependents and stays a dependent student — no
+   Pell. Practical consequence: route the family's own money (deposits,
+   WIC, tracked spending in TwinPath) as the documented support stream;
+   grandparent help should stay occasional gifts, not the majority
+   support. TwinPath's ledger is literally the evidence file. (Ch. 2, 3-0)
+
+## Sourced leads still to confirm with SFS (verification interrupted)
+- Iona freshman deferment option (deadline ~Aug) that preserves the
+  scholarship package — the fallback if fall finances don't close.
+- Iona part-time/per-credit rate vs $35,946 resident term — the commuter
+  and part-time math.
+- Fall scholarship-appeal deadline; SwiftStudent free appeal templates.
+- NY HESC/TAP reprocessing timing when status changes mid-year.
+
+## Bottom line for the appeal meeting
+Ask for: (a) PJ adjustments now (child-care/income inputs), (b) the
+documented plan to update dependency + family size in December (they are
+REQUIRED to process it), (c) spring Pell/TAP projection so the family can
+see the number, (d) deferment and per-credit terms in writing as
+fallbacks. Bring: pregnancy documentation, support plan, the legacy story.
