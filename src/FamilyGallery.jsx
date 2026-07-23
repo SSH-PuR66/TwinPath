@@ -679,7 +679,7 @@ export default function FamilyGallery({
                 </div>
             ) : (
                 <div className="empty">
-                    No photos in this album yet.
+                    No photos here yet. Save the little moments now — you will be glad you did later.
                 </div>
             )}
 

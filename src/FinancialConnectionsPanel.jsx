@@ -249,9 +249,9 @@ export default function FinancialConnectionsPanel({
                     <span className="eyebrow">CONNECTIONS</span>
                     <h2>Live financial connections</h2>
                     <p>
-                        Connect once through Plaid, then TwinPath keeps balances and transactions current
-                        with bank-supplied updates and scheduled, read-only sync. We never ask you to type
-                        bank credentials into TwinPath.
+                        Plaid handles your bank sign-in, then TwinPath keeps balances and transactions current
+                        with read-only updates. TwinPath never sees your bank login and never moves money —
+                        you approve every plan.
                     </p>
                 </div>
                 <Link2 size={30} />
@@ -455,7 +455,7 @@ export default function FinancialConnectionsPanel({
                         </div>
                     </article>
                 )) : (
-                    <div className="empty">No financial institution is connected.</div>
+                    <div className="empty">No bank connected yet. Connect one for a live 90-day picture, or import a CSV in about two minutes.</div>
                 )}
             </div>
 

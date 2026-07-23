@@ -77,6 +77,8 @@ const dateFormatter = new Intl.DateTimeFormat("en-US", {
     year: "numeric",
 });
 
+const twinsDueWindow = new Date("2026-12-25T12:00:00");
+
 const tabs = [
     { id: "home", label: "Home", icon: Home },
     { id: "money", label: "Money", icon: WalletCards },
@@ -712,15 +714,16 @@ function TodayTab({
         });
 
     const nextAppointment = upcomingAppointments[0] || null;
+    const daysUntilTwins = Math.max(0, Math.ceil((twinsDueWindow.getTime() - Date.now()) / 86_400_000));
 
     return (
         <div className="page-stack">
             <section className="hero">
-                <p className="eyebrow">SHARED COMMAND CENTER</p>
-                <h2>One clear step at a time.</h2>
+                <p className="eyebrow">FAMILY RUNWAY · LATE DECEMBER</p>
+                <h2>{daysUntilTwins} days until twin time.</h2>
                 <p>
-                    Prioritize healthcare, housing, food, transportation and reliable
-                    income before speculative opportunities.
+                    Keep the next move small and useful: care, housing, food, rides, and
+                    reliable income first. You two are building calm, one decision at a time.
                 </p>
 
                 <Button icon={Plus} onClick={() => setTaskModal(true)}>

@@ -67,7 +67,7 @@ export default function CsvImportPanel({ householdId, onImported, onToast }) {
                 <div>
                     <span className="eyebrow">CSV FALLBACK</span>
                     <h3 id="csv-import-title">Import an account the bank connection cannot reach</h3>
-                    <p>Paste or drop a bank CSV. Duplicate rows are safely ignored; no credentials are uploaded.</p>
+                    <p>Paste or drop a bank CSV. Duplicate rows are safely ignored. TwinPath never sees your bank login and never moves money.</p>
                 </div>
             </header>
             <form className="csv-import-form" onSubmit={submit}>
