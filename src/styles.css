@@ -2872,6 +2872,44 @@ textarea {
 .ios-install-hint span svg { vertical-align: -0.14em; color: var(--accent); }
 .ios-install-hint .icon-button { width: 2.5rem; height: 2.5rem; }
 
+.pwa-action-prompt {
+    position: fixed;
+    z-index: 66;
+    right: max(0.8rem, env(safe-area-inset-right));
+    bottom: calc(6.25rem + env(safe-area-inset-bottom) + var(--keyboard-inset, 0px));
+    left: max(0.8rem, env(safe-area-inset-left));
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 0.7rem;
+    max-width: 38rem;
+    margin: 0 auto;
+    padding: 0.7rem;
+    color: var(--text);
+    background: rgba(8, 14, 25, 0.96);
+    border: 1px solid var(--border-strong);
+    border-radius: 18px;
+    box-shadow: var(--shadow);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+}
+
+.pwa-action-icon {
+    display: grid;
+    width: 2.5rem;
+    height: 2.5rem;
+    place-items: center;
+    color: #07111f;
+    background: var(--accent);
+    border-radius: 12px;
+}
+
+.pwa-action-copy { display: grid; gap: 0.14rem; }
+.pwa-action-copy span { color: var(--muted); font-size: 0.78rem; line-height: 1.35; }
+.pwa-action-buttons { display: flex; align-items: center; gap: 0.4rem; }
+.pwa-action-buttons .button { min-height: 2.5rem; padding: 0.55rem 0.78rem; }
+.pwa-action-buttons .icon-button { width: 2.5rem; height: 2.5rem; }
+
 .proposals-panel,
 .money-tool-panel,
 .benefits-radar,

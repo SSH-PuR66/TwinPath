@@ -1,11 +1,11 @@
-const CACHE = "twinpath-shell-v6";
+const CACHE = "twinpath-shell-v7";
 const SHELL = ["/", "/offline.html", "/manifest.webmanifest", "/icon.svg", "/themes/manifest.json"];
 
 function assetUrlsFromDocument(html) {
     const urls = new Set(SHELL);
     for (const match of html.matchAll(/(?:src|href)=["']([^"']+)["']/g)) {
         const value = match[1];
-        if (value.startsWith("/assets/") || value.startsWith("/icons/")) {
+        if (value.startsWith("/assets/") || value.startsWith("/icons/") || value.startsWith("/splash/")) {
             urls.add(value);
         }
     }
@@ -32,7 +32,10 @@ async function precacheAppShell() {
 
 self.addEventListener("install", (event) => {
     event.waitUntil(precacheAppShell());
-    self.skipWaiting();
+});
+
+self.addEventListener("message", (event) => {
+    if (event.data?.type === "SKIP_WAITING") self.skipWaiting();
 });
 
 self.addEventListener("activate", (event) => {
@@ -96,7 +99,7 @@ self.addEventListener("fetch", (event) => {
         return;
     }
 
-    if (url.pathname.startsWith("/assets/") || url.pathname.startsWith("/icons/") || url.pathname.startsWith("/themes/")) {
+    if (url.pathname.startsWith("/assets/") || url.pathname.startsWith("/icons/") || url.pathname.startsWith("/splash/") || url.pathname.startsWith("/themes/")) {
         event.respondWith(staticResponse(request));
     }
 });

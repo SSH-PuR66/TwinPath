@@ -2,6 +2,7 @@ import { readdir, readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { join } from "node:path";
 
+const distRoot = fileURLToPath(new URL("../dist/", import.meta.url));
 const assetsDir = fileURLToPath(new URL("../dist/assets/", import.meta.url));
 
 const REQUIRED = [
@@ -44,6 +45,43 @@ if (missing.length > 0) {
     );
 }
 
+async function requiredPublicFile(relativePath, label) {
+    try {
+        return await readFile(join(distRoot, relativePath), "utf8");
+    } catch {
+        throw new Error(`Production build is missing ${label}: ${relativePath}`);
+    }
+}
+
+const document = await requiredPublicFile("index.html", "the app document");
+if (!document.includes('rel="manifest" href="/manifest.webmanifest"')) {
+    throw new Error("Production app document does not link to the web app manifest.");
+}
+if (!document.includes('rel="apple-touch-icon"')) {
+    throw new Error("Production app document is missing the Apple touch icon.");
+}
+
+const manifest = JSON.parse(await requiredPublicFile("manifest.webmanifest", "the web app manifest"));
+if (manifest.display !== "standalone" || manifest.start_url !== "/" || manifest.scope !== "/") {
+    throw new Error("Web app manifest must keep the standalone root-scoped PWA configuration.");
+}
+if (!Array.isArray(manifest.icons) || manifest.icons.length === 0) {
+    throw new Error("Web app manifest must provide install icons.");
+}
+
+for (const icon of manifest.icons) {
+    const path = typeof icon?.src === "string" ? icon.src.replace(/^\/+/, "") : "";
+    if (!path) throw new Error("Web app manifest contains an icon without a local src path.");
+    await requiredPublicFile(path, "a manifest icon");
+}
+
+const serviceWorker = await requiredPublicFile("sw.js", "the service worker");
+for (const requiredWorkerFeature of ["SKIP_WAITING", "/offline.html", "/splash/"]) {
+    if (!serviceWorker.includes(requiredWorkerFeature)) {
+        throw new Error(`Service worker is missing required PWA behavior: ${requiredWorkerFeature}`);
+    }
+}
+
 console.log(
-    `Verified ${files.length} bundles: control-plane and Supabase URLs are baked in.`
+    `Verified ${files.length} bundles and PWA assets: control-plane and Supabase URLs are baked in.`
 );
