@@ -16,6 +16,12 @@ function enrollmentIsMoving(enrollment) {
     return ["applied", "approved", "renewing"].includes(enrollment?.status);
 }
 
+function deadlineTone(deadline) {
+    if (!deadline) return "";
+    const days = Math.ceil((new Date(`${deadline}T23:59:59`).getTime() - Date.now()) / 86_400_000);
+    return days >= 0 && days < 14 ? "urgent" : "";
+}
+
 export default function BenefitsRadar({ householdId, onToast }) {
     const { request, configured } = useControlPlane(householdId);
     const [data, setData] = useState(null);
@@ -92,10 +98,13 @@ export default function BenefitsRadar({ householdId, onToast }) {
                 <div className="benefit-grid">{programs.map((program) => {
                 const enrollment = program.enrollment;
                 const deadline = enrollment?.next_deadline_on;
+                const checklist = enrollment?.checklist || [];
+                const checklistDone = checklist.filter((item) => item.done).length;
                 return <article className="benefit-card" key={program.key}>
                     <div className="benefit-card-top"><span className="pill blue">{program.category}</span><span className={`status-chip ${enrollment?.status || "researching"}`}>{statusLabel(enrollment?.status)}</span></div>
                     <h4>{program.name}</h4><p>{program.eligibility_summary}</p>
-                    {deadline ? <small className="deadline"><CalendarClock size={14} /> Deadline {new Date(`${deadline}T00:00:00`).toLocaleDateString()}</small> : <small>{program.est_value_note}</small>}
+                    {deadline ? <small className={`deadline ${deadlineTone(deadline)}`}><CalendarClock size={14} /> {deadlineTone(deadline) ? "Act within 14 days · " : "Deadline "}{new Date(`${deadline}T00:00:00`).toLocaleDateString()}</small> : <small>{program.est_value_note}</small>}
+                    {checklist.length ? <small className="benefit-progress">{checklistDone}/{checklist.length} checklist steps done</small> : null}
                     <button className="button ghost" type="button" onClick={() => setSelected({ ...program, enrollment: enrollment || { status: "researching", checklist: [] } })}>Review <ChevronRight size={16} /></button>
                 </article>;
             })}</div>

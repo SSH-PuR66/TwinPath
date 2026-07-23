@@ -13,6 +13,7 @@ export default function CsvImportPanel({ householdId, onImported, onToast }) {
     const [error, setError] = useState("");
     const [result, setResult] = useState(null);
     const [summary, setSummary] = useState(null);
+    const [dragging, setDragging] = useState(false);
 
     async function refreshSummary() {
         try {
@@ -31,6 +32,12 @@ export default function CsvImportPanel({ householdId, onImported, onToast }) {
         }
         setCsv(await file.text());
         setError("");
+    }
+
+    function dropFile(event) {
+        event.preventDefault();
+        setDragging(false);
+        readFile(event.dataTransfer.files?.[0]);
     }
 
     async function submit(event) {
@@ -64,7 +71,7 @@ export default function CsvImportPanel({ householdId, onImported, onToast }) {
                 </div>
             </header>
             <form className="csv-import-form" onSubmit={submit}>
-                <label className="csv-drop-zone">
+                <label className={`csv-drop-zone ${dragging ? "dragging" : ""}`} onDragEnter={() => setDragging(true)} onDragOver={(event) => event.preventDefault()} onDragLeave={() => setDragging(false)} onDrop={dropFile}>
                     <Upload size={19} />
                     <span>Drop a CSV here or choose a file</span>
                     <input type="file" accept=".csv,text/csv" onChange={(event) => readFile(event.target.files?.[0])} />
@@ -77,6 +84,7 @@ export default function CsvImportPanel({ householdId, onImported, onToast }) {
                 <button className="button primary" type="submit" disabled={busy || !csv.trim()}>{busy ? <Loader2 className="spin" size={16} /> : <Upload size={16} />} Import transactions</button>
             </form>
             {error ? <div className="error-box" role="alert">{error}</div> : null}
+            {!busy && !result && !error ? <div className="import-empty">Choose an export or paste its rows. We will check the columns before anything is imported.</div> : null}
             {result ? <div className="tool-success"><strong>{result.imported} imported</strong><span>{result.skipped_lines?.length ? `${result.skipped_lines.length} incomplete row(s) skipped.` : "Every valid row was processed."}</span></div> : null}
             {summary ? <div className="money-tool-summary"><span>Last 90 days</span><strong>${Number(summary.net || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })} net</strong><small>{summary.transaction_count} transaction{summary.transaction_count === 1 ? "" : "s"} tracked</small></div> : null}
         </section>

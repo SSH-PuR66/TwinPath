@@ -2937,12 +2937,14 @@ textarea {
 .benefit-card p { margin: 0; font-size: 0.9rem; }
 .proposal-actions { justify-content: flex-start; flex-wrap: wrap; }
 .proposal-empty,
-.tool-success { padding: 0.9rem; color: var(--muted); background: rgba(255,255,255,0.035); border-radius: 12px; }
+.tool-success,
+.import-empty { padding: 0.9rem; color: var(--muted); background: rgba(255,255,255,0.035); border-radius: 12px; }
 .tool-success { display: flex; gap: 0.5rem; color: #c9f5df; }
 
 .csv-import-form,
 .benefit-form { display: grid; gap: 0.75rem; }
 .csv-drop-zone { display: flex; align-items: center; justify-content: center; gap: 0.5rem; min-height: 4.2rem; border: 1px dashed var(--accent); border-radius: 12px; cursor: pointer; }
+.csv-drop-zone.dragging { background: color-mix(in srgb, var(--accent) 15%, transparent); border-style: solid; }
 .csv-drop-zone input { width: 0.1px; height: 0.1px; opacity: 0; position: absolute; }
 .csv-import-form textarea,
 .benefit-form textarea { min-height: 7rem; resize: vertical; }
@@ -2960,6 +2962,11 @@ textarea {
 .money-tool-summary { align-items: baseline; flex-wrap: wrap; padding: 0.75rem; background: rgba(101,232,255,0.09); border-radius: 12px; }
 
 .money-action-center { display: grid; gap: 0.75rem; }
+.financial-summary { display: grid; gap: 1rem; padding: 1.2rem; overflow: hidden; background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 16%, rgba(8, 14, 25, 0.9)), color-mix(in srgb, var(--accent-2) 11%, rgba(8, 14, 25, 0.9))); border: 1px solid color-mix(in srgb, var(--accent) 42%, var(--border)); border-radius: 20px; }
+.financial-summary > header { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; }.financial-summary h2 { margin: 0.05rem 0; font-size: clamp(2.25rem, 9vw, 4.5rem); letter-spacing: -0.07em; }.financial-summary p { margin: 0; }.financial-summary-loading { grid-template-columns: auto 1fr; align-items: center; }
+.financial-summary-split { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.65rem; }.financial-summary-split > div { display: grid; grid-template-columns: auto 1fr; gap: 0.25rem 0.45rem; padding: 0.7rem; background: rgba(3, 7, 15, 0.25); border-radius: 13px; }.financial-summary-split svg { color: var(--accent); }.financial-summary-split strong { grid-column: 1 / -1; font-size: 1.1rem; }.financial-summary-split span { color: var(--muted); font-size: 0.78rem; }
+.financial-category-list { display: grid; gap: 0.4rem; }.financial-category-list > div { display: flex; justify-content: space-between; gap: 0.75rem; color: var(--muted); font-size: 0.82rem; }.financial-category-list b { color: var(--text); }
+.financial-month-bars { display: flex; min-height: 6.5rem; align-items: end; gap: 0.55rem; }.financial-month-bars > div { display: grid; flex: 1; min-width: 1.5rem; align-items: end; gap: 0.35rem; text-align: center; }.financial-bar-pair { display: flex; height: 5.25rem; align-items: end; justify-content: center; gap: 0.18rem; }.financial-bar-pair span { width: min(0.8rem, 35%); min-height: 0.3rem; border-radius: 999px 999px 0 0; }.financial-bar-pair .income { background: var(--accent); }.financial-bar-pair .expense { background: color-mix(in srgb, var(--accent-2) 72%, #ff8895); }.financial-month-bars small { font-size: 0.65rem; }
 .benefits-total { padding: 0.8rem; background: rgba(140,224,189,0.1); border-radius: 12px; }
 .twins-checklist { display: grid; gap: 0.65rem; padding: 0.9rem; background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 15%, transparent), color-mix(in srgb, var(--accent-2) 8%, transparent)); border: 1px solid color-mix(in srgb, var(--accent) 46%, var(--border)); border-radius: 14px; }
 .twins-checklist-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 0.75rem; }
@@ -2991,7 +2998,7 @@ textarea {
 .status-chip.renewing { color: #c9f5df; background: rgba(72, 196, 133, 0.16); }
 .status-chip.denied,
 .status-chip.not_eligible { color: #ffb4b4; background: rgba(255, 100, 100, 0.13); }
-.deadline { display: inline-flex; align-items: center; gap: 0.3rem; color: #ffe3a3; }
+.deadline { display: inline-flex; align-items: center; gap: 0.3rem; color: #ffe3a3; }.deadline.urgent { color: #ffb4b4; font-weight: 800; }.benefit-progress { color: var(--accent); }
 
 .benefit-drawer-backdrop { position: fixed; inset: 0; z-index: 70; background: rgba(2, 6, 12, 0.72); display: flex; justify-content: flex-end; }
 .benefit-drawer { width: min(100%, 32rem); min-height: 100%; padding: max(1rem, env(safe-area-inset-top)) 1rem calc(1rem + env(safe-area-inset-bottom)); overflow: auto; background: #0a1220; border-left: 1px solid var(--border); }
@@ -3000,7 +3007,7 @@ textarea {
 .benefit-checklist label { display: flex; align-items: center; gap: 0.5rem; }
 
 .deposit-router-form { align-items: end; flex-wrap: wrap; }
-.deposit-steps > div { display: flex; gap: 0.6rem; padding: 0.65rem 0; border-bottom: 1px solid var(--border); }
+.deposit-plan-note { color: var(--muted); font-size: 0.82rem; }.deposit-steps > article { display: grid; grid-template-columns: auto auto 1fr; align-items: start; gap: 0.6rem; padding: 0.75rem; background: rgba(255,255,255,0.04); border: 1px solid var(--border); border-radius: 12px; }.deposit-step-number { display: grid; width: 1.45rem; height: 1.45rem; place-items: center; color: #07111f; background: var(--accent); border-radius: 50%; font-size: 0.72rem; font-weight: 800; }
 .deposit-steps span { display: grid; gap: 0.2rem; }
 .deposit-steps b { text-transform: capitalize; }
 

@@ -3,6 +3,7 @@ import { ArrowRight, Landmark, Loader2, Sparkles } from "lucide-react";
 import { useControlPlane } from "./useControlPlane";
 
 const money = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" });
+const bucketLabels = { emergency_buffer: "Emergency buffer", matched_savings: "Matched savings", twins_fund: "Twins fund", roth_ira: "Long-term savings" };
 
 export default function DepositRouter({ householdId, onToast }) {
     const { request, configured } = useControlPlane(householdId);
@@ -39,7 +40,7 @@ export default function DepositRouter({ householdId, onToast }) {
                 <button className="button primary" type="submit" disabled={busy}>{busy ? <Loader2 className="spin" size={16} /> : <Landmark size={16} />} Show my plan</button>
             </form>
             {error ? <div className="error-box" role="alert">{error}</div> : null}
-            {result ? <div className="deposit-steps"><strong>{money.format(result.amount)} suggested split</strong>{result.steps.map((step) => <div key={step.bucket}><ArrowRight size={15} /><span><b>{step.bucket.replaceAll("_", " ")}: {money.format(step.amount)}</b><small>{step.why}</small></span></div>)}<p className="muted">{result.disclaimer}</p></div> : null}
+            {result ? <div className="deposit-steps"><strong>{money.format(result.amount)} suggested split</strong><span className="deposit-plan-note">A calm plan, not an automatic transfer.</span>{result.steps.map((step, index) => <article key={step.bucket}><span className="deposit-step-number">{index + 1}</span><ArrowRight size={15} /><span><b>{bucketLabels[step.bucket] || step.bucket.replaceAll("_", " ")}: {money.format(step.amount)}</b><small>{step.why}</small></span></article>)}<p className="muted">{result.disclaimer}</p></div> : null}
         </section>
     );
 }

@@ -46,7 +46,7 @@ export default function ProposalsPanel({
                 method: "POST",
                 body: JSON.stringify({ decision }),
             });
-            onToast?.(decision === "approved" ? "Proposal approved. Your plan is updated." : "Proposal declined. Nothing else changed.");
+            onToast?.(decision === "approved" ? proposal.payload?.source === "deposit_watch" ? `🎉 Deposit plan approved for $${Number(proposal.payload.amount || 0).toLocaleString()}. You make the transfers when ready.` : "Proposal approved. Your plan is updated." : "Proposal declined. Nothing else changed.");
             if (decision === "approved") await onFlagsChanged?.();
             await refresh();
         } catch (decisionError) {

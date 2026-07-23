@@ -43,6 +43,7 @@ import { useFeatureFlags } from "./useFeatureFlags";
 import DepositRouter from "./DepositRouter";
 import MoneyActionCenter from "./MoneyActionCenter";
 import IosInstallHint from "./IosInstallHint";
+import FinancialSummary from "./FinancialSummary";
 
 import {
     initialAllocation,
@@ -1074,6 +1075,7 @@ function MoneyTab({
 
     return (
         <div className="page-stack">
+            <FinancialSummary householdId={householdId} privateMode={privateMode} />
             <MoneyActionCenter
                 householdId={householdId}
                 currentUserId={currentUserId}
