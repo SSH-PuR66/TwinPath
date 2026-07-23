@@ -60,6 +60,8 @@ export default function FinancialConnectionsPanel({
         provider_mode: "unconfigured",
         readiness: [],
         connections: [],
+        accounts: [],
+        aggregation: {},
         billing: {},
     });
     const [busy, setBusy] = useState("");
@@ -110,6 +112,8 @@ export default function FinancialConnectionsPanel({
                 provider_mode: payload.provider_mode || payload.mode || "unknown",
                 readiness: Array.isArray(payload.readiness) ? payload.readiness : [],
                 connections: Array.isArray(payload.connections) ? payload.connections : [],
+                accounts: Array.isArray(payload.accounts) ? payload.accounts : [],
+                aggregation: payload.aggregation || {},
                 billing: payload.billing || {},
             });
         } catch (requestError) {
@@ -207,6 +211,13 @@ export default function FinancialConnectionsPanel({
         }
     }
 
+    const money = (value, currency = "USD") => privateMode
+        ? "••••"
+        : new Intl.NumberFormat("en-US", {
+            style: "currency",
+            currency: /^[A-Z]{3}$/.test(currency) ? currency : "USD",
+        }).format(Number(value) || 0);
+
     async function openBilling(kind) {
         setBusy(kind);
         setError("");
@@ -288,6 +299,23 @@ export default function FinancialConnectionsPanel({
                 </article>
             </div>
 
+            {state.accounts.length > 0 && (
+                <div className="connection-status-grid financial-aggregate-grid" aria-label="Linked account totals">
+                    <article>
+                        <span>Available cash</span>
+                        <strong>{money(state.aggregation.available_cash)}</strong>
+                    </article>
+                    <article>
+                        <span>Deposit balance</span>
+                        <strong>{money(state.aggregation.deposit_balance)}</strong>
+                    </article>
+                    <article>
+                        <span>Credit and loan balance</span>
+                        <strong>{money(state.aggregation.debt_balance)}</strong>
+                    </article>
+                </div>
+            )}
+
             {!controlPlaneUrl && (
                 <div className="grow-notice">
                     <ShieldCheck size={18} />
@@ -356,7 +384,15 @@ export default function FinancialConnectionsPanel({
                 </button>
                 <button className="button secondary" type="button" onClick={refresh}
                     disabled={!controlPlaneUrl || Boolean(busy)}>
-                    <RefreshCw className={busy === "refresh" ? "spin" : ""} size={17} /> Refresh now
+                    <RefreshCw className={busy === "refresh" ? "spin" : ""} size={17} /> Refresh view
+                </button>
+                <button className="button secondary" type="button"
+                    onClick={() => mutate("sync-all", "/v1/plaid/transactions/sync", {
+                        method: "POST",
+                        body: JSON.stringify({}),
+                    })}
+                    disabled={!controlPlaneUrl || Boolean(busy) || state.connections.length === 0}>
+                    <RefreshCw className={busy === "sync-all" ? "spin" : ""} size={17} /> Sync all bank data
                 </button>
                 <button className="button secondary" type="button" onClick={() => openBilling("checkout")}
                     disabled={!controlPlaneUrl || Boolean(busy) || !state.billing.checkout_ready}>
@@ -403,6 +439,29 @@ export default function FinancialConnectionsPanel({
                     <div className="empty">No financial institution is connected.</div>
                 )}
             </div>
+
+            {state.accounts.length > 0 && (
+                <div className="connection-list" aria-label="Linked bank accounts">
+                    {state.accounts.map((account) => (
+                        <article key={account.id}>
+                            <div>
+                                <span className="pill blue">{account.type || "account"}</span>
+                                <h3>{privateMode ? "Linked account" : account.name}</h3>
+                                <small>
+                                    {privateMode ? "••••" : [account.institution_name, account.mask ? `••${account.mask}` : null]
+                                        .filter(Boolean)
+                                        .join(" · ")}
+                                    {account.updated_at ? ` · updated ${new Date(account.updated_at).toLocaleString()}` : ""}
+                                </small>
+                            </div>
+                            <div className="connection-account-balances">
+                                <span>Current <strong>{money(account.current_balance, account.currency)}</strong></span>
+                                <span>Available <strong>{money(account.available_balance, account.currency)}</strong></span>
+                            </div>
+                        </article>
+                    ))}
+                </div>
+            )}
         </section>
     );
 }

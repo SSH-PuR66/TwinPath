@@ -2750,6 +2750,30 @@ textarea {
   margin: 0.45rem 0 0.2rem;
 }
 
+.financial-aggregate-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.connection-account-balances {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.7rem;
+  color: var(--muted);
+  font-size: 0.73rem;
+}
+
+.connection-account-balances span {
+  display: grid;
+  gap: 0.12rem;
+  text-align: right;
+}
+
+.connection-account-balances strong {
+  color: var(--text);
+  font-size: 0.92rem;
+}
+
 /* Lightweight CSS live themes: three reusable paint layers, no remote media. */
 .theme-preview {
   position: absolute;
@@ -3355,9 +3379,14 @@ textarea {
 
   .route-controls,
   .connection-actions,
-  .connection-list > article {
+  .connection-list > article,
+  .connection-account-balances {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  .connection-account-balances span {
+    text-align: left;
   }
 
   .route-controls label,

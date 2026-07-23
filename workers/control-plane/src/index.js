@@ -119,6 +119,32 @@ async function handleAuthenticated(request, env, pathname) {
       items.get(key).account_count += 1;
       return items;
     }, new Map()).values()];
+    const accountSummaries = accounts.map((account) => ({
+      id: account.id,
+      name: account.name,
+      mask: account.mask,
+      type: account.type,
+      subtype: account.subtype,
+      current_balance: account.current_balance,
+      available_balance: account.available_balance,
+      currency: account.currency || "USD",
+      updated_at: account.updated_at,
+      institution_name: account.plaid_items?.institution_name || "Connected institution",
+    }));
+    const aggregation = accountSummaries.reduce((summary, account) => {
+      const current = Number(account.current_balance);
+      const available = Number(account.available_balance);
+      const isDeposit = account.type === "depository";
+      const isDebt = account.type === "credit" || account.type === "loan";
+      if (isDeposit && Number.isFinite(available)) summary.available_cash += available;
+      if (isDeposit && Number.isFinite(current)) summary.deposit_balance += current;
+      if (isDebt && Number.isFinite(current)) summary.debt_balance += current;
+      return summary;
+    }, {
+      available_cash: 0,
+      deposit_balance: 0,
+      debt_balance: 0,
+    });
     return json(request, env, {
       provider_mode: readiness.mode,
       readiness: [
@@ -140,6 +166,8 @@ async function handleAuthenticated(request, env, pathname) {
         },
       ],
       connections,
+      accounts: accountSummaries,
+      aggregation,
       billing: {
         checkout_ready: readiness.stripe.ready,
         customer_ready: Boolean(stripeCustomer),
