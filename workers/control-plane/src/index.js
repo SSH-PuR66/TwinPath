@@ -29,6 +29,13 @@ import {
   markRunEnqueueFailed,
   pauseRun,
 } from "./persistence-v13.js";
+import { financialSummary, importCsvTransactions } from "./imports.js";
+import {
+  createProposal,
+  decideProposal,
+  listFlags,
+  listProposals,
+} from "./proposals.js";
 import { consumeAgentJobs } from "./queue.js";
 import { providerReadiness } from "./provider-mode.js";
 import {
@@ -119,45 +126,15 @@ async function handleAuthenticated(request, env, pathname) {
       items.get(key).account_count += 1;
       return items;
     }, new Map()).values()];
-    const accountSummaries = accounts.map((account) => ({
-      id: account.id,
-      name: account.name,
-      mask: account.mask,
-      type: account.type,
-      subtype: account.subtype,
-      current_balance: account.current_balance,
-      available_balance: account.available_balance,
-      currency: account.currency || "USD",
-      updated_at: account.updated_at,
-      institution_name: account.plaid_items?.institution_name || "Connected institution",
-    }));
-    const aggregation = accountSummaries.reduce((summary, account) => {
-      const current = Number(account.current_balance);
-      const available = Number(account.available_balance);
-      const isDeposit = account.type === "depository";
-      const isDebt = account.type === "credit" || account.type === "loan";
-      if (isDeposit && Number.isFinite(available)) summary.available_cash += available;
-      if (isDeposit && Number.isFinite(current)) summary.deposit_balance += current;
-      if (isDebt && Number.isFinite(current)) summary.debt_balance += current;
-      return summary;
-    }, {
-      available_cash: 0,
-      deposit_balance: 0,
-      debt_balance: 0,
-    });
     return json(request, env, {
       provider_mode: readiness.mode,
       readiness: [
         {
           id: "plaid",
-          label: "Plaid open banking",
+          label: "Read-only bank data",
           status: readiness.plaid.ready ? "ready" : "disabled",
           message: readiness.plaid.ready
-            ? `${readiness.plaid.environment} data access is ready for ${readiness.plaid.countries.join(", ")}. ${
-              readiness.plaid.additional_consented_products.length
-                ? `Additional consent: ${readiness.plaid.additional_consented_products.join(", ")}.`
-                : "Transactions and balances are active."
-            }`
+            ? `${readiness.plaid.environment} credentials are ready.`
             : "Plaid remains fail-closed until its mode and secrets are configured.",
         },
         {
@@ -170,8 +147,6 @@ async function handleAuthenticated(request, env, pathname) {
         },
       ],
       connections,
-      accounts: accountSummaries,
-      aggregation,
       billing: {
         checkout_ready: readiness.stripe.ready,
         customer_ready: Boolean(stripeCustomer),
@@ -274,6 +249,38 @@ async function handleAuthenticated(request, env, pathname) {
     const body = assertObject(await readJson(request));
     const decided = await decideApproval(env, auth, approval[0], body);
     return json(request, env, { approval: decided });
+  }
+
+  if (request.method === "POST" && pathname === "/v1/financial/import/csv") {
+    const body = assertObject(await readJson(request, 700_000));
+    const result = await importCsvTransactions(env, auth, body);
+    return json(request, env, result, { status: 201 });
+  }
+
+  if (request.method === "GET" && pathname === "/v1/financial/summary") {
+    return json(request, env, await financialSummary(env, auth));
+  }
+
+  if (request.method === "GET" && pathname === "/v1/proposals") {
+    const status = new URL(request.url).searchParams.get("status");
+    return json(request, env, { proposals: await listProposals(env, auth, status) });
+  }
+
+  if (request.method === "POST" && pathname === "/v1/proposals") {
+    const body = assertObject(await readJson(request));
+    const proposal = await createProposal(env, auth, body);
+    return json(request, env, { proposal }, { status: 201 });
+  }
+
+  const proposalDecision = routeMatch(pathname, /^\/v1\/proposals\/([^/]+)\/decision$/);
+  if (request.method === "POST" && proposalDecision) {
+    const body = assertObject(await readJson(request));
+    const proposal = await decideProposal(env, auth, proposalDecision[0], body);
+    return json(request, env, { proposal });
+  }
+
+  if (request.method === "GET" && pathname === "/v1/flags") {
+    return json(request, env, { flags: await listFlags(env, auth) });
   }
 
   const artifact = routeMatch(pathname, /^\/v1\/artifacts\/([^/]+)\/signed-url$/);
