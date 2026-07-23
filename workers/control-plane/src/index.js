@@ -150,10 +150,14 @@ async function handleAuthenticated(request, env, pathname) {
       readiness: [
         {
           id: "plaid",
-          label: "Read-only bank data",
+          label: "Plaid open banking",
           status: readiness.plaid.ready ? "ready" : "disabled",
           message: readiness.plaid.ready
-            ? `${readiness.plaid.environment} credentials are ready.`
+            ? `${readiness.plaid.environment} data access is ready for ${readiness.plaid.countries.join(", ")}. ${
+              readiness.plaid.additional_consented_products.length
+                ? `Additional consent: ${readiness.plaid.additional_consented_products.join(", ")}.`
+                : "Transactions and balances are active."
+            }`
             : "Plaid remains fail-closed until its mode and secrets are configured.",
         },
         {
