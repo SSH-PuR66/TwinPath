@@ -1,8 +1,9 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import {
-    Baby,
-    Bell,
-    BriefcaseBusiness,
+  Baby,
+  Bell,
+  Bot,
+  BriefcaseBusiness,
     CalendarDays,
     Check,
     CheckCircle2,
@@ -645,7 +646,7 @@ function HomeMoneySnapshot({ householdId, privateMode, proposalCount }) {
     const latestMonth = Array.isArray(overview?.by_month) ? overview.by_month.at(-1) : null;
 
     return (
-        <Card>
+        <Card className="home-money-hero">
             <div className="section-title">
                 <div>
                     <span className="eyebrow">LIVE MONEY SNAPSHOT</span>
@@ -654,11 +655,17 @@ function HomeMoneySnapshot({ householdId, privateMode, proposalCount }) {
                 <WalletCards size={22} />
             </div>
             {status === "ready" ? (
-                <div className="summary-grid">
-                    <SummaryCard icon={WalletCards} label="90-day net" value={amount(net)} detail="Income minus recorded spending" />
-                    <SummaryCard icon={RefreshCw} label="Account window" value={`${overview?.window_days || 90} days`} detail={`${overview?.transaction_count || 0} tracked transaction(s)`} />
-                    <SummaryCard icon={CircleDollarSign} label="Recorded income" value={amount(income)} detail="Across the current window" />
-                    <SummaryCard icon={PiggyBank} label="Savings pace" value={amount(Math.max(0, net))} detail={latestMonth ? `${latestMonth.month} net: ${amount(latestMonth.net)}` : "Connect or import transactions"} />
+                <div className="home-money-layout">
+                    <div className="home-money-primary">
+                        <span>90-day net</span>
+                        <strong className={net >= 0 ? "money-positive" : "money-negative"}>{net >= 0 ? "+" : "−"}{amount(Math.abs(net))}</strong>
+                        <small>Income minus recorded spending. It is a planning signal, not a bank balance.</small>
+                    </div>
+                    <div className="home-money-details">
+                        <div><span>Income tracked</span><strong>{amount(income)}</strong></div>
+                        <div><span>Spent</span><strong>{amount(expense)}</strong></div>
+                        <div><span>Last update</span><strong>{overview?.transaction_count || 0} items</strong><small>{latestMonth ? `${latestMonth.month} net: ${amount(latestMonth.net)}` : "Connect or import to begin"}</small></div>
+                    </div>
                 </div>
             ) : (
                 <p className="muted">
@@ -668,6 +675,23 @@ function HomeMoneySnapshot({ householdId, privateMode, proposalCount }) {
                 </p>
             )}
             {proposalCount > 0 ? <small>{proposalCount} proposal{proposalCount === 1 ? "" : "s"} awaiting your review below.</small> : null}
+        </Card>
+    );
+}
+
+function AutomationStatus({ proposalCount }) {
+    const reviewLabel = proposalCount ? `${proposalCount} decision${proposalCount === 1 ? "" : "s"} waiting` : "No decisions waiting";
+    return (
+        <Card className="automation-status">
+            <div className="section-title">
+                <div><span className="eyebrow">AUTOMATION, WITH PERMISSION</span><h3>What TwinPath is watching</h3></div>
+                <Bell size={21} />
+            </div>
+            <div className="automation-list">
+                <div><Bot size={17} /><span><strong>New deposits</strong><small>When live data is connected, a deposit can become a suggested plan for you to approve.</small></span><b>{reviewLabel}</b></div>
+                <div><RefreshCw size={17} /><span><strong>Transactions</strong><small>Read-only updates keep your money picture current—no transfers, purchases, or account changes.</small></span></div>
+                <div><ShieldCheck size={17} /><span><strong>Every dollar stays yours</strong><small>TwinPath can calculate, remind, and prepare. You make every final move.</small></span></div>
+            </div>
         </Card>
     );
 }
@@ -737,13 +761,16 @@ function TodayTab({
                 proposalCount={proposalCount}
             />
 
-            <ProposalsPanel
-                householdId={householdId}
-                onPendingCount={onProposalCount}
-                onFlagsChanged={onFlagsChanged}
-                refreshKey={proposalRefreshKey}
-                onToast={onToast}
-            />
+            <div className="home-control-grid">
+                <ProposalsPanel
+                    householdId={householdId}
+                    onPendingCount={onProposalCount}
+                    onFlagsChanged={onFlagsChanged}
+                    refreshKey={proposalRefreshKey}
+                    onToast={onToast}
+                />
+                <AutomationStatus proposalCount={proposalCount} />
+            </div>
 
             <DepositRouter householdId={householdId} onToast={onToast} />
 

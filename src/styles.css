@@ -2915,6 +2915,11 @@ textarea {
 .proposal-list,
 .deposit-steps,
 .benefit-grid { display: grid; gap: 0.75rem; }
+.home-control-grid { display: grid; gap: 1rem; }
+.home-money-hero { overflow: visible; }
+.home-money-layout { display: grid; gap: 1rem; }.home-money-primary { display: grid; gap: 0.25rem; }.home-money-primary > span, .home-money-details span { color: var(--muted); font-size: 0.76rem; }.home-money-primary > strong { font-size: clamp(2.35rem, 9vw, 4.75rem); letter-spacing: -0.075em; line-height: 0.95; }.home-money-primary small { max-width: 36rem; }.home-money-details { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.55rem; }.home-money-details > div { display: grid; gap: 0.18rem; padding: 0.7rem; background: rgba(255,255,255,0.035); border-radius: 12px; }.home-money-details strong { font-size: 1rem; }.home-money-details small { font-size: 0.68rem; }
+.automation-status { display: grid; gap: 0.8rem; }.automation-list { display: grid; gap: 0.65rem; }.automation-list > div { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: start; gap: 0.6rem; padding: 0.7rem; background: rgba(255,255,255,0.035); border: 1px solid rgba(255,255,255,0.06); border-radius: 13px; }.automation-list svg { color: var(--accent); }.automation-list span { display: grid; gap: 0.16rem; }.automation-list small { font-size: 0.76rem; }.automation-list b { grid-column: 2; color: var(--accent); font-size: 0.74rem; }
+.proposals-panel.has-pending { border-color: color-mix(in srgb, var(--accent) 56%, var(--border)); box-shadow: 0 14px 40px color-mix(in srgb, var(--accent) 10%, transparent); }.proposals-panel.is-clear { background: rgba(10, 18, 30, 0.58); }
 .proposal-card,
 .benefit-card {
     display: grid;
@@ -3015,4 +3020,7 @@ textarea {
     .app-toast { bottom: calc(5.4rem + env(safe-area-inset-bottom)); }
     .csv-import-options,
     .deposit-router-form { align-items: stretch; flex-direction: column; }
+    .home-money-details { grid-template-columns: 1fr; }
 }
+
+@media (min-width: 840px) { .home-control-grid { grid-template-columns: minmax(0, 1.12fr) minmax(0, 0.88fr); align-items: start; }.home-money-layout { grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr); align-items: end; } }

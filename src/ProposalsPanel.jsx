@@ -57,20 +57,21 @@ export default function ProposalsPanel({
     }
 
     if (!householdId || !configured) return null;
+    const pendingCount = proposals.length;
 
     return (
-        <section className="proposals-panel" aria-label="Pending proposals">
+        <section className={`proposals-panel ${pendingCount ? "has-pending" : "is-clear"}`} aria-label="Pending proposals">
             <header className="proposals-heading">
                 <span className="proposal-avatar"><Bot size={18} /></span>
                 <div>
                     <span className="eyebrow">CONFIRM OR CONTINUE</span>
-                    <h3>Suggested next steps</h3>
-                    <p>TwinPath can prepare a plan. You decide what changes and make every transfer.</p>
+                    <h3>{pendingCount ? `${pendingCount} decision${pendingCount === 1 ? "" : "s"} ready for you` : "You are all caught up"}</h3>
+                    <p>{pendingCount ? "Review the plan, keep what helps, and make every transfer yourself." : "TwinPath will surface the next useful choice here—nothing happens without your say-so."}</p>
                 </div>
             </header>
             {error ? <div className="error-box" role="alert">{error}</div> : null}
             {proposals.length === 0 ? (
-                <div className="proposal-empty">No approvals are waiting. New deposit plans will appear here live.</div>
+                <div className="proposal-empty">No approvals waiting. When a new deposit or useful change needs your call, it will appear here live.</div>
             ) : (
                 <div className="proposal-list">
                     {proposals.map((proposal) => (
