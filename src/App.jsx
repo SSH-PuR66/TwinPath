@@ -20,6 +20,7 @@ import {
     LogOut,
     Menu,
     Palette,
+    PiggyBank,
     Plus,
     RefreshCw,
     Settings,
