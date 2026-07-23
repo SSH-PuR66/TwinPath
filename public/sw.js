@@ -1,5 +1,5 @@
-const CACHE = "twinpath-shell-v5";
-const SHELL = ["/", "/offline.html", "/manifest.webmanifest", "/icon.svg"];
+const CACHE = "twinpath-shell-v6";
+const SHELL = ["/", "/offline.html", "/manifest.webmanifest", "/icon.svg", "/themes/manifest.json"];
 
 function assetUrlsFromDocument(html) {
     const urls = new Set(SHELL);
@@ -19,6 +19,15 @@ async function precacheAppShell() {
     const html = await response.clone().text();
     await cache.put("/", response);
     await cache.addAll(assetUrlsFromDocument(html));
+    const themeManifest = await fetch("/themes/manifest.json", { cache: "reload" })
+        .then((manifestResponse) => manifestResponse.ok ? manifestResponse.json() : null)
+        .catch(() => null);
+    const localThemeAssets = Array.isArray(themeManifest?.assets)
+        ? themeManifest.assets
+            .filter((asset) => asset?.enabled && /^\/themes\/assets\/[a-z0-9][a-z0-9-]*\.json$/i.test(asset.path || ""))
+            .map((asset) => asset.path)
+        : [];
+    await cache.addAll(localThemeAssets);
 }
 
 self.addEventListener("install", (event) => {
@@ -87,7 +96,7 @@ self.addEventListener("fetch", (event) => {
         return;
     }
 
-    if (url.pathname.startsWith("/assets/") || url.pathname.startsWith("/icons/")) {
+    if (url.pathname.startsWith("/assets/") || url.pathname.startsWith("/icons/") || url.pathname.startsWith("/themes/")) {
         event.respondWith(staticResponse(request));
     }
 });

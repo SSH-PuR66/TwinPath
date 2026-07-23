@@ -1,0 +1,9 @@
+{
+  "appId": "com.twinpath.app",
+  "appName": "TwinPath",
+  "webDir": "dist",
+  "server": {
+    "androidScheme": "https",
+    "iosScheme": "https"
+  }
+}

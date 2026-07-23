@@ -1,101 +1,98 @@
 import { useCallback, useEffect, useState } from "react";
-import { supabase } from "./supabase.js";
+import { Bot, Check, Loader2, X } from "lucide-react";
+import { useControlPlane } from "./useControlPlane";
 
-// Minimal functional inbox for agent proposals. Reads under RLS; decisions
-// go through the decide_agent_proposal RPC, which enforces household
-// membership and flips the linked feature flag on approval.
-// Visual polish intentionally left to the design pass.
-export default function ProposalsPanel({ householdId, onFlagsChanged }) {
+const labels = {
+    config: "Plan update",
+    theme: "Theme",
+    connector: "Connection",
+    new_button: "New control",
+    hidden_route: "New space",
+    copy_change: "Copy update",
+};
+
+export default function ProposalsPanel({
+    householdId,
+    onFlagsChanged,
+    onPendingCount,
+    refreshKey = 0,
+    onToast,
+}) {
+    const { request, configured } = useControlPlane(householdId);
     const [proposals, setProposals] = useState([]);
     const [busyId, setBusyId] = useState("");
     const [error, setError] = useState("");
 
     const refresh = useCallback(async () => {
-        if (!householdId) return;
-        const { data, error: readError } = await supabase
-            .from("agent_proposals")
-            .select(
-                "id,kind,title,rationale,flag_key,status,origin,created_at"
-            )
-            .eq("household_id", householdId)
-            .eq("status", "pending")
-            .order("created_at", { ascending: false })
-            .limit(20);
-        if (readError) {
+        if (!householdId || !configured) return;
+        try {
+            const payload = await request("/v1/proposals?status=pending");
+            const pending = Array.isArray(payload.proposals) ? payload.proposals : [];
+            setProposals(pending);
+            onPendingCount?.(pending.length);
+            setError("");
+        } catch (readError) {
             setError(readError.message);
-            return;
         }
-        setProposals(Array.isArray(data) ? data : []);
-    }, [householdId]);
+    }, [configured, householdId, onPendingCount, request]);
 
-    useEffect(() => {
-        refresh();
-    }, [refresh]);
+    useEffect(() => { refresh(); }, [refresh, refreshKey]);
 
-    async function decide(proposalId, decision) {
-        setBusyId(proposalId);
+    async function decide(proposal, decision) {
+        setBusyId(proposal.id);
         setError("");
-        const { error: rpcError } = await supabase.rpc(
-            "decide_agent_proposal",
-            {
-                p_proposal_id: proposalId,
-                p_decision: decision,
-                p_note: null,
-            }
-        );
-        setBusyId("");
-        if (rpcError) {
-            setError(rpcError.message);
-            return;
-        }
-        await refresh();
-        if (decision === "approved" && typeof onFlagsChanged === "function") {
-            onFlagsChanged();
+        try {
+            await request(`/v1/proposals/${encodeURIComponent(proposal.id)}/decision`, {
+                method: "POST",
+                body: JSON.stringify({ decision }),
+            });
+            onToast?.(decision === "approved" ? "Proposal approved. Your plan is updated." : "Proposal declined. Nothing else changed.");
+            if (decision === "approved") await onFlagsChanged?.();
+            await refresh();
+        } catch (decisionError) {
+            setError(decisionError.message);
+        } finally {
+            setBusyId("");
         }
     }
 
-    if (!householdId) return null;
+    if (!householdId || !configured) return null;
 
     return (
-        <section aria-label="Pending proposals">
-            <h3>Proposals</h3>
-            {error ? <p role="alert">{error}</p> : null}
+        <section className="proposals-panel" aria-label="Pending proposals">
+            <header className="proposals-heading">
+                <span className="proposal-avatar"><Bot size={18} /></span>
+                <div>
+                    <span className="eyebrow">CONFIRM OR CONTINUE</span>
+                    <h3>Suggested next steps</h3>
+                    <p>TwinPath can prepare a plan. You decide what changes and make every transfer.</p>
+                </div>
+            </header>
+            {error ? <div className="error-box" role="alert">{error}</div> : null}
             {proposals.length === 0 ? (
-                <p>No pending proposals.</p>
+                <div className="proposal-empty">No approvals are waiting. New deposit plans will appear here live.</div>
             ) : (
-                <ul>
+                <div className="proposal-list">
                     {proposals.map((proposal) => (
-                        <li key={proposal.id}>
-                            <strong>{proposal.title}</strong>{" "}
-                            <em>({proposal.kind})</em>
+                        <article className="proposal-card" key={proposal.id}>
+                            <div className="proposal-card-top">
+                                <span className="pill blue">{labels[proposal.kind] || "Suggestion"}</span>
+                                <small>{new Date(proposal.created_at).toLocaleDateString()}</small>
+                            </div>
+                            <h4>{proposal.title}</h4>
                             <p>{proposal.rationale}</p>
-                            {proposal.flag_key ? (
-                                <p>
-                                    Activates flag:{" "}
-                                    <code>{proposal.flag_key}</code>
-                                </p>
-                            ) : null}
-                            <button
-                                type="button"
-                                disabled={busyId === proposal.id}
-                                onClick={() =>
-                                    decide(proposal.id, "approved")
-                                }
-                            >
-                                Approve
-                            </button>
-                            <button
-                                type="button"
-                                disabled={busyId === proposal.id}
-                                onClick={() =>
-                                    decide(proposal.id, "rejected")
-                                }
-                            >
-                                Reject
-                            </button>
-                        </li>
+                            {proposal.flag_key ? <small>Enables: <code>{proposal.flag_key}</code></small> : null}
+                            <div className="proposal-actions">
+                                <button className="button primary" type="button" disabled={Boolean(busyId)} onClick={() => decide(proposal, "approved")}>
+                                    {busyId === proposal.id ? <Loader2 className="spin" size={16} /> : <Check size={16} />} Approve
+                                </button>
+                                <button className="button ghost" type="button" disabled={Boolean(busyId)} onClick={() => decide(proposal, "rejected")}>
+                                    <X size={16} /> Not now
+                                </button>
+                            </div>
+                        </article>
                     ))}
-                </ul>
+                </div>
             )}
         </section>
     );

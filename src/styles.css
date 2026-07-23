@@ -2138,6 +2138,28 @@ textarea {
   grid-column: 1 / -1;
 }
 
+.nav-badge {
+    min-width: 1.1rem;
+    padding: 0.05rem 0.28rem;
+    border-radius: 999px;
+    background: var(--accent);
+    color: #061017;
+    font-size: 0.68rem;
+    line-height: 1.2;
+}
+
+.theme-local-lottie {
+    position: absolute;
+    inset: 0;
+    opacity: 0.42;
+    overflow: hidden;
+}
+
+.theme-local-lottie svg {
+    width: 100% !important;
+    height: 100% !important;
+}
+
 .store-product-title {
   color: inherit;
   text-decoration: none;
@@ -2794,4 +2816,134 @@ textarea {
     gap: 0.6rem;
     padding: 2rem 0;
     color: var(--muted);
+}
+
+/* ---------- Live money tools ---------- */
+.app-toast {
+    position: fixed;
+    z-index: 80;
+    right: max(1rem, env(safe-area-inset-right));
+    bottom: calc(6.2rem + env(safe-area-inset-bottom));
+    width: min(25rem, calc(100vw - 2rem));
+    padding: 0.8rem 1rem;
+    color: #07111f;
+    background: #c9f5df;
+    border-radius: 12px;
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.28);
+    font-weight: 700;
+}
+
+.proposals-panel,
+.money-tool-panel,
+.benefits-radar,
+.deposit-router {
+    display: grid;
+    gap: 1rem;
+    padding: 1.1rem;
+    background: rgba(10, 18, 30, 0.78);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    backdrop-filter: blur(14px);
+}
+
+.proposals-heading,
+.money-tool-heading,
+.deposit-router > header {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.8rem;
+}
+
+.proposals-heading h3,
+.money-tool-heading h3,
+.deposit-router h3,
+.benefit-drawer h2 { margin: 0.1rem 0; }
+.proposals-heading p,
+.money-tool-heading p,
+.deposit-router > p { margin: 0.25rem 0 0; }
+
+.proposal-avatar {
+    display: grid;
+    place-items: center;
+    flex: 0 0 auto;
+    width: 2.3rem;
+    height: 2.3rem;
+    color: #061017;
+    background: var(--accent);
+    border-radius: 50%;
+}
+
+.proposal-list,
+.deposit-steps,
+.benefit-grid { display: grid; gap: 0.75rem; }
+.proposal-card,
+.benefit-card {
+    display: grid;
+    gap: 0.55rem;
+    padding: 0.9rem;
+    background: rgba(255,255,255,0.035);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+}
+.proposal-card-top,
+.benefit-card-top,
+.proposal-actions,
+.csv-import-options,
+.deposit-router-form,
+.money-tool-summary,
+.benefits-total { display: flex; align-items: center; justify-content: space-between; gap: 0.65rem; }
+.proposal-card h4,
+.benefit-card h4 { margin: 0; }
+.proposal-card p,
+.benefit-card p { margin: 0; font-size: 0.9rem; }
+.proposal-actions { justify-content: flex-start; flex-wrap: wrap; }
+.proposal-empty,
+.tool-success { padding: 0.9rem; color: var(--muted); background: rgba(255,255,255,0.035); border-radius: 12px; }
+.tool-success { display: flex; gap: 0.5rem; color: #c9f5df; }
+
+.csv-import-form,
+.benefit-form { display: grid; gap: 0.75rem; }
+.csv-drop-zone { display: flex; align-items: center; justify-content: center; gap: 0.5rem; min-height: 4.2rem; border: 1px dashed var(--accent); border-radius: 12px; cursor: pointer; }
+.csv-drop-zone input { width: 0.1px; height: 0.1px; opacity: 0; position: absolute; }
+.csv-import-form textarea,
+.benefit-form textarea { min-height: 7rem; resize: vertical; }
+.csv-import-form textarea,
+.csv-import-options input,
+.deposit-router-form input,
+.benefit-form input,
+.benefit-form select,
+.benefit-form textarea { width: 100%; padding: 0.7rem; color: var(--text); background: rgba(255,255,255,0.05); border: 1px solid var(--border); border-radius: 10px; }
+.csv-import-options { align-items: stretch; flex-wrap: wrap; }
+.csv-import-options > label:not(.toggle-row),
+.deposit-router-form label,
+.benefit-form > label { display: grid; gap: 0.35rem; flex: 1 1 12rem; color: var(--muted); font-size: 0.8rem; }
+.csv-import-options .toggle-row { flex: 1 1 16rem; }
+.money-tool-summary { align-items: baseline; flex-wrap: wrap; padding: 0.75rem; background: rgba(101,232,255,0.09); border-radius: 12px; }
+
+.money-action-center { display: grid; gap: 0.75rem; }
+.benefits-total { padding: 0.8rem; background: rgba(140,224,189,0.1); border-radius: 12px; }
+.benefit-grid { grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+.benefit-card > .button { justify-self: start; }
+.status-chip { padding: 0.2rem 0.45rem; border-radius: 999px; text-transform: capitalize; font-size: 0.72rem; background: rgba(255,255,255,0.1); }
+.status-chip.approved,
+.status-chip.renewing { color: #c9f5df; background: rgba(72, 196, 133, 0.16); }
+.status-chip.denied,
+.status-chip.not_eligible { color: #ffb4b4; background: rgba(255, 100, 100, 0.13); }
+.deadline { display: inline-flex; align-items: center; gap: 0.3rem; color: #ffe3a3; }
+
+.benefit-drawer-backdrop { position: fixed; inset: 0; z-index: 70; background: rgba(2, 6, 12, 0.72); display: flex; justify-content: flex-end; }
+.benefit-drawer { width: min(100%, 32rem); min-height: 100%; padding: max(1rem, env(safe-area-inset-top)) 1rem calc(1rem + env(safe-area-inset-bottom)); overflow: auto; background: #0a1220; border-left: 1px solid var(--border); }
+.benefit-drawer > header { display: flex; justify-content: space-between; gap: 1rem; }
+.benefit-checklist { display: grid; gap: 0.45rem; padding: 0.75rem; background: rgba(255,255,255,0.035); border-radius: 10px; }
+.benefit-checklist label { display: flex; align-items: center; gap: 0.5rem; }
+
+.deposit-router-form { align-items: end; flex-wrap: wrap; }
+.deposit-steps > div { display: flex; gap: 0.6rem; padding: 0.65rem 0; border-bottom: 1px solid var(--border); }
+.deposit-steps span { display: grid; gap: 0.2rem; }
+.deposit-steps b { text-transform: capitalize; }
+
+@media (max-width: 650px) {
+    .app-toast { bottom: calc(5.4rem + env(safe-area-inset-bottom)); }
+    .csv-import-options,
+    .deposit-router-form { align-items: stretch; flex-direction: column; }
 }

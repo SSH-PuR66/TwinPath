@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "assets": [
+    { "id": "cozy-moon", "name": "Cozy Moon", "category": "cozy-baby", "sourceUrl": null, "creator": null, "license": null, "attribution": null, "assetFile": null, "sha256": null, "enabled": false },
+    { "id": "cloud-cotton", "name": "Cloud Cotton", "category": "cozy-baby", "sourceUrl": null, "creator": null, "license": null, "attribution": null, "assetFile": null, "sha256": null, "enabled": false },
+    { "id": "storybook-stars", "name": "Storybook Stars", "category": "cozy-baby", "sourceUrl": null, "creator": null, "license": null, "attribution": null, "assetFile": null, "sha256": null, "enabled": false },
+    { "id": "honey-night", "name": "Honey Night", "category": "cozy-baby", "sourceUrl": null, "creator": null, "license": null, "attribution": null, "assetFile": null, "sha256": null, "enabled": false },
+    { "id": "little-lantern", "name": "Little Lantern", "category": "cozy-baby", "sourceUrl": null, "creator": null, "license": null, "attribution": null, "assetFile": null, "sha256": null, "enabled": false },
+    { "id": "quiet-rain", "name": "Quiet Rain", "category": "cozy-baby", "sourceUrl": null, "creator": null, "license": null, "attribution": null, "assetFile": null, "sha256": null, "enabled": false },
+    { "id": "sleepy-forest", "name": "Sleepy Forest", "category": "cozy-baby", "sourceUrl": null, "creator": null, "license": null, "attribution": null, "assetFile": null, "sha256": null, "enabled": false },
+    { "id": "peach-dream", "name": "Peach Dream", "category": "cozy-baby", "sourceUrl": null, "creator": null, "license": null, "attribution": null, "assetFile": null, "sha256": null, "enabled": false }
+  ]
+}

@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useMemo, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import {
     Baby,
     Bell,
@@ -37,6 +37,10 @@ import { supabase } from "./supabase";
 import ThemeScene, { ThemePreview, usePageHidden } from "./ThemeScene";
 import ThemeMarketplace from "./ThemeMarketplace";
 import { includedThemes, resolveThemeKey, themes } from "./themeCatalog";
+import ProposalsPanel from "./ProposalsPanel";
+import { useFeatureFlags } from "./useFeatureFlags";
+import DepositRouter from "./DepositRouter";
+import MoneyActionCenter from "./MoneyActionCenter";
 
 import {
     initialAllocation,
@@ -57,6 +61,7 @@ const FamilyGallery = lazy(() => import("./FamilyGallery.jsx"));
 const FamilySavings = lazy(() => import("./FamilySavings.jsx"));
 const FamilyWorkspace = lazy(() => import("./FamilyWorkspace.jsx"));
 const GrowWorkspace = lazy(() => import("./GrowWorkspace.jsx"));
+const FinancialConnectionsPanel = lazy(() => import("./FinancialConnectionsPanel.jsx"));
 
 const moneyFormatter = new Intl.NumberFormat("en-US", {
     style: "currency",
@@ -70,12 +75,11 @@ const dateFormatter = new Intl.DateTimeFormat("en-US", {
 });
 
 const tabs = [
-    { id: "today", label: "Today", icon: Home },
-    { id: "plan", label: "Plan", icon: CheckCircle2 },
+    { id: "home", label: "Home", icon: Home },
     { id: "money", label: "Money", icon: WalletCards },
-    { id: "family", label: "Family", icon: Baby },
     { id: "grow", label: "Grow", icon: BriefcaseBusiness },
-    { id: "vault", label: "Vault", icon: FileLock2 },
+    { id: "family", label: "Family", icon: Baby },
+    { id: "settings", label: "Settings", icon: Settings },
 ];
 
 const visibilityOptions = [
@@ -591,7 +595,80 @@ function SummaryCard({ icon: Icon, label, value, detail }) {
     );
 }
 
+function HomeMoneySnapshot({ householdId, privateMode, proposalCount }) {
+    const [overview, setOverview] = useState(null);
+    const [status, setStatus] = useState("loading");
+    const controlPlaneUrl = (safeExternalUrl(String(import.meta.env.VITE_CONTROL_PLANE_URL || "").trim(), {
+        allowLocalHttp: true,
+    }) || "").replace(/\/+$/, "");
+
+    useEffect(() => {
+        let active = true;
+        if (!controlPlaneUrl || !householdId) {
+            setStatus("unavailable");
+            return () => { active = false; };
+        }
+        async function loadOverview() {
+            try {
+                const { data } = await supabase.auth.getSession();
+                if (!data.session?.access_token) throw new Error("No session");
+                const response = await fetch(`${controlPlaneUrl}/v1/financial/summary`, {
+                    headers: {
+                        Accept: "application/json",
+                        Authorization: `Bearer ${data.session.access_token}`,
+                        "X-Household-Id": String(householdId),
+                    },
+                });
+                if (!response.ok) throw new Error("Overview unavailable");
+                const next = await response.json();
+                if (active) {
+                    setOverview(next);
+                    setStatus("ready");
+                }
+            } catch {
+                if (active) setStatus(navigator.onLine ? "unavailable" : "offline");
+            }
+        }
+        loadOverview();
+        return () => { active = false; };
+    }, [controlPlaneUrl, householdId]);
+
+    const amount = (value) => privateMode ? "••••" : moneyFormatter.format(Number(value) || 0);
+    const income = Number(overview?.income) || 0;
+    const expense = Number(overview?.expense) || 0;
+    const net = Number(overview?.net) || 0;
+    const latestMonth = Array.isArray(overview?.by_month) ? overview.by_month.at(-1) : null;
+
+    return (
+        <Card>
+            <div className="section-title">
+                <div>
+                    <span className="eyebrow">LIVE MONEY SNAPSHOT</span>
+                    <h3>What is safe to plan with</h3>
+                </div>
+                <WalletCards size={22} />
+            </div>
+            {status === "ready" ? (
+                <div className="summary-grid">
+                    <SummaryCard icon={WalletCards} label="90-day net" value={amount(net)} detail="Income minus recorded spending" />
+                    <SummaryCard icon={RefreshCw} label="Account window" value={`${overview?.window_days || 90} days`} detail={`${overview?.transaction_count || 0} tracked transaction(s)`} />
+                    <SummaryCard icon={CircleDollarSign} label="Recorded income" value={amount(income)} detail="Across the current window" />
+                    <SummaryCard icon={PiggyBank} label="Savings pace" value={amount(Math.max(0, net))} detail={latestMonth ? `${latestMonth.month} net: ${amount(latestMonth.net)}` : "Connect or import transactions"} />
+                </div>
+            ) : (
+                <p className="muted">
+                    {status === "loading" ? "Loading your read-only account snapshot…" : status === "offline"
+                        ? "Offline — live account freshness is unavailable. Open Money when reconnected."
+                        : "No financial summary is available yet. Connect an institution or import a CSV in Money."}
+                </p>
+            )}
+            {proposalCount > 0 ? <small>{proposalCount} proposal{proposalCount === 1 ? "" : "s"} awaiting your review below.</small> : null}
+        </Card>
+    );
+}
+
 function TodayTab({
+    householdId,
     tasks,
     appointments,
     balance,
@@ -599,6 +676,11 @@ function TodayTab({
     reducedMotion,
     setTaskModal,
     toggleTask,
+    proposalCount,
+    proposalRefreshKey,
+    onProposalCount,
+    onFlagsChanged,
+    onToast,
 }) {
     const incomplete = tasks
         .filter((task) => !task.completed)
@@ -642,6 +724,22 @@ function TodayTab({
                     Add task
                 </Button>
             </section>
+
+            <HomeMoneySnapshot
+                householdId={householdId}
+                privateMode={privateMode}
+                proposalCount={proposalCount}
+            />
+
+            <ProposalsPanel
+                householdId={householdId}
+                onPendingCount={onProposalCount}
+                onFlagsChanged={onFlagsChanged}
+                refreshKey={proposalRefreshKey}
+                onToast={onToast}
+            />
+
+            <DepositRouter householdId={householdId} onToast={onToast} />
 
             <div className="summary-grid">
                 <SummaryCard
@@ -909,6 +1007,10 @@ function PlanTab({
 }
 
 function MoneyTab({
+    householdId,
+    currentUserId,
+    onImported,
+    onToast,
     transactions,
     opportunities,
     privateMode,
@@ -970,6 +1072,19 @@ function MoneyTab({
 
     return (
         <div className="page-stack">
+            <Suspense fallback={<FeatureLoader label="Opening live money overview…" />}>
+                <FinancialConnectionsPanel
+                    householdId={householdId}
+                    currentUserId={currentUserId}
+                    privateMode={privateMode}
+                />
+            </Suspense>
+            <MoneyActionCenter
+                householdId={householdId}
+                currentUserId={currentUserId}
+                onImported={onImported}
+                onToast={onToast}
+            />
             <div className="page-heading">
                 <div>
                     <p className="eyebrow">MONEY</p>
@@ -1900,6 +2015,7 @@ function SettingsModal({
     reducedMotion,
     setReducedMotion,
     privateMode,
+    showThemeCatalog,
     onClose,
 }) {
     const [copied, setCopied] = useState(false);
@@ -2051,11 +2167,17 @@ function SettingsModal({
                         ))}
                     </div>
 
-                    <ThemeMarketplace
-                        themeKey={themeKey}
-                        onSelectTheme={setThemeKey}
-                        motionOff={themeMotionOff}
-                    />
+                    {showThemeCatalog ? (
+                        <ThemeMarketplace
+                            themeKey={themeKey}
+                            onSelectTheme={setThemeKey}
+                            motionOff={themeMotionOff}
+                        />
+                    ) : (
+                        <small className="muted">
+                            The optional locally packaged theme catalog is not enabled for this household.
+                        </small>
+                    )}
                 </div>
 
                 <label className="toggle-row">
@@ -2136,7 +2258,7 @@ export default function App() {
     const [household, setHousehold] = useState(null);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
-    const [tab, setTab] = useState("today");
+    const [tab, setTab] = useState("home");
     const [error, setError] = useState("");
 
     const [tasks, setTasks] = useState([]);
@@ -2154,6 +2276,15 @@ export default function App() {
     const [settingsOpen, setSettingsOpen] = useState(false);
     const [uploading, setUploading] = useState(false);
     const [privateMode, setPrivateMode] = useState(false);
+    const [proposalCount, setProposalCount] = useState(0);
+    const [proposalRefreshKey, setProposalRefreshKey] = useState(0);
+    const [toast, setToast] = useState("");
+    const { isEnabled: isFeatureEnabled, refresh: refreshFeatureFlags } = useFeatureFlags(household?.id);
+    const onProposalCount = useCallback((count) => setProposalCount(Number(count) || 0), []);
+    const showToast = useCallback((message) => {
+        setToast(message);
+        window.setTimeout(() => setToast((current) => current === message ? "" : current), 5000);
+    }, []);
 
     useEffect(() => {
         const overlayOpen =
@@ -2252,28 +2383,43 @@ export default function App() {
             .channel(`household-${household.id}`)
             .on(
                 "postgres_changes",
-                { event: "*", schema: "public", table: "tasks" },
+                { event: "*", schema: "public", table: "tasks", filter: `household_id=eq.${household.id}` },
                 loadData
             )
             .on(
                 "postgres_changes",
-                { event: "*", schema: "public", table: "appointments" },
+                { event: "*", schema: "public", table: "appointments", filter: `household_id=eq.${household.id}` },
                 loadData
             )
             .on(
                 "postgres_changes",
-                { event: "*", schema: "public", table: "transactions" },
+                { event: "*", schema: "public", table: "transactions", filter: `household_id=eq.${household.id}` },
+                (payload) => {
+                    loadData();
+                    if (payload.eventType === "INSERT" && payload.new?.kind === "income") {
+                        showToast("New income is available in your plan.");
+                    }
+                }
+            )
+            .on(
+                "postgres_changes",
+                { event: "*", schema: "public", table: "income_opportunities", filter: `household_id=eq.${household.id}` },
                 loadData
             )
             .on(
                 "postgres_changes",
-                { event: "*", schema: "public", table: "income_opportunities" },
+                { event: "*", schema: "public", table: "documents", filter: `household_id=eq.${household.id}` },
                 loadData
             )
             .on(
                 "postgres_changes",
-                { event: "*", schema: "public", table: "documents" },
-                loadData
+                { event: "*", schema: "public", table: "agent_proposals", filter: `household_id=eq.${household.id}` },
+                (payload) => {
+                    setProposalRefreshKey((value) => value + 1);
+                    if (payload.eventType === "INSERT" && payload.new?.status === "pending") {
+                        showToast("A new suggested next step is ready for your review.");
+                    }
+                }
             )
             .subscribe();
 
@@ -2623,6 +2769,8 @@ export default function App() {
                     </div>
                 )}
 
+                {toast ? <div className="app-toast" role="status">{toast}</div> : null}
+
                 {refreshing && (
                     <div className="sync-indicator">
                         <RefreshCw size={13} className="spin" />
@@ -2632,8 +2780,9 @@ export default function App() {
 
                 <main className="content">
                     <AnimatedPage key={tab} reducedMotion={reducedMotion}>
-                    {tab === "today" && (
+                    {tab === "home" && (
                         <TodayTab
+                            householdId={household.id}
                             tasks={tasks}
                             appointments={appointments}
                             balance={balance}
@@ -2641,21 +2790,18 @@ export default function App() {
                             reducedMotion={reducedMotion}
                             setTaskModal={setTaskModal}
                             toggleTask={toggleTask}
-                        />
-                    )}
-
-                    {tab === "plan" && (
-                        <PlanTab
-                            tasks={tasks}
-                            setTaskModal={setTaskModal}
-                            toggleTask={toggleTask}
-                            deleteTask={(task) => deleteRecord("tasks", task)}
-                            seedTasks={seedTasks}
+                            proposalCount={proposalCount}
+                            proposalRefreshKey={proposalRefreshKey}
+                            onProposalCount={onProposalCount}
+                            onFlagsChanged={refreshFeatureFlags}
+                            onToast={showToast}
                         />
                     )}
 
                     {tab === "money" && (
                         <MoneyTab
+                            householdId={household.id}
+                            currentUserId={session.user.id}
                             transactions={transactions}
                             opportunities={opportunities}
                             privateMode={privateMode}
@@ -2667,6 +2813,8 @@ export default function App() {
                             deleteOpportunity={(item) =>
                                 deleteRecord("income_opportunities", item)
                             }
+                            onImported={loadData}
+                            onToast={showToast}
                         />
                     )}
 
@@ -2742,15 +2890,6 @@ export default function App() {
                         </Suspense>
                     )}
 
-                    {tab === "vault" && (
-                        <VaultTab
-                            documents={documents}
-                            uploadDocument={uploadDocument}
-                            downloadDocument={downloadDocument}
-                            deleteDocument={deleteDocument}
-                            uploading={uploading}
-                        />
-                    )}
                     </AnimatedPage>
                 </main>
 
@@ -2761,11 +2900,17 @@ export default function App() {
                         return (
                             <button
                                 key={item.id}
-                                className={tab === item.id ? "active" : ""}
-                                onClick={() => setTab(item.id)}
+                                className={(item.id === "settings" ? settingsOpen : tab === item.id) ? "active" : ""}
+                                onClick={() => {
+                                    if (item.id === "settings") setSettingsOpen(true);
+                                    else setTab(item.id);
+                                }}
                             >
                                 <Icon size={20} />
                                 <span>{item.label}</span>
+                                {item.id === "home" && proposalCount > 0 ? (
+                                    <b className="nav-badge" aria-label={`${proposalCount} pending proposals`}>{proposalCount}</b>
+                                ) : null}
                             </button>
                         );
                     })}
@@ -2817,6 +2962,7 @@ export default function App() {
                     reducedMotion={reducedMotion}
                     setReducedMotion={setReducedMotion}
                     privateMode={privateMode}
+                    showThemeCatalog={isFeatureEnabled("theme_catalog")}
                     onClose={() => setSettingsOpen(false)}
                 />
             )}

@@ -61,6 +61,9 @@ export default function FinancialConnectionsPanel({
         readiness: [],
         connections: [],
         accounts: [],
+        liabilities: [],
+        recurring: [],
+        product_status: [],
         aggregation: {},
         billing: {},
     });
@@ -113,6 +116,9 @@ export default function FinancialConnectionsPanel({
                 readiness: Array.isArray(payload.readiness) ? payload.readiness : [],
                 connections: Array.isArray(payload.connections) ? payload.connections : [],
                 accounts: Array.isArray(payload.accounts) ? payload.accounts : [],
+                liabilities: Array.isArray(payload.liabilities) ? payload.liabilities : [],
+                recurring: Array.isArray(payload.recurring) ? payload.recurring : [],
+                product_status: Array.isArray(payload.product_status) ? payload.product_status : [],
                 aggregation: payload.aggregation || {},
                 billing: payload.billing || {},
             });
@@ -316,6 +322,19 @@ export default function FinancialConnectionsPanel({
                 </div>
             )}
 
+            {state.product_status
+                .filter((item) => ["liabilities", "recurring"].includes(item.product))
+                .map((item) => (
+                    <div className="grow-notice" key={`${item.plaid_item_id}-${item.product}`}>
+                        <ShieldCheck size={18} />
+                        <span>
+                            {item.product === "liabilities" ? "Liabilities" : "Recurring analysis"}: {item.status === "enabled"
+                                ? "available from this provider"
+                                : "not enabled by this provider"}.
+                        </span>
+                    </div>
+                ))}
+
             {!controlPlaneUrl && (
                 <div className="grow-notice">
                     <ShieldCheck size={18} />
@@ -457,6 +476,43 @@ export default function FinancialConnectionsPanel({
                             <div className="connection-account-balances">
                                 <span>Current <strong>{money(account.current_balance, account.currency)}</strong></span>
                                 <span>Available <strong>{money(account.available_balance, account.currency)}</strong></span>
+                            </div>
+                        </article>
+                    ))}
+                </div>
+            )}
+
+            {state.liabilities.length > 0 && (
+                <div className="connection-list" aria-label="Linked liabilities">
+                    {state.liabilities.map((liability) => (
+                        <article key={liability.id}>
+                            <div>
+                                <span className="pill blue">{liability.liability_type}</span>
+                                <h3>{privateMode ? "Linked liability" : `Account ••${liability.account_id.slice(-4)}`}</h3>
+                                <small>{liability.next_payment_due_date
+                                    ? `Next due ${new Date(`${liability.next_payment_due_date}T00:00:00`).toLocaleDateString()}`
+                                    : "No provider due date available"}</small>
+                            </div>
+                            <div className="connection-account-balances">
+                                <span>Balance <strong>{money(liability.current_balance, liability.currency)}</strong></span>
+                                <span>Minimum <strong>{money(liability.minimum_payment, liability.currency)}</strong></span>
+                            </div>
+                        </article>
+                    ))}
+                </div>
+            )}
+
+            {state.recurring.length > 0 && (
+                <div className="connection-list" aria-label="Recurring bills and subscriptions">
+                    {state.recurring.filter((stream) => stream.kind === "outflow").map((stream) => (
+                        <article key={stream.id}>
+                            <div>
+                                <span className="pill blue">{stream.frequency || "recurring"}</span>
+                                <h3>{privateMode ? "Recurring bill" : stream.description}</h3>
+                                <small>{stream.next_date ? `Expected ${new Date(`${stream.next_date}T00:00:00`).toLocaleDateString()}` : "Next date unavailable"}</small>
+                            </div>
+                            <div className="connection-account-balances">
+                                <span>Average <strong>{money(stream.average_amount, stream.currency)}</strong></span>
                             </div>
                         </article>
                     ))}
