@@ -109,7 +109,7 @@ export default function PwaControls() {
     if (!isUpdate && !installEvent) return null;
 
     return (
-        <aside className="pwa-action-prompt" role="status" aria-live="polite">
+        <aside className={`pwa-action-prompt ${isUpdate ? "is-update" : ""}`} role="region" aria-label={isUpdate ? "TwinPath update available" : "Install TwinPath"} aria-live="polite" aria-atomic="true">
             <div className="pwa-action-icon">{isUpdate ? <RefreshCw size={19} /> : <Download size={19} />}</div>
             <div className="pwa-action-copy">
                 <strong>{isUpdate ? "An update is ready" : "Install TwinPath"}</strong>

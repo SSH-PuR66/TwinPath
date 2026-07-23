@@ -1,4 +1,4 @@
-const CACHE = "twinpath-shell-v7";
+const CACHE = "twinpath-shell-v8";
 const SHELL = ["/", "/offline.html", "/manifest.webmanifest", "/icon.svg", "/themes/manifest.json"];
 
 function assetUrlsFromDocument(html) {
@@ -18,7 +18,7 @@ async function precacheAppShell() {
     if (!response.ok) throw new Error("Unable to cache the application shell.");
     const html = await response.clone().text();
     await cache.put("/", response);
-    await cache.addAll(assetUrlsFromDocument(html));
+    await cache.addAll(assetUrlsFromDocument(html).filter((url) => url !== "/"));
     const themeManifest = await fetch("/themes/manifest.json", { cache: "reload" })
         .then((manifestResponse) => manifestResponse.ok ? manifestResponse.json() : null)
         .catch(() => null);
@@ -27,7 +27,7 @@ async function precacheAppShell() {
             .filter((asset) => asset?.enabled && /^\/themes\/assets\/[a-z0-9][a-z0-9-]*\.json$/i.test(asset.path || ""))
             .map((asset) => asset.path)
         : [];
-    await cache.addAll(localThemeAssets);
+    await Promise.allSettled(localThemeAssets.map((path) => cache.add(path)));
 }
 
 self.addEventListener("install", (event) => {
@@ -40,18 +40,19 @@ self.addEventListener("message", (event) => {
 
 self.addEventListener("activate", (event) => {
     event.waitUntil(
-        caches
-            .keys()
-            .then((keys) =>
-                Promise.all(
-                    keys
-                        .filter((key) => key !== CACHE)
-                        .map((key) => caches.delete(key))
-                )
-            )
+        Promise.all([
+            caches
+                .keys()
+                .then((keys) =>
+                    Promise.all(
+                        keys
+                            .filter((key) => key !== CACHE)
+                            .map((key) => caches.delete(key))
+                    )
+                ),
+            self.clients.claim(),
+        ])
     );
-
-    self.clients.claim();
 });
 
 async function cacheResponse(request, response) {

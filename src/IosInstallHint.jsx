@@ -13,17 +13,29 @@ function isStandalone() {
     return window.matchMedia?.("(display-mode: standalone)").matches || window.navigator.standalone === true;
 }
 
+function isDismissed() {
+    try {
+        return window.localStorage.getItem(DISMISS_KEY) === "true";
+    } catch {
+        return false;
+    }
+}
+
 export default function IosInstallHint() {
     const [visible, setVisible] = useState(false);
 
     useEffect(() => {
-        if (localStorage.getItem(DISMISS_KEY) || !isIosSafari() || isStandalone()) return;
+        if (isDismissed() || !isIosSafari() || isStandalone()) return;
         const timer = window.setTimeout(() => setVisible(true), 1200);
         return () => window.clearTimeout(timer);
     }, []);
 
     function dismiss() {
-        localStorage.setItem(DISMISS_KEY, "true");
+        try {
+            window.localStorage.setItem(DISMISS_KEY, "true");
+        } catch {
+            // Private browsing can deny storage; the hint can still be closed for this visit.
+        }
         setVisible(false);
     }
 

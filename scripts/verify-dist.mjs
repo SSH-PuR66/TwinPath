@@ -3,6 +3,7 @@ import { fileURLToPath } from "node:url";
 import { join } from "node:path";
 
 const distRoot = fileURLToPath(new URL("../dist/", import.meta.url));
+const projectRoot = fileURLToPath(new URL("../", import.meta.url));
 const assetsDir = fileURLToPath(new URL("../dist/assets/", import.meta.url));
 
 const REQUIRED = [
@@ -61,6 +62,15 @@ if (!document.includes('rel="apple-touch-icon"')) {
     throw new Error("Production app document is missing the Apple touch icon.");
 }
 
+const splashPaths = [...document.matchAll(/rel="apple-touch-startup-image"\s+href="([^"?]+)/g)]
+    .map((match) => match[1].replace(/^\/+/, ""));
+if (splashPaths.length === 0) {
+    throw new Error("Production app document is missing iOS startup images.");
+}
+for (const path of splashPaths) {
+    await requiredPublicFile(path, "an iOS startup image");
+}
+
 const manifest = JSON.parse(await requiredPublicFile("manifest.webmanifest", "the web app manifest"));
 if (manifest.display !== "standalone" || manifest.start_url !== "/" || manifest.scope !== "/") {
     throw new Error("Web app manifest must keep the standalone root-scoped PWA configuration.");
@@ -76,10 +86,18 @@ for (const icon of manifest.icons) {
 }
 
 const serviceWorker = await requiredPublicFile("sw.js", "the service worker");
-for (const requiredWorkerFeature of ["SKIP_WAITING", "/offline.html", "/splash/"]) {
+for (const requiredShellAsset of ["offline.html", "manifest.webmanifest", "icon.svg", "themes/manifest.json"]) {
+    await requiredPublicFile(requiredShellAsset, "a service-worker shell asset");
+}
+for (const requiredWorkerFeature of ["SKIP_WAITING", "self.clients.claim()", "/offline.html", "/splash/"]) {
     if (!serviceWorker.includes(requiredWorkerFeature)) {
         throw new Error(`Service worker is missing required PWA behavior: ${requiredWorkerFeature}`);
     }
+}
+
+const workerConfig = JSON.parse(await readFile(join(projectRoot, "wrangler.jsonc"), "utf8"));
+if (workerConfig?.assets?.html_handling !== "none") {
+    throw new Error("Cloudflare asset HTML handling must remain disabled so /offline.html is served without a redirect.");
 }
 
 console.log(

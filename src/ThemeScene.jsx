@@ -16,12 +16,22 @@ export function usePageHidden() {
 }
 
 function useEnergySavingMode() {
-    const [saving, setSaving] = useState(() => Boolean(navigator.connection?.saveData));
+    const prefersSaving = () => {
+        if (typeof navigator === "undefined") return false;
+        const connection = navigator.connection;
+        const memory = Number(navigator.deviceMemory);
+        return Boolean(
+            connection?.saveData
+            || ["slow-2g", "2g"].includes(connection?.effectiveType)
+            || (memory > 0 && memory <= 2)
+        );
+    };
+    const [saving, setSaving] = useState(prefersSaving);
 
     useEffect(() => {
         const connection = navigator.connection;
         if (!connection?.addEventListener) return undefined;
-        const update = () => setSaving(Boolean(connection.saveData));
+        const update = () => setSaving(prefersSaving());
         connection.addEventListener("change", update);
         return () => connection.removeEventListener("change", update);
     }, []);
@@ -41,7 +51,7 @@ function LocalLottieLayer({ asset, motionOff }) {
             : (callback) => window.setTimeout(callback, 300);
         const cancelSchedule = window.cancelIdleCallback || window.clearTimeout;
         const idleId = schedule(() => Promise.all([
-            import("lottie-web"),
+            import("lottie-web/build/player/lottie_light"),
             fetch(asset.path, { credentials: "same-origin" })
                 .then((response) => response.ok ? response.json() : Promise.reject(new Error("Local theme asset is unavailable."))),
         ]).then(([{ default: lottie }, animationData]) => {
@@ -66,9 +76,13 @@ function LocalLottieLayer({ asset, motionOff }) {
     return <div className="theme-local-lottie" ref={element} aria-hidden="true" />;
 }
 
-function useLocalThemeAssets() {
+function useLocalThemeAssets(enabled) {
     const [assets, setAssets] = useState([]);
     useEffect(() => {
+        if (!enabled) {
+            setAssets([]);
+            return undefined;
+        }
         let active = true;
         fetch("/themes/manifest.json", { credentials: "same-origin" })
             .then((response) => response.ok ? response.json() : null)
@@ -78,14 +92,14 @@ function useLocalThemeAssets() {
             })
             .catch(() => active && setAssets([]));
         return () => { active = false; };
-    }, []);
+    }, [enabled]);
     return assets;
 }
 
 function ThemeArtwork({ themeKey, motionOff = false, preview = false }) {
     const validThemeKey = resolveThemeKey(themeKey);
     const theme = themes[validThemeKey];
-    const assets = useLocalThemeAssets();
+    const assets = useLocalThemeAssets(!preview && !motionOff);
     const localAsset = assets.find((asset) => asset.id === validThemeKey);
 
     return (
@@ -111,7 +125,7 @@ function ThemeArtwork({ themeKey, motionOff = false, preview = false }) {
             <span className="theme-layer theme-layer-one" />
             <span className="theme-layer theme-layer-two" />
             <span className="theme-layer theme-layer-three" />
-            {!preview && localAsset ? <LocalLottieLayer asset={localAsset} motionOff={motionOff} /> : null}
+            {!preview && !motionOff && localAsset ? <LocalLottieLayer asset={localAsset} motionOff={motionOff} /> : null}
         </div>
     );
 }

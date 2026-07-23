@@ -1143,7 +1143,7 @@ small {
     min-height: 66px;
     margin: 0 auto;
     padding: 0.35rem;
-    grid-template-columns: repeat(6, minmax(0, 1fr));
+    grid-template-columns: repeat(5, minmax(0, 1fr));
     background: rgba(8, 12, 21, 0.86);
     border: 1px solid var(--border-strong);
     border-radius: 21px;
@@ -2909,6 +2909,7 @@ textarea {
 .pwa-action-buttons { display: flex; align-items: center; gap: 0.4rem; }
 .pwa-action-buttons .button { min-height: 2.5rem; padding: 0.55rem 0.78rem; }
 .pwa-action-buttons .icon-button { width: 2.5rem; height: 2.5rem; }
+.pwa-action-prompt.is-update { bottom: calc(11.25rem + env(safe-area-inset-bottom) + var(--keyboard-inset, 0px)); }
 
 .proposals-panel,
 .money-tool-panel,
@@ -3033,7 +3034,7 @@ textarea {
 .static-theme[data-theme="everforest"] { animation-duration: 24s; }
 .theme-motion-off.static-theme { animation: none; }
 @keyframes community-palette-gradient { 0%, 100% { background-position: 0% 35%; } 50% { background-position: 100% 65%; } }
-@media (prefers-reduced-motion: reduce) { .static-theme[data-theme^="catppuccin-"], .static-theme[data-theme="nord"], .static-theme[data-theme^="rose-pine"], .static-theme[data-theme="tokyo-night"], .static-theme[data-theme="everforest"] { animation: none; } }
+@media (prefers-reduced-motion: reduce), (update: slow) { .static-theme[data-theme^="catppuccin-"], .static-theme[data-theme="nord"], .static-theme[data-theme^="rose-pine"], .static-theme[data-theme="tokyo-night"], .static-theme[data-theme="everforest"] { animation: none; } }
 .benefit-grid { grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
 .benefit-card > .button { justify-self: start; }
 .status-chip { padding: 0.2rem 0.45rem; border-radius: 999px; text-transform: capitalize; font-size: 0.72rem; background: rgba(255,255,255,0.1); }
