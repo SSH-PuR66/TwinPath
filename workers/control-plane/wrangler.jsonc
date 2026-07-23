@@ -11,6 +11,8 @@
     "SUPABASE_URL": "https://wtdmjybpfimmsojsdobx.supabase.co",
     "HOUSEHOLD_MEMBERS_TABLE": "household_members",
     "PLAID_ENV": "production",
+    "PLAID_COUNTRY_CODES": "US",
+    "PLAID_ADDITIONAL_CONSENTED_PRODUCTS": "",
     "AUTONOMOUS_PLAID_SYNC": "true",
     "PLAID_SYNC_STALE_MINUTES": "30",
     "PLAID_WEBHOOK_URL": "https://twinpath-control-plane.srodriguez46.workers.dev/v1/webhooks/plaid",

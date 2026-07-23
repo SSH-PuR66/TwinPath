@@ -3,7 +3,13 @@ import assert from "node:assert/strict";
 
 import { decryptToken, encryptToken } from "../src/crypto.js";
 import { webhookDedupeKey } from "../src/provider-persistence-v15.js";
-import { providerMode, providerReadiness, requireProvider } from "../src/provider-mode.js";
+import {
+  plaidAdditionalConsentedProducts,
+  plaidCountryCodes,
+  providerMode,
+  providerReadiness,
+  requireProvider,
+} from "../src/provider-mode.js";
 import { stripeSignature, verifyStripeSignature } from "../src/stripe.js";
 import { resolveTableName } from "../src/supabase.js";
 import { enforceOrigin } from "../src/http.js";
@@ -20,6 +26,15 @@ test("provider mode defaults disabled and fails closed", () => {
   assert.equal(providerMode({ PROVIDER_MODE: "unexpected" }), "disabled");
   assert.equal(providerReadiness({}).enabled, false);
   assert.throws(() => requireProvider({}, "plaid"), /External providers are disabled/);
+});
+
+test("Plaid country and consented product configuration is constrained", () => {
+  assert.deepEqual(plaidCountryCodes({}), ["US"]);
+  assert.deepEqual(plaidCountryCodes({ PLAID_COUNTRY_CODES: "us, CA, invalid, GB, us" }), ["US", "CA", "GB"]);
+  assert.deepEqual(
+    plaidAdditionalConsentedProducts({ PLAID_ADDITIONAL_CONSENTED_PRODUCTS: "liabilities,identity,investments,liabilities" }),
+    ["liabilities", "investments"],
+  );
 });
 
 test("cross-origin requests are denied exactly", () => {

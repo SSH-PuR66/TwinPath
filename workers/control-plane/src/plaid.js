@@ -17,7 +17,12 @@ import {
   updatePlaidCursor,
   writeProviderAudit,
 } from "./provider-persistence-v15.js";
-import { providerMode, requireProvider } from "./provider-mode.js";
+import {
+  plaidAdditionalConsentedProducts,
+  plaidCountryCodes,
+  providerMode,
+  requireProvider,
+} from "./provider-mode.js";
 
 const MAX_SYNC_PAGES = 20;
 const DEFAULT_STALE_MINUTES = 30;
@@ -138,12 +143,16 @@ export function isAutonomousPlaidSyncEnabled(env) {
 
 export async function createPlaidLinkToken(request, env, auth) {
   assertObject(await readJson(request, 8_192));
+  const additionalConsentedProducts = plaidAdditionalConsentedProducts(env);
   const result = await plaidRequest(env, "/link/token/create", {
     user: { client_user_id: auth.user.id },
     client_name: "El Plan",
     products: ["transactions"],
-    country_codes: ["US"],
+    country_codes: plaidCountryCodes(env),
     language: "en",
+    ...(additionalConsentedProducts.length
+      ? { additional_consented_products: additionalConsentedProducts }
+      : {}),
     ...(env.PLAID_WEBHOOK_URL ? { webhook: env.PLAID_WEBHOOK_URL } : {}),
     ...(env.PLAID_REDIRECT_URI ? { redirect_uri: env.PLAID_REDIRECT_URI } : {}),
   });
@@ -152,7 +161,11 @@ export async function createPlaidLinkToken(request, env, auth) {
     ownerUserId: auth.user.id,
     eventType: "plaid.link_token_created",
   });
-  return { link_token: result.link_token, expiration: result.expiration };
+  return {
+    link_token: result.link_token,
+    expiration: result.expiration,
+    additional_consented_products: additionalConsentedProducts,
+  };
 }
 
 export async function exchangePlaidPublicToken(request, env, auth) {

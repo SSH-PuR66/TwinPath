@@ -1,6 +1,27 @@
 import { HttpError } from "./http.js";
 
 const MODES = new Set(["disabled", "sandbox", "production"]);
+const PLAID_ADDITIONAL_CONSENTED_PRODUCTS = new Set(["liabilities", "investments"]);
+
+function commaSeparated(env, name, fallback = []) {
+  const value = String(env[name] || "").trim();
+  if (!value) return fallback;
+  return [...new Set(value.split(",").map((entry) => entry.trim()).filter(Boolean))];
+}
+
+export function plaidCountryCodes(env) {
+  const countries = commaSeparated(env, "PLAID_COUNTRY_CODES", ["US"])
+    .map((code) => code.toUpperCase())
+    .filter((code) => /^[A-Z]{2}$/.test(code))
+    .slice(0, 8);
+  return countries.length ? countries : ["US"];
+}
+
+export function plaidAdditionalConsentedProducts(env) {
+  return commaSeparated(env, "PLAID_ADDITIONAL_CONSENTED_PRODUCTS")
+    .map((product) => product.toLowerCase())
+    .filter((product) => PLAID_ADDITIONAL_CONSENTED_PRODUCTS.has(product));
+}
 
 export function providerMode(env) {
   const mode = String(env.PROVIDER_MODE || "disabled").trim().toLowerCase();
@@ -42,6 +63,8 @@ export function providerReadiness(env) {
         && configured(env, ["PLAID_CLIENT_ID", "PLAID_SECRET", "TOKEN_ENCRYPTION_KEY"])
         && plaidSafe,
       environment: effectivePlaidEnvironment,
+      countries: plaidCountryCodes(env),
+      additional_consented_products: plaidAdditionalConsentedProducts(env),
     },
     stripe: {
       ready: mode !== "disabled"
