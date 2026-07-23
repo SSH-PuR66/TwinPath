@@ -4,7 +4,7 @@ import { useControlPlane } from "./useControlPlane";
 
 const sample = "Date,Description,Amount,Category\n2026-07-20,Example deposit,25.00,Income";
 
-export default function CsvImportPanel({ householdId, onImported, onToast }) {
+export default function CsvImportPanel({ householdId, onImported, onToast, sharedImport, onSharedImportHandled }) {
     const { request, configured } = useControlPlane(householdId);
     const [csv, setCsv] = useState("");
     const [sourceLabel, setSourceLabel] = useState("import");
@@ -23,6 +23,14 @@ export default function CsvImportPanel({ householdId, onImported, onToast }) {
     }
 
     useEffect(() => { if (configured) refreshSummary(); }, [configured]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    useEffect(() => {
+        if (sharedImport?.kind !== "csv" || !sharedImport?.text) return;
+        setCsv(String(sharedImport.text).slice(0, 512 * 1024));
+        setSourceLabel(String(sharedImport.label || "shared-import").toLowerCase().replace(/[^a-z0-9._-]/g, "").slice(0, 41) || "shared-import");
+        setError("");
+        onSharedImportHandled?.();
+    }, [onSharedImportHandled, sharedImport?.id, sharedImport?.kind, sharedImport?.label, sharedImport?.text]);
 
     async function readFile(file) {
         if (!file) return;

@@ -1,4 +1,7 @@
-const CACHE = "twinpath-shell-v8";
+const CACHE = "twinpath-shell-v9";
+const SHARE_CACHE = "twinpath-share-inbox-v1";
+const SHARE_PATH = "/__twinpath-share/";
+const MAX_SHARED_TEXT_BYTES = 512 * 1024;
 const SHELL = ["/", "/offline.html", "/manifest.webmanifest", "/icon.svg", "/themes/manifest.json"];
 
 function assetUrlsFromDocument(html) {
@@ -79,14 +82,85 @@ async function staticResponse(request) {
     return cacheResponse(request, await fetch(request));
 }
 
+function sharedText(value) {
+    return typeof value === "string" ? value.trim() : "";
+}
+
+function looksLikeCsv(value) {
+    const firstLine = value.split(/\r?\n/, 1)[0] || "";
+    return /\r?\n/.test(value) && firstLine.includes(",");
+}
+
+async function receiveSharedImport(request) {
+    try {
+        const form = await request.formData();
+        const file = form.get("file");
+        const sharedUrl = sharedText(form.get("url"));
+        const plainText = sharedText(form.get("text"));
+        let payload;
+
+        if (file && typeof file.text === "function") {
+            if (file.size > MAX_SHARED_TEXT_BYTES) {
+                return Response.redirect("/?share-error=file-too-large", 303);
+            }
+            payload = {
+                kind: "csv",
+                text: (await file.text()).slice(0, MAX_SHARED_TEXT_BYTES),
+                label: sharedText(file.name) || "shared-import.csv",
+            };
+        } else if (looksLikeCsv(plainText)) {
+            payload = { kind: "csv", text: plainText, label: "shared-import.csv" };
+        } else if (sharedUrl || plainText) {
+            payload = {
+                kind: "link",
+                url: sharedUrl || plainText,
+                title: sharedText(form.get("title")).slice(0, 160),
+            };
+        } else {
+            return Response.redirect("/?share-error=nothing-shared", 303);
+        }
+
+        const id = crypto.randomUUID();
+        const cache = await caches.open(SHARE_CACHE);
+        await cache.put(
+            `${SHARE_PATH}${id}`,
+            new Response(JSON.stringify(payload), {
+                headers: { "content-type": "application/json", "cache-control": "no-store" },
+            })
+        );
+        return Response.redirect(`/?shared-import=${encodeURIComponent(id)}`, 303);
+    } catch {
+        return Response.redirect("/?share-error=import-unavailable", 303);
+    }
+}
+
+async function consumeSharedImport(request) {
+    const cache = await caches.open(SHARE_CACHE);
+    const response = await cache.match(request);
+    if (!response) return new Response(null, { status: 404 });
+    await cache.delete(request);
+    return response;
+}
+
 self.addEventListener("fetch", (event) => {
     const request = event.request;
-    if (request.method !== "GET") return;
-
     const url = new URL(request.url);
 
-    // Never cache API responses, provider responses, or authenticated data.
     if (url.origin !== self.location.origin) return;
+
+    if (request.method === "POST" && url.pathname === "/import") {
+        event.respondWith(receiveSharedImport(request));
+        return;
+    }
+
+    if (request.method !== "GET") return;
+
+    if (url.pathname.startsWith(SHARE_PATH)) {
+        event.respondWith(consumeSharedImport(request));
+        return;
+    }
+
+    // Never cache API responses, provider responses, or authenticated data.
     if (
         url.pathname.startsWith("/api/")
         || url.pathname.startsWith("/v1/")

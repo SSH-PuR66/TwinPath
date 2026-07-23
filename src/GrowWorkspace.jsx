@@ -39,7 +39,7 @@ export default function GrowWorkspace({
 
     return (
         <div className="grow-workspace">
-            <nav className="grow-tabs" aria-label="Grow workspace">
+            <nav className="grow-tabs grow-workspace-tabs" aria-label="Grow workspace">
                 {growTabs.map((item) => {
                     const Icon = item.icon;
                     return (

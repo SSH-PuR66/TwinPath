@@ -45,6 +45,7 @@ import DepositRouter from "./DepositRouter";
 import MoneyActionCenter from "./MoneyActionCenter";
 import IosInstallHint from "./IosInstallHint";
 import FinancialSummary from "./FinancialSummary";
+import WatchedSourcesPanel from "./WatchedSourcesPanel";
 
 import {
     initialAllocation,
@@ -1051,6 +1052,8 @@ function MoneyTab({
     setOpportunityModal,
     deleteTransaction,
     deleteOpportunity,
+    sharedImport,
+    onSharedImportHandled,
 }) {
     const income = transactions
         .filter((item) => item.kind === "income")
@@ -1111,6 +1114,8 @@ function MoneyTab({
                 currentUserId={currentUserId}
                 onImported={onImported}
                 onToast={onToast}
+                sharedImport={sharedImport}
+                onSharedImportHandled={onSharedImportHandled}
             />
             <Suspense fallback={<FeatureLoader label="Opening live money overview…" />}>
                 <FinancialConnectionsPanel
@@ -2050,6 +2055,8 @@ function SettingsModal({
     setReducedMotion,
     privateMode,
     showThemeCatalog,
+    sharedLink,
+    onSharedLinkHandled,
     onClose,
 }) {
     const [copied, setCopied] = useState(false);
@@ -2234,6 +2241,12 @@ function SettingsModal({
                     />
                 </label>
 
+                <WatchedSourcesPanel
+                    householdId={household.id}
+                    sharedLink={sharedLink}
+                    onSharedLinkHandled={onSharedLinkHandled}
+                />
+
                 <Card className="nested-card">
                     <span className="eyebrow">ACCOUNT ACCESS</span>
                     <h3>Create or change password</h3>
@@ -2320,6 +2333,7 @@ export default function App() {
     const [proposalCount, setProposalCount] = useState(0);
     const [proposalRefreshKey, setProposalRefreshKey] = useState(0);
     const [toast, setToast] = useState("");
+    const [sharedImport, setSharedImport] = useState(null);
     const { isEnabled: isFeatureEnabled, refresh: refreshFeatureFlags } = useFeatureFlags(household?.id);
     const onProposalCount = useCallback((count) => setProposalCount(Number(count) || 0), []);
     const refreshPendingProposalCount = useCallback(async () => {
@@ -2335,6 +2349,46 @@ export default function App() {
         setToast(message);
         window.setTimeout(() => setToast((current) => current === message ? "" : current), 5000);
     }, []);
+    const clearSharedLink = useCallback(() => {
+        setSharedImport((current) => current?.kind === "link" ? null : current);
+    }, []);
+    const clearSharedCsv = useCallback(() => {
+        setSharedImport((current) => current?.kind === "csv" ? null : current);
+    }, []);
+
+    useEffect(() => {
+        const currentUrl = new URL(window.location.href);
+        const shareError = currentUrl.searchParams.get("share-error");
+        const sharedId = currentUrl.searchParams.get("shared-import");
+        if (!shareError && !sharedId) return undefined;
+
+        currentUrl.searchParams.delete("share-error");
+        currentUrl.searchParams.delete("shared-import");
+        window.history.replaceState({}, "", `${currentUrl.pathname}${currentUrl.search}${currentUrl.hash}`);
+
+        if (shareError) {
+            showToast(shareError === "file-too-large" ? "That shared file is too large. Choose a CSV under 512 KB." : "TwinPath could not read that shared item. Paste it into the app instead.");
+            return undefined;
+        }
+
+        let active = true;
+        fetch(`/__twinpath-share/${encodeURIComponent(sharedId)}`, { cache: "no-store" })
+            .then((response) => response.ok ? response.json() : Promise.reject(new Error("Shared item expired.")))
+            .then((payload) => {
+                if (!active || !payload || !["csv", "link"].includes(payload.kind)) return;
+                setSharedImport({ ...payload, id: sharedId });
+                if (payload.kind === "csv") {
+                    setTab("money");
+                    showToast("Shared CSV ready to review before import.");
+                } else {
+                    setSettingsOpen(true);
+                    showToast("Shared link ready to watch. Nothing was opened or purchased.");
+                }
+            })
+            .catch((sharedError) => active && showToast(sharedError.message || "Shared item is no longer available."));
+
+        return () => { active = false; };
+    }, [showToast]);
 
     useEffect(() => {
         const overlayOpen =
@@ -2895,6 +2949,8 @@ export default function App() {
                             }
                             onImported={loadData}
                             onToast={showToast}
+                            sharedImport={sharedImport?.kind === "csv" ? sharedImport : null}
+                            onSharedImportHandled={clearSharedCsv}
                         />
                     )}
 
@@ -3043,6 +3099,8 @@ export default function App() {
                     setReducedMotion={setReducedMotion}
                     privateMode={privateMode}
                     showThemeCatalog={isFeatureEnabled("theme_catalog")}
+                    sharedLink={sharedImport?.kind === "link" ? sharedImport : null}
+                    onSharedLinkHandled={clearSharedLink}
                     onClose={() => setSettingsOpen(false)}
                 />
             )}

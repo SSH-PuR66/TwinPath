@@ -14,7 +14,7 @@ export function normalizeApplicationPath(pathname) {
 export function resolveApplicationRoute(pathname, productIds = []) {
   const path = normalizeApplicationPath(pathname);
 
-  if (path === "/") return { kind: "private-app" };
+  if (path === "/" || path === "/import") return { kind: "private-app" };
   if (path === "/shop") return { kind: "storefront" };
 
   const legalPage = path.match(/^\/shop\/(privacy|terms|refunds)$/)?.[1];

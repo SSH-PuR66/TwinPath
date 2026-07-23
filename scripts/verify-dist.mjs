@@ -78,6 +78,13 @@ if (manifest.display !== "standalone" || manifest.start_url !== "/" || manifest.
 if (!Array.isArray(manifest.icons) || manifest.icons.length === 0) {
     throw new Error("Web app manifest must provide install icons.");
 }
+if (
+    manifest?.share_target?.action !== "/import"
+    || manifest.share_target.method !== "POST"
+    || manifest.share_target.enctype !== "multipart/form-data"
+) {
+    throw new Error("Web app manifest must keep the installed-app share target.");
+}
 
 for (const icon of manifest.icons) {
     const path = typeof icon?.src === "string" ? icon.src.replace(/^\/+/, "") : "";
@@ -89,7 +96,7 @@ const serviceWorker = await requiredPublicFile("sw.js", "the service worker");
 for (const requiredShellAsset of ["offline.html", "manifest.webmanifest", "icon.svg", "themes/manifest.json"]) {
     await requiredPublicFile(requiredShellAsset, "a service-worker shell asset");
 }
-for (const requiredWorkerFeature of ["SKIP_WAITING", "self.clients.claim()", "/offline.html", "/splash/"]) {
+for (const requiredWorkerFeature of ["SKIP_WAITING", "self.clients.claim()", "/offline.html", "/splash/", "receiveSharedImport", "consumeSharedImport"]) {
     if (!serviceWorker.includes(requiredWorkerFeature)) {
         throw new Error(`Service worker is missing required PWA behavior: ${requiredWorkerFeature}`);
     }
