@@ -36,16 +36,17 @@
 }
 
 html {
-    min-height: 100%;
+    min-height: 100dvh;
     background: var(--background);
     -webkit-text-size-adjust: 100%;
 }
 
 body {
     min-width: 0;
-    min-height: 100vh;
+    min-height: 100dvh;
     margin: 0;
     overflow-x: hidden;
+    overscroll-behavior: none;
     background: var(--background);
 }
 
@@ -75,6 +76,7 @@ select,
 textarea {
     width: 100%;
     min-height: 48px;
+    font-size: 16px;
     padding: 0.8rem 0.9rem;
     color: var(--text);
     background: rgba(3, 7, 15, 0.7);
@@ -187,7 +189,7 @@ small {
 }
 
 .app-shell {
-    min-height: 100vh;
+    min-height: 100dvh;
     background: transparent;
 }
 
@@ -195,7 +197,7 @@ small {
     position: relative;
     z-index: 1;
     width: min(100%, 1180px);
-    min-height: 100vh;
+    min-height: 100dvh;
     margin: 0 auto;
 }
 
@@ -2832,6 +2834,43 @@ textarea {
     box-shadow: 0 12px 32px rgba(0, 0, 0, 0.28);
     font-weight: 700;
 }
+
+.ios-install-hint {
+    position: fixed;
+    right: max(0.8rem, env(safe-area-inset-right));
+    bottom: calc(6.25rem + env(safe-area-inset-bottom) + var(--keyboard-inset, 0px));
+    left: max(0.8rem, env(safe-area-inset-left));
+    z-index: 65;
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+    gap: 0.7rem;
+    max-width: 34rem;
+    margin: 0 auto;
+    padding: 0.7rem;
+    color: var(--text);
+    background: rgba(8, 14, 25, 0.94);
+    border: 1px solid var(--border-strong);
+    border-radius: 18px;
+    box-shadow: var(--shadow);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+}
+
+.ios-install-hint-icon {
+    display: grid;
+    width: 2.5rem;
+    height: 2.5rem;
+    place-items: center;
+    color: #07111f;
+    background: var(--accent);
+    border-radius: 12px;
+}
+
+.ios-install-hint > div:nth-child(2) { display: grid; gap: 0.14rem; }
+.ios-install-hint span { color: var(--muted); font-size: 0.78rem; line-height: 1.35; }
+.ios-install-hint span svg { vertical-align: -0.14em; color: var(--accent); }
+.ios-install-hint .icon-button { width: 2.5rem; height: 2.5rem; }
 
 .proposals-panel,
 .money-tool-panel,

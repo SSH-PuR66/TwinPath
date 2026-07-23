@@ -42,6 +42,7 @@ import ProposalsPanel from "./ProposalsPanel";
 import { useFeatureFlags } from "./useFeatureFlags";
 import DepositRouter from "./DepositRouter";
 import MoneyActionCenter from "./MoneyActionCenter";
+import IosInstallHint from "./IosInstallHint";
 
 import {
     initialAllocation,
@@ -2311,20 +2312,24 @@ export default function App() {
             opportunityModal ||
             settingsOpen;
 
-        const previousOverflow =
-            document.body.style.overflow;
-
-        const previousPosition =
-            document.body.style.position;
+        const previousStyles = {
+            overflow: document.body.style.overflow,
+            position: document.body.style.position,
+            top: document.body.style.top,
+            width: document.body.style.width,
+        };
+        const scrollY = window.scrollY;
 
         if (overlayOpen) {
             document.body.style.overflow = "hidden";
-            document.body.style.position = "relative";
+            document.body.style.position = "fixed";
+            document.body.style.top = `-${scrollY}px`;
+            document.body.style.width = "100%";
         }
 
         return () => {
-            document.body.style.overflow = previousOverflow;
-            document.body.style.position = previousPosition;
+            Object.assign(document.body.style, previousStyles);
+            if (overlayOpen) window.scrollTo(0, scrollY);
         };
     }, [
         taskModal,
@@ -2342,6 +2347,29 @@ export default function App() {
         localStorage.getItem("twinpath-reduced-motion") === "true" ||
         window.matchMedia?.("(prefers-reduced-motion: reduce)").matches
     );
+
+    useEffect(() => {
+        const theme = themes[themeKey];
+        if (!theme) return;
+        document.querySelector('meta[name="theme-color"]:not([media])')?.setAttribute("content", theme.background);
+    }, [themeKey]);
+
+    useEffect(() => {
+        const viewport = window.visualViewport;
+        if (!viewport) return undefined;
+        const syncKeyboardInset = () => {
+            const inset = Math.max(0, window.innerHeight - viewport.height - viewport.offsetTop);
+            document.documentElement.style.setProperty("--keyboard-inset", `${inset}px`);
+        };
+        syncKeyboardInset();
+        viewport.addEventListener("resize", syncKeyboardInset);
+        viewport.addEventListener("scroll", syncKeyboardInset);
+        return () => {
+            viewport.removeEventListener("resize", syncKeyboardInset);
+            viewport.removeEventListener("scroll", syncKeyboardInset);
+            document.documentElement.style.removeProperty("--keyboard-inset");
+        };
+    }, []);
 
     const balance = useMemo(() => {
         return transactions.reduce((sum, transaction) => {
@@ -2772,6 +2800,7 @@ export default function App() {
 
             <div className="app-layer">
                 <NetworkStatus />
+                <IosInstallHint />
                 <AppHeader
                     household={household}
                     privateMode={privateMode}

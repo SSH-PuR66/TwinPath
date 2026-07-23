@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from "react";
-import lottie from "lottie-web";
 import { resolveThemeKey, themes } from "./themeCatalog";
 
 export function usePageHidden() {
@@ -16,6 +15,20 @@ export function usePageHidden() {
     return pageHidden;
 }
 
+function useEnergySavingMode() {
+    const [saving, setSaving] = useState(() => Boolean(navigator.connection?.saveData));
+
+    useEffect(() => {
+        const connection = navigator.connection;
+        if (!connection?.addEventListener) return undefined;
+        const update = () => setSaving(Boolean(connection.saveData));
+        connection.addEventListener("change", update);
+        return () => connection.removeEventListener("change", update);
+    }, []);
+
+    return saving;
+}
+
 function LocalLottieLayer({ asset, motionOff }) {
     const element = useRef(null);
 
@@ -23,9 +36,15 @@ function LocalLottieLayer({ asset, motionOff }) {
         if (!asset?.path || !element.current) return undefined;
         let cancelled = false;
         let animation;
-        fetch(asset.path, { credentials: "same-origin" })
-            .then((response) => response.ok ? response.json() : Promise.reject(new Error("Local theme asset is unavailable.")))
-            .then((animationData) => {
+        const schedule = window.requestIdleCallback
+            ? (callback) => window.requestIdleCallback(callback, { timeout: 1500 })
+            : (callback) => window.setTimeout(callback, 300);
+        const cancelSchedule = window.cancelIdleCallback || window.clearTimeout;
+        const idleId = schedule(() => Promise.all([
+            import("lottie-web"),
+            fetch(asset.path, { credentials: "same-origin" })
+                .then((response) => response.ok ? response.json() : Promise.reject(new Error("Local theme asset is unavailable."))),
+        ]).then(([{ default: lottie }, animationData]) => {
                 if (cancelled || !element.current) return;
                 animation = lottie.loadAnimation({
                     container: element.current,
@@ -36,10 +55,10 @@ function LocalLottieLayer({ asset, motionOff }) {
                     rendererSettings: { preserveAspectRatio: "xMidYMid slice" },
                 });
                 if (motionOff) animation.goToAndStop(0, true);
-            })
-            .catch(() => {});
+            }).catch(() => {}));
         return () => {
             cancelled = true;
+            cancelSchedule(idleId);
             animation?.destroy();
         };
     }, [asset?.path, motionOff]);
@@ -107,11 +126,12 @@ export default function ThemeScene({
     privateMode = false,
 }) {
     const pageHidden = usePageHidden();
+    const energySaving = useEnergySavingMode();
 
     return (
         <ThemeArtwork
             themeKey={themeKey}
-            motionOff={reducedMotion || privateMode || pageHidden}
+            motionOff={reducedMotion || privateMode || pageHidden || energySaving}
         />
     );
 }
