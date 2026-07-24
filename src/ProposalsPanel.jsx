@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { Bot, Check, Loader2, X } from "lucide-react";
+import { Bot, Check, Copy, ExternalLink, Loader2, X } from "lucide-react";
 import { useControlPlane } from "./useControlPlane";
 
 const labels = {
@@ -23,6 +23,8 @@ export default function ProposalsPanel({
     const [proposals, setProposals] = useState([]);
     const [busyId, setBusyId] = useState("");
     const [error, setError] = useState("");
+    const [handoff, setHandoff] = useState(null);
+    const [transferComplete, setTransferComplete] = useState(false);
 
     const refresh = useCallback(async () => {
         if (!householdId || !configured) return;
@@ -48,6 +50,10 @@ export default function ProposalsPanel({
                 body: JSON.stringify({ decision }),
             });
             onToast?.(decision === "approved" ? proposal.payload?.source === "deposit_watch" ? `🎉 Deposit plan approved for $${Number(proposal.payload.amount || 0).toLocaleString()}. You make the transfers when ready.` : "Proposal approved. Your plan is updated." : "Proposal declined. Nothing else changed.");
+            if (decision === "approved" && proposal.payload?.source === "deposit_watch") {
+                setHandoff(proposal);
+                setTransferComplete(false);
+            }
             if (decision === "approved") await onFlagsChanged?.();
             await refresh();
         } catch (decisionError) {
@@ -55,6 +61,24 @@ export default function ProposalsPanel({
         } finally {
             setBusyId("");
         }
+    }
+
+    const steps = Array.isArray(handoff?.payload?.steps) ? handoff.payload.steps : [];
+    const amounts = steps.map((step) => `${step.bucket}: $${Number(step.amount || 0).toFixed(2)}`).join("\n") || `$${Number(handoff?.payload?.amount || 0).toFixed(2)} transfer plan`;
+    async function copyAmounts() {
+        try { await navigator.clipboard.writeText(amounts); onToast?.("Transfer amounts copied."); }
+        catch { setError("Copy is unavailable here—use the amounts shown below."); }
+    }
+    function openChime() {
+        window.location.assign("chime://");
+        window.setTimeout(() => { if (!document.hidden) window.location.assign("https://app.chime.com"); }, 700);
+    }
+    async function saveTransferCheck(checked) {
+        if (!handoff) return;
+        setTransferComplete(checked);
+        try {
+            await request(`/v1/proposals/${encodeURIComponent(handoff.id)}/transfer-complete`, { method: "PATCH", body: JSON.stringify({ completed: checked }) });
+        } catch (saveError) { setTransferComplete(!checked); setError(saveError.message); }
     }
 
     if (!householdId || !configured) return null;
@@ -99,6 +123,7 @@ export default function ProposalsPanel({
                     ))}
                 </div>
             )}
+            {handoff ? <div className="benefit-drawer-backdrop" onMouseDown={() => setHandoff(null)}><aside className="benefit-drawer handoff-sheet" onMouseDown={(event) => event.stopPropagation()} aria-label="Complete approved transfers in Chime"><header><div><span className="eyebrow">APPROVED · YOUR NEXT TAPS</span><h2>Complete this in Chime</h2></div><button className="icon-button" type="button" onClick={() => setHandoff(null)} aria-label="Close"><X size={19} /></button></header><p>TwinPath never moves money. Open Chime and make each transfer yourself.</p><ol className="handoff-steps">{steps.length ? steps.map((step, index) => <li key={`${step.bucket}-${index}`}><strong>${Number(step.amount || 0).toFixed(2)} → {String(step.bucket || "your chosen bucket").replaceAll("_", " ")}</strong><small>{step.why}</small></li>) : <li><strong>{amounts}</strong></li>}</ol><div className="proposal-actions"><button className="button primary" type="button" onClick={openChime}><ExternalLink size={16} /> Complete in Chime</button><button className="button secondary" type="button" onClick={copyAmounts}><Copy size={16} /> Copy amounts</button></div><label className="toggle-row"><span><strong>I completed the transfers myself</strong><small>This only records your self-check; it never verifies or initiates a bank action.</small></span><input type="checkbox" checked={transferComplete} onChange={(event) => saveTransferCheck(event.target.checked)} /></label></aside></div> : null}
         </section>
     );
 }

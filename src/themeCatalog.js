@@ -46,6 +46,7 @@ export const includedThemes = {
     accent: "#65e8ff",
     accent2: "#8b7cff",
     scene: "aurora",
+    wallpaper: "aurora.webm",
     included: true,
   },
   orbit: {
@@ -73,6 +74,7 @@ export const includedThemes = {
     accent: "#52e0cf",
     accent2: "#b8fff5",
     scene: "ocean",
+    wallpaper: "ocean-dusk.webm",
     included: true,
   },
   cyber: {
@@ -118,6 +120,7 @@ export const includedThemes = {
     accent: "#52f7ff",
     accent2: "#d66bff",
     scene: "rain",
+    wallpaper: "rain-window.webm",
     included: true,
   },
   fireflies: {
@@ -163,6 +166,7 @@ export const includedThemes = {
     accent: "#b9c8ff",
     accent2: "#eef3ff",
     scene: "clouds",
+    wallpaper: "clouds.webm",
     included: true,
   },
   prism: {

@@ -47,6 +47,7 @@ import CsvImportPanel from "./CsvImportPanel";
 import IosInstallHint from "./IosInstallHint";
 import FinancialSummary from "./FinancialSummary";
 import WatchedSourcesPanel from "./WatchedSourcesPanel";
+import ProfileVaultPanel from "./ProfileVaultPanel";
 
 import {
     initialAllocation,
@@ -614,6 +615,7 @@ const memberTrackLabel = (track) => track === "cyber" ? "Cyber" : track === "nur
 
 function HomeMoneySnapshot({ householdId, privateMode, proposalCount }) {
     const [overview, setOverview] = useState(null);
+    const [networthSnapshots, setNetworthSnapshots] = useState([]);
     const [status, setStatus] = useState("loading");
     const controlPlaneUrl = (safeExternalUrl(String(import.meta.env.VITE_CONTROL_PLANE_URL || "").trim(), {
         allowLocalHttp: true,
@@ -627,6 +629,12 @@ function HomeMoneySnapshot({ householdId, privateMode, proposalCount }) {
         }
         async function loadOverview() {
             try {
+                const networthRequest = supabase
+                    .from("networth_snapshots")
+                    .select("as_of,cash,investments,other_assets,liabilities,net")
+                    .eq("household_id", householdId)
+                    .order("as_of", { ascending: true })
+                    .limit(90);
                 const { data } = await supabase.auth.getSession();
                 if (!data.session?.access_token) throw new Error("No session");
                 const response = await fetch(`${controlPlaneUrl}/v1/financial/summary`, {
@@ -637,9 +645,10 @@ function HomeMoneySnapshot({ householdId, privateMode, proposalCount }) {
                     },
                 });
                 if (!response.ok) throw new Error("Overview unavailable");
-                const next = await response.json();
+                const [next, snapshots] = await Promise.all([response.json(), networthRequest]);
                 if (active) {
                     setOverview(next);
+                    if (!snapshots.error) setNetworthSnapshots(Array.isArray(snapshots.data) ? snapshots.data : []);
                     setStatus("ready");
                 }
             } catch {
@@ -655,6 +664,11 @@ function HomeMoneySnapshot({ householdId, privateMode, proposalCount }) {
     const expense = Number(overview?.expense) || 0;
     const net = Number(overview?.net) || 0;
     const latestMonth = Array.isArray(overview?.by_month) ? overview.by_month.at(-1) : null;
+    const latestNetworth = networthSnapshots.at(-1);
+    const sparkValues = networthSnapshots.map((snapshot) => Number(snapshot.net) || 0);
+    const sparkMin = Math.min(...sparkValues, 0);
+    const sparkMax = Math.max(...sparkValues, 1);
+    const sparkPoints = sparkValues.map((value, index) => `${sparkValues.length === 1 ? 50 : (index / (sparkValues.length - 1)) * 100},${36 - ((value - sparkMin) / (sparkMax - sparkMin || 1)) * 32}`).join(" ");
 
     return (
         <Card className="home-money-hero">
@@ -685,6 +699,10 @@ function HomeMoneySnapshot({ householdId, privateMode, proposalCount }) {
                         : "No financial summary is available yet. Connect an institution or import a CSV in Money."}
                 </p>
             )}
+            <div className="networth-strip">
+                <div><span>NET WORTH</span><strong>{latestNetworth ? amount(latestNetworth.net) : "—"}</strong><small>{latestNetworth ? `As of ${new Date(`${latestNetworth.as_of}T00:00:00`).toLocaleDateString()}` : "No balance-sheet snapshot yet"}</small></div>
+                {sparkValues.length ? <svg viewBox="0 0 100 40" role="img" aria-label="Net worth over time"><polyline points={sparkPoints} fill="none" stroke="currentColor" strokeWidth="2" vectorEffect="non-scaling-stroke" /></svg> : null}
+            </div>
             {proposalCount > 0 ? <small>{proposalCount} proposal{proposalCount === 1 ? "" : "s"} awaiting your review below.</small> : null}
         </Card>
     );
@@ -2261,6 +2279,8 @@ function SettingsModal({
                     sharedLink={sharedLink}
                     onSharedLinkHandled={onSharedLinkHandled}
                 />
+
+                <ProfileVaultPanel householdId={household.id} />
 
                 <Card className="nested-card">
                     <span className="eyebrow">ACCOUNT ACCESS</span>

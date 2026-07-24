@@ -101,6 +101,7 @@ function ThemeArtwork({ themeKey, motionOff = false, preview = false }) {
     const theme = themes[validThemeKey];
     const assets = useLocalThemeAssets(!preview && !motionOff);
     const localAsset = assets.find((asset) => asset.id === validThemeKey);
+    const wallpaper = /^[a-z0-9][a-z0-9-]*\.webm$/i.test(theme.wallpaper || "") ? theme.wallpaper : null;
 
     return (
         <div
@@ -122,6 +123,7 @@ function ThemeArtwork({ themeKey, motionOff = false, preview = false }) {
                 ].join(", "),
             }}
         >
+            {!preview && !motionOff && wallpaper ? <video className="theme-wallpaper" autoPlay muted loop playsInline preload="metadata" poster={`/wallpapers/${wallpaper.replace(/\.webm$/i, ".jpg")}`}><source src={`/wallpapers/${wallpaper}`} type="video/webm" /></video> : null}
             <span className="theme-layer theme-layer-one" />
             <span className="theme-layer theme-layer-two" />
             <span className="theme-layer theme-layer-three" />

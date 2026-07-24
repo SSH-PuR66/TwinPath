@@ -48,6 +48,7 @@ import {
   decideProposal,
   listFlags,
   listProposals,
+  markDepositTransfersComplete,
 } from "./proposals.js";
 import { consumeAgentJobs } from "./queue.js";
 import { providerReadiness } from "./provider-mode.js";
@@ -304,6 +305,12 @@ async function handleAuthenticated(request, env, pathname) {
     const body = assertObject(await readJson(request));
     const proposal = await decideProposal(env, auth, proposalDecision[0], body);
     return json(request, env, { proposal });
+  }
+
+  const transferComplete = routeMatch(pathname, /^\/v1\/proposals\/([^/]+)\/transfer-complete$/);
+  if (request.method === "PATCH" && transferComplete) {
+    const body = assertObject(await readJson(request));
+    return json(request, env, { proposal: await markDepositTransfersComplete(env, auth, transferComplete[0], body) });
   }
 
   if (request.method === "GET" && pathname === "/v1/watchers") {

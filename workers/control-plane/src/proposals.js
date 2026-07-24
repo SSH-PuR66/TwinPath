@@ -112,6 +112,23 @@ export async function decideProposal(env, auth, proposalId, body) {
   });
 }
 
+export async function markDepositTransfersComplete(env, auth, proposalId, body) {
+  const proposals = await selectRows(env, "agent_proposals", new URLSearchParams({
+    select: "id,status,payload,decision_note",
+    id: `eq.${proposalId}`,
+    household_id: `eq.${auth.household.id}`,
+    limit: "1",
+  }).toString());
+  const proposal = proposals[0];
+  if (!proposal || proposal.status !== "approved" || proposal.payload?.source !== "deposit_watch") {
+    throw new HttpError(404, "proposal_not_found", "Approved deposit proposal was not found");
+  }
+  const completed = body.completed === true;
+  return supabaseRequest(env, `/rest/v1/agent_proposals?id=eq.${encodeURIComponent(proposalId)}&household_id=eq.${auth.household.id}`,
+    { method: "PATCH", headers: { prefer: "return=representation" }, body: JSON.stringify({ decision_note: completed ? "completed_transfers" : null }) },
+  ).then((rows) => rows?.[0]);
+}
+
 export async function listFlags(env, auth) {
   const params = new URLSearchParams({
     select: "flag_key,enabled,payload,updated_at",
