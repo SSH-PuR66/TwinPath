@@ -81,6 +81,18 @@ export function providerReadiness(env) {
         && stripeSecretMatchesMode
         && stripeWebhookReady
         && stripePricesSafe,
+      // Booleans only — never echo secret material. Lets us tell which
+      // single requirement is blocking readiness without guessing.
+      checks: {
+        secret_key_present: configured(env, ["STRIPE_SECRET_KEY"]),
+        secret_key_matches_mode: stripeSecretMatchesMode,
+        webhook_secret_present: configured(env, ["STRIPE_WEBHOOK_SECRET"]),
+        webhook_secret_prefix_ok: stripeWebhookReady,
+        price_ids_valid: stripePricesSafe,
+        success_url_set: configured(env, ["STRIPE_CHECKOUT_SUCCESS_URL"]),
+        cancel_url_set: configured(env, ["STRIPE_CHECKOUT_CANCEL_URL"]),
+        portal_return_url_set: configured(env, ["STRIPE_PORTAL_RETURN_URL"]),
+      },
     },
   };
 }
