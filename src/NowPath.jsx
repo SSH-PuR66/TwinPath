@@ -50,17 +50,22 @@ export default function NowPath({ householdId, tasks = [], appointments = [], on
                 done: Boolean(task.completed),
             } : null;
         }).filter(Boolean);
-        const appointmentSteps = (Array.isArray(appointments) ? appointments : []).map((appointment) => {
-            const date = dayFrom(appointment.starts_at);
-            return date && date >= today ? {
-                id: `appointment-${appointment.id}`,
-                kind: "appointment",
-                title: appointment.title,
-                detail: appointment.location || "Appointment",
-                date,
-                done: false,
-            } : null;
-        }).filter(Boolean);
+        const appointmentSteps = (Array.isArray(appointments) ? appointments : [])
+            .filter((appointment) => appointment.category !== "School")
+            .map((appointment) => {
+                const date = dayFrom(appointment.starts_at);
+                return date && date >= today ? {
+                    id: `appointment-${appointment.id}`,
+                    kind: "appointment",
+                    title: appointment.title,
+                    detail: appointment.location || "Appointment",
+                    date,
+                    done: false,
+                } : null;
+            })
+            .filter(Boolean)
+            .sort((a, b) => a.date.getTime() - b.date.getTime())
+            .slice(0, 1);
         const benefitSteps = benefitPrograms.map((program) => {
             const date = dayFrom(program?.enrollment?.next_deadline_on);
             return date ? {
