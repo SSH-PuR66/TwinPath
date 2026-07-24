@@ -236,7 +236,7 @@ export async function financialSummary(env, auth) {
     .toISOString()
     .slice(0, 10);
   const params = new URLSearchParams({
-    select: "kind,amount,category,transaction_date",
+    select: "kind,amount,category,transaction_date,external_source",
     household_id: `eq.${auth.household.id}`,
     transaction_date: `gte.${since}`,
     order: "transaction_date.desc",
@@ -261,13 +261,21 @@ export async function financialSummary(env, auth) {
     plaidRows = [];
   }
 
+  // A Plaid sync writes the same transaction into BOTH tables. Counting the
+  // ledger copy and the plaid copy inflated income, spending, and net. When
+  // plaid_transactions answered, it is the authoritative copy, so the mirrored
+  // ledger rows are dropped here instead of being added twice.
+  const plaidSyncAvailable = plaidRows.length > 0;
+
   const normalized = [
-    ...ledgerRows.map((row) => ({
-      kind: row.kind,
-      amount: Number(row.amount) || 0,
-      category: row.category,
-      date: row.transaction_date,
-    })),
+    ...ledgerRows
+      .filter((row) => !(plaidSyncAvailable && String(row.external_source || "") === "plaid"))
+      .map((row) => ({
+        kind: row.kind,
+        amount: Number(row.amount) || 0,
+        category: row.category,
+        date: row.transaction_date,
+      })),
     ...plaidRows
       .filter((row) => !row.pending)
       .map((row) => {
@@ -304,10 +312,58 @@ export async function financialSummary(env, auth) {
   const rows = normalized;
 
   const round = (value) => Math.round(value * 100) / 100;
+
+  // Real balances, kept separate from the 90-day flow figures. A net-flow
+  // number reads like a balance to anyone glancing at a dashboard, so the app
+  // needs the actual account figure — and the timestamp that says how stale it
+  // is — to show alongside it.
+  let accounts = [];
+  try {
+    const accountRows = await selectRows(
+      env,
+      "plaid_accounts",
+      new URLSearchParams({
+        select: "name,mask,type,subtype,current_balance,available_balance,currency,updated_at",
+        household_id: `eq.${auth.household.id}`,
+        order: "updated_at.desc",
+        limit: "50",
+      }).toString(),
+    );
+    accounts = accountRows.map((row) => ({
+      name: row.name || "Account",
+      mask: row.mask || null,
+      type: row.type || null,
+      subtype: row.subtype || null,
+      current_balance: row.current_balance === null ? null : round(Number(row.current_balance) || 0),
+      available_balance: row.available_balance === null ? null : round(Number(row.available_balance) || 0),
+      currency: row.currency || "USD",
+      updated_at: row.updated_at || null,
+    }));
+  } catch {
+    accounts = [];
+  }
+
+  const cashAccounts = accounts.filter((account) => account.type === "depository");
+  const cashTotal = cashAccounts.reduce(
+    (total, account) => total + (Number(account.available_balance ?? account.current_balance) || 0),
+    0,
+  );
+  const balanceAsOf = accounts
+    .map((account) => account.updated_at)
+    .filter(Boolean)
+    .sort()
+    .at(-1) || null;
+
   return {
     window_days: 90,
     since,
     transaction_count: rows.length,
+    accounts,
+    balances: {
+      cash_total: cashAccounts.length ? round(cashTotal) : null,
+      account_count: accounts.length,
+      as_of: balanceAsOf,
+    },
     income: round(income),
     expense: round(expense),
     net: round(income - expense),
