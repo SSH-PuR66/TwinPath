@@ -145,9 +145,8 @@
 .calendar-layout {
     display: grid;
     width: 100%;
-    gap: 1rem;
-    grid-template-columns:
-        minmax(270px, 0.88fr) minmax(0, 1.12fr);
+    gap: var(--space-4);
+    grid-template-columns: minmax(0, 1fr);
 }
 
 .calendar-panel,
@@ -197,13 +196,18 @@
 
 .calendar-panel .rdp-day {
     position: relative;
-    height: 43px;
+    height: 47px;
 }
 
 .calendar-panel .rdp-day_button {
     width: 40px;
-    height: 40px;
+    height: 46px;
     margin: auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1px;
     color: var(--text);
     font-size: 0.76rem;
     border: 1px solid transparent;
@@ -230,20 +234,16 @@
 }
 
 .calendar-panel .has-appointment::after {
-    position: absolute;
-    right: 50%;
-    bottom: 2px;
-    width: 5px;
-    height: 5px;
-    content: "";
-    pointer-events: none;
-    background: var(--accent);
-    border-radius: 50%;
-    box-shadow:
-        0 0 5px var(--accent),
-        0 0 10px color-mix(in srgb, var(--accent) 55%, transparent);
-    transform: translateX(50%);
+    display: none;
 }
+
+.calendar-view { min-width: 0; }
+
+.calendar-day-number { line-height: 1; }
+.calendar-day-markers { display: inline-flex; min-height: 5px; align-items: center; gap: 2px; }
+.calendar-day-dots { display: inline-flex; gap: 2px; }
+.calendar-day-dots i { display: block; width: 4px; height: 4px; border-radius: 50%; }
+.calendar-day-markers small { color: var(--subtle); font-size: 0.52rem; line-height: 1; }
 
 .calendar-legend {
     display: flex;
@@ -266,6 +266,35 @@
 
 .calendar-agenda {
     min-height: 390px;
+}
+
+.day-sheet-backdrop { position: fixed; inset: 0; z-index: 80; display: grid; padding: max(var(--space-3), env(safe-area-inset-top)) max(var(--space-3), env(safe-area-inset-right)) max(var(--space-3), env(safe-area-inset-bottom)) max(var(--space-3), env(safe-area-inset-left)); overflow-y: auto; align-items: end; background: var(--overlay); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); }
+.day-sheet { width: 100%; max-height: calc(100vh - 1.5rem); max-height: calc(100dvh - 1.5rem); padding: var(--space-4); overflow-y: auto; background: var(--surface-strong); border: 1px solid var(--border-strong); border-radius: 20px 20px 14px 14px; box-shadow: var(--shadow); }
+.day-sheet > header { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-3); margin-bottom: var(--space-4); }
+.day-sheet h2 { margin: var(--space-1) 0 0; font-size: clamp(1.35rem, 6vw, 2rem); }
+.day-sheet header p { margin: 0; font-size: 0.8rem; }
+.day-sheet-header-actions { display: flex; flex: 0 0 auto; gap: var(--space-2); }
+.day-sheet-header-actions .button { min-height: 2.5rem; padding: 0.5rem 0.7rem; }
+.day-sheet-timeline { display: grid; gap: var(--space-4); }
+.day-sheet-group { display: grid; gap: var(--space-2); }
+.day-sheet-group h3 { margin: 0; color: var(--muted); font-size: 0.74rem; letter-spacing: 0.08em; text-transform: uppercase; }
+.day-sheet-appointment { overflow: hidden; background: var(--surface-soft); border: 1px solid var(--border); border-radius: 14px; }
+.day-sheet-appointment-summary { display: grid; width: 100%; min-width: 0; padding: var(--space-3); grid-template-columns: 3px minmax(4.5rem, auto) minmax(0, 1fr); align-items: center; gap: var(--space-3); color: var(--text); text-align: left; cursor: pointer; background: transparent; border: 0; }
+.day-sheet-category-line { align-self: stretch; min-height: 2.5rem; border-radius: 99px; }
+.day-sheet-appointment-time { color: var(--muted); font-size: 0.72rem; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.day-sheet-appointment-copy { display: grid; min-width: 0; gap: var(--space-1); }
+.day-sheet-appointment-copy strong, .day-sheet-appointment-copy small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.day-sheet-appointment-copy strong { font-size: 0.9rem; }
+.day-sheet-appointment-copy small { font-size: 0.72rem; }
+.day-sheet-appointment-detail { display: grid; gap: var(--space-3); padding: 0 var(--space-3) var(--space-3) calc(var(--space-3) + 3px + var(--space-3)); }
+.day-sheet-detail-meta { display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-3); color: var(--muted); font-size: 0.74rem; }
+.day-sheet-detail-meta span { display: inline-flex; align-items: center; gap: var(--space-1); }
+.day-sheet-actions { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+.day-sheet-actions .button { min-height: 2.35rem; padding: 0.45rem 0.7rem; }
+
+@media (min-width: 681px) {
+    .day-sheet-backdrop { place-items: center; }
+    .day-sheet { width: min(100%, 42rem); border-radius: 20px; }
 }
 
 .calendar-agenda-title,
@@ -1475,27 +1504,17 @@
     }
 
     .calendar-panel .rdp-day {
-        height: 40px;
+        height: 45px;
     }
 
     .calendar-panel .rdp-day_button {
         width: 37px;
-        height: 37px;
+        height: 44px;
     }
 
-    .calendar-agenda {
-        min-height: 250px;
-    }
-
-    .calendar-appointment-header {
-        gap: 0.45rem;
-    }
-
-    .calendar-meta {
-        align-items: flex-start;
-        flex-direction: column;
-        gap: 0.38rem;
-    }
+    .day-sheet { padding: var(--space-3); }
+    .day-sheet-appointment-summary { gap: var(--space-2); }
+    .day-sheet-appointment-detail { padding-right: var(--space-2); padding-bottom: var(--space-2); padding-left: calc(var(--space-2) + 3px + var(--space-2)); }
 
     .connector-profile-grid {
         grid-template-columns: 1fr;
@@ -1644,12 +1663,12 @@
 
     .calendar-panel .rdp-day_button {
         width: 34px;
-        height: 34px;
+        height: 42px;
         font-size: 0.7rem;
     }
 
     .calendar-panel .rdp-day {
-        height: 37px;
+        height: 43px;
     }
 
     .calendar-card-actions {
