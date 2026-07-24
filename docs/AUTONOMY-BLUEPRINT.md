@@ -96,7 +96,7 @@ runs, append-only audit events.
 - [ ] **Branch protection on `main`**: require the Verify workflow to pass
   before merge; both agents keep pushing, but broken builds can't land.
 - [ ] Storefront external links: keep routing everything through
-  `safeUrl.js` allowlists (Gumroad/Stripe hosts only for checkout).
+  `safeUrl.js` allowlists (Stripe hosts only for checkout).
 
 ### Advisor notes (reviewed, intentional)
 - `rls_enabled_no_policy` INFO on plaid/stripe/webhook tables: correct —
@@ -113,7 +113,7 @@ secrets via `wrangler secret put` (never in config), readiness gate in
 idempotent event claim, household-scoped service-role persistence, and a
 `readiness` entry surfaced in `/v1/financial/connections`. Stripe goes
 live by adding `sk_live_*` + `whsec_*` + price allowlist — production
-mode already requires live keys. Gumroad sales can flow into
+mode already requires live keys. Stripe sales can flow into
 `revenue_events` through a signature-verified webhook the same way.
 
 ## 5. Scheduled agent reviews (deferred — opt in later)

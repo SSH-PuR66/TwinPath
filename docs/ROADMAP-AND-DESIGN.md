@@ -53,7 +53,7 @@ registry entries + one adapter module, and `/v1/financial/connections`
 lists them automatically. Priority order:
 1. **Stripe live** (billing + storefront revenue) — machinery is built;
    needs live keys + price allowlist.
-2. **Gumroad webhook → revenue_events** — storefront sales into the
+2. **Stripe webhook → revenue_events** — storefront sales into the
    ledger; signature-verified like Stripe.
 3. **CSV importer** (A2) as a universal fallback "connector."
 4. Later: brokerage via Plaid Investments; credit-score tracking when a
@@ -143,7 +143,7 @@ product photography/preview GIFs over abstract art, and trust signals
 2. Codex: IA restructure + Home screen (B1/B2) while data accumulates.
 3. Recurring + cash-flow routes (A2) → Home hero numbers become real.
 4. Weekly insights cron → proposals inbox comes alive (A4/B4).
-5. Stripe live + Gumroad revenue (A3) → Grow tab shows real income.
+5. Stripe live revenue (A3) → Grow tab shows real income.
 6. Liabilities + goals → payoff planning before spring semester.
 
 The through-line: every sprint ends with a number on Home getting more

@@ -629,12 +629,6 @@ function HomeMoneySnapshot({ householdId, privateMode, proposalCount }) {
         }
         async function loadOverview() {
             try {
-                const networthRequest = supabase
-                    .from("networth_snapshots")
-                    .select("as_of,cash,investments,other_assets,liabilities,net")
-                    .eq("household_id", householdId)
-                    .order("as_of", { ascending: true })
-                    .limit(90);
                 const { data } = await supabase.auth.getSession();
                 if (!data.session?.access_token) throw new Error("No session");
                 const controller = new AbortController();
@@ -649,10 +643,9 @@ function HomeMoneySnapshot({ householdId, privateMode, proposalCount }) {
                     },
                 }); } finally { window.clearTimeout(timeout); }
                 if (!response.ok) throw new Error("Overview unavailable");
-                const [next, snapshots] = await Promise.all([response.json(), networthRequest]);
+                const next = await response.json();
                 if (active) {
                     setOverview(next);
-                    if (!snapshots.error) setNetworthSnapshots(Array.isArray(snapshots.data) ? snapshots.data : []);
                     setStatus("ready");
                 }
             } catch {
@@ -662,6 +655,22 @@ function HomeMoneySnapshot({ householdId, privateMode, proposalCount }) {
         loadOverview();
         return () => { active = false; };
     }, [controlPlaneUrl, householdId]);
+
+    useEffect(() => {
+        if (!householdId) return undefined;
+        const controller = new AbortController();
+        const timeout = window.setTimeout(() => controller.abort(), 8_000);
+        supabase.from("networth_snapshots")
+            .select("as_of,cash,investments,other_assets,liabilities,net")
+            .eq("household_id", householdId)
+            .order("as_of", { ascending: true })
+            .limit(90)
+            .abortSignal(controller.signal)
+            .then(({ data, error }) => { if (!error) setNetworthSnapshots(Array.isArray(data) ? data : []); })
+            .catch(() => {})
+            .finally(() => window.clearTimeout(timeout));
+        return () => { controller.abort(); window.clearTimeout(timeout); };
+    }, [householdId]);
 
     const amount = (value) => privateMode ? "••••" : moneyFormatter.format(Number(value) || 0);
     const income = Number(overview?.income) || 0;
