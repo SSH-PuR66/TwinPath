@@ -723,8 +723,13 @@ const TRACK_PATHS = {
                 detail: "Verify Medicaid or CHIP is active. If any hospital bill shows up, ask for the financial-assistance application before you pay a dollar of it.",
             },
             {
-                title: "Ask DCC financial aid about a December-term plan",
-                detail: "Do this before you register, not after. Ask specifically about reduced course load, leave of absence, and what either one does to your aid — the answer changes which classes you take this fall.",
+                title: "Pin down exactly where the DCC degree leaves you",
+                detail: "Two very different paths start from a finished degree. If it is the nursing AAS, the next gate is the NCLEX-RN and a license. If it is pre-nursing or general studies, the next gate is a seat in an RN program. Write down which one it is — every step below depends on the answer.",
+            },
+            {
+                title: "If you are NCLEX-eligible, pick the test window now",
+                detail: "Register early enough to choose a date that is clearly before late December or clearly after the twins are settled. New-graduate hospital residencies hire months ahead and will often hold a start date for you.",
+                link: { label: "NY nursing licensure", url: "https://www.op.nysed.gov/professions/registered-professional-nursing" },
             },
             {
                 title: "Price out the CNA bridge",
@@ -865,6 +870,15 @@ function HomeMoneySnapshot({ householdId, privateMode, proposalCount }) {
     }, [householdId]);
 
     const amount = (value) => privateMode ? "••••" : moneyFormatter.format(Number(value) || 0);
+    // A 90-day net-flow figure reads like a balance at a glance, which is how
+    // "+$57" got mistaken for the money actually sitting in Chime. When the
+    // bank reports a real balance, that becomes the headline and the flow
+    // number moves down into the details where it belongs.
+    const cashTotal = overview?.balances?.cash_total ?? null;
+    const balanceAsOf = overview?.balances?.as_of ? new Date(overview.balances.as_of) : null;
+    const balanceStale = balanceAsOf
+        ? Date.now() - balanceAsOf.getTime() > 24 * 60 * 60 * 1000
+        : false;
     const income = Number(overview?.income) || 0;
     const expense = Number(overview?.expense) || 0;
     const net = Number(overview?.net) || 0;
@@ -886,12 +900,30 @@ function HomeMoneySnapshot({ householdId, privateMode, proposalCount }) {
             </div>
             {status === "ready" ? (
                 <div className="home-money-layout">
-                    <div className="home-money-primary">
-                        <span>90-day net</span>
-                        <strong className={net >= 0 ? "money-positive" : "money-negative"}>{net >= 0 ? "+" : "−"}{amount(Math.abs(net))}</strong>
-                        <small>Income minus recorded spending. It is a planning signal, not a bank balance.</small>
-                    </div>
+                    {cashTotal === null ? (
+                        <div className="home-money-primary">
+                            <span>90-day net</span>
+                            <strong className={net >= 0 ? "money-positive" : "money-negative"}>{net >= 0 ? "+" : "−"}{amount(Math.abs(net))}</strong>
+                            <small>Income minus recorded spending. It is a planning signal, not a bank balance.</small>
+                        </div>
+                    ) : (
+                        <div className="home-money-primary">
+                            <span>In your connected accounts</span>
+                            <strong className="money-positive">{amount(cashTotal)}</strong>
+                            <small>
+                                {balanceAsOf ? `Balance your bank reported, last refreshed ${balanceAsOf.toLocaleString()}.` : "Balance your bank reported."}
+                                {balanceStale ? " A deposit made since then may not have synced yet — refresh in Money." : ""}
+                            </small>
+                        </div>
+                    )}
                     <div className="home-money-details">
+                        {cashTotal === null ? null : (
+                            <div>
+                                <span>90-day net</span>
+                                <strong className={net >= 0 ? "money-positive" : "money-negative"}>{net >= 0 ? "+" : "−"}{amount(Math.abs(net))}</strong>
+                                <small>Income minus spending — a flow signal, not a balance.</small>
+                            </div>
+                        )}
                         <div><span>Income tracked</span><strong>{amount(income)}</strong></div>
                         <div><span>Spent</span><strong>{amount(expense)}</strong></div>
                         <div><span>Last update</span><strong>{overview?.transaction_count || 0} items</strong><small>{latestMonth ? `${latestMonth.month} net: ${amount(latestMonth.net)}` : "Connect or import to begin"}</small></div>
@@ -981,7 +1013,7 @@ function TodayTab({
                 <p className="eyebrow">{memberTrack === "cyber" ? "CYBER + FAMILY RUNWAY" : memberTrack === "nursing" ? "NURSING + FAMILY RUNWAY" : "FAMILY RUNWAY · LATE DECEMBER"}</p>
                 <h2>{memberTrack === "cyber" ? `${daysUntilTwins} days to twin time — keep Iona deadlines visible.` : memberTrack === "nursing" ? "Nurse Corps, CNA, and child-care steps—one calm checklist." : `${daysUntilTwins} days until twin time.`}</h2>
                 <p>
-                    {memberTrack === "cyber" ? "Household foundations first, then cyber coursework, Iona opportunities, and deadlines that compound your options." : memberTrack === "nursing" ? "Household support first, then Nurse Corps timing, the CNA option, and DCC-specific care planning." : "Keep the next move small and useful: care, housing, food, rides, and reliable income first. You two are building calm, one decision at a time."}
+                    {memberTrack === "cyber" ? "Household foundations first, then cyber coursework, Iona opportunities, and deadlines that compound your options." : memberTrack === "nursing" ? "Household support first, then licensure timing, the CNA option, and the programs that help pay for nursing school." : "Keep the next move small and useful: care, housing, food, rides, and reliable income first. You two are building calm, one decision at a time."}
                 </p>
 
                 <Button icon={Plus} onClick={() => setTaskModal(true)}>
