@@ -530,6 +530,18 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
+.connector-packet-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+}
+
+.connector-vault-note {
+    color: var(--muted);
+    font-size: 0.72rem;
+    line-height: 1.45;
+}
+
 .connector-copy-field {
     position: relative;
     min-width: 0;

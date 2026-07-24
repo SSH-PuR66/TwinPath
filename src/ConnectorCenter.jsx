@@ -16,6 +16,7 @@ import {
 import { connectorCatalog } from "./connectorCatalog";
 import { safeExternalUrl } from "./safeUrl";
 import { supabase } from "./supabase";
+import { useControlPlane } from "./useControlPlane";
 
 const emptyProfile = {
     legalName: "",
@@ -42,6 +43,19 @@ const profileLabels = {
     expectedGraduation: "Expected graduation",
     currentIncome: "Current income",
 };
+
+function packetFromVault(value) {
+    if (!value || typeof value !== "object" || Array.isArray(value)) {
+        return emptyProfile;
+    }
+
+    return Object.fromEntries(
+        Object.keys(emptyProfile).map((key) => [
+            key,
+            typeof value[key] === "string" ? value[key].slice(0, 500) : "",
+        ])
+    );
+}
 
 async function writeClipboard(text) {
     if (navigator.clipboard?.writeText) {
@@ -76,6 +90,9 @@ export default function ConnectorCenter({
     const [draftsLoading, setDraftsLoading] = useState(false);
     const [connectorNotice, setConnectorNotice] = useState("");
     const [connectorError, setConnectorError] = useState("");
+    const [vaultBusy, setVaultBusy] = useState(false);
+    const [vaultUpdatedAt, setVaultUpdatedAt] = useState("");
+    const { request, configured } = useControlPlane(householdId);
 
     const loadSaasDrafts = useCallback(async () => {
         if (!householdId || !currentUserId) return;
@@ -101,6 +118,27 @@ export default function ConnectorCenter({
     useEffect(() => {
         loadSaasDrafts();
     }, [loadSaasDrafts]);
+
+    const loadSavedPacket = useCallback(async () => {
+        if (!configured) return;
+        setVaultBusy(true);
+        try {
+            const payload = await request("/v1/profile");
+            const savedPacket = packetFromVault(payload?.profile?.application_packet);
+            if (Object.values(savedPacket).some((value) => value.trim())) {
+                setProfile(savedPacket);
+                setVaultUpdatedAt(payload.updated_at || "");
+            }
+        } catch (loadError) {
+            setConnectorError(loadError.message || "Your saved application packet could not be loaded.");
+        } finally {
+            setVaultBusy(false);
+        }
+    }, [configured, request]);
+
+    useEffect(() => {
+        loadSavedPacket();
+    }, [loadSavedPacket]);
 
     const completedFields = useMemo(() => {
         return Object.values(profile).filter((value) =>
@@ -170,6 +208,37 @@ export default function ConnectorCenter({
         setCopiedField("");
         setConnectorError("");
         setConnectorNotice("Temporary application packet cleared.");
+    }
+
+    async function savePacket() {
+        if (!configured) {
+            setConnectorError("TwinPath’s private profile service is not configured for this deployment.");
+            return;
+        }
+
+        setVaultBusy(true);
+        setConnectorError("");
+        setConnectorNotice("");
+        try {
+            // Fetch the latest record before writing so other saved household
+            // details are retained when this packet changes.
+            const current = await request("/v1/profile");
+            const payload = await request("/v1/profile", {
+                method: "PUT",
+                body: JSON.stringify({
+                    profile: {
+                        ...(current?.profile || {}),
+                        application_packet: profile,
+                    },
+                }),
+            });
+            setVaultUpdatedAt(payload.updated_at || new Date().toISOString());
+            setConnectorNotice("Application packet saved. It will prefill here when you return.");
+        } catch (saveError) {
+            setConnectorError(saveError.message || "Your application packet could not be saved.");
+        } finally {
+            setVaultBusy(false);
+        }
     }
 
     return (
@@ -276,9 +345,9 @@ export default function ConnectorCenter({
                 <div className="connector-profile">
                     <div className="connector-profile-heading">
                         <div>
-                            <h4>Temporary application packet</h4>
+                            <h4>Application packet</h4>
                             <small>
-                                {completedFields} fields prepared
+                                {completedFields} fields prepared{vaultUpdatedAt ? " · saved for this household" : " · private until you save"}
                             </small>
                         </div>
 
@@ -332,15 +401,30 @@ export default function ConnectorCenter({
                         ))}
                     </div>
 
-                    <button
-                        className="button secondary"
-                        type="button"
-                        onClick={sharePacket}
-                        disabled={!completedFields}
-                    >
-                        <FileCheck2 size={17} />
-                        Share or copy packet
-                    </button>
+                    <div className="connector-packet-actions">
+                        <button
+                            className="button primary"
+                            type="button"
+                            onClick={savePacket}
+                            disabled={!completedFields || vaultBusy || !configured}
+                        >
+                            {vaultBusy ? <Loader2 className="spin" size={17} /> : <Check size={17} />}
+                            Save and prefill next time
+                        </button>
+                        <button
+                            className="button secondary"
+                            type="button"
+                            onClick={sharePacket}
+                            disabled={!completedFields}
+                        >
+                            <FileCheck2 size={17} />
+                            Share or copy packet
+                        </button>
+                    </div>
+
+                    <small className="connector-vault-note">
+                        Saved details stay in your household profile until you choose to copy or share them. Official sites are opened separately and are never submitted automatically.
+                    </small>
                 </div>
 
                 <div className="connector-catalog">
