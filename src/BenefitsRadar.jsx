@@ -6,10 +6,10 @@ import { useControlPlane } from "./useControlPlane";
 const statuses = ["researching", "eligible_likely", "applied", "approved", "denied", "renewing", "not_eligible"];
 const statusLabel = (status) => String(status || "researching").replaceAll("_", " ").replace(/^./, (character) => character.toUpperCase());
 const TIER_ONE_CHECKLIST = [
-    { key: "health", programKeys: ["chip_medicaid"], title: "Confirm pregnancy coverage and hospital assistance", action: "Verify Brianna’s coverage now. If a bill arrives, ask for the hospital financial-assistance application before paying it." },
-    { key: "wic", programKeys: ["wic"], title: "Start WIC during pregnancy", action: "Call the local WIC agency this week—pregnant applicants do not need to wait for the birth." },
+    { key: "health", programKeys: ["chip_medicaid"], title: "Medicaid is active for Brianna and both twins", action: "Approved. In December, convert the two UNBORN Medicaid IDs to the babies’ real names and dates of birth. If a hospital bill arrives, ask for the financial-assistance application before paying it." },
+    { key: "wic", programKeys: ["wic"], title: "WIC is enrolled", action: "Approved during pregnancy. After the birth, call the local agency to add both babies to the case." },
     { key: "tax", programKeys: ["vita", "ctc", "eitc"], title: "Put the 2027 tax appointment on the calendar", action: "Book VITA early and bring both Social Security numbers from the hospital paperwork." },
-    { key: "snap", programKeys: ["snap"], title: "Prepare the SNAP application for birth week", action: "Apply for work-study now; file through myBenefits right after the twins arrive." },
+    { key: "snap", programKeys: ["snap"], title: "SNAP is enrolled", action: "Approved. Add the twins to the case once they arrive. Work-study still strengthens the student exemption." },
 ];
 
 function enrollmentIsMoving(enrollment) {
