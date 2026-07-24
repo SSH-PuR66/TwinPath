@@ -57,6 +57,7 @@ import {
     wealthSteps,
 } from "./resources";
 
+import { motion } from "framer-motion";
 import NetworkStatus from "./NetworkStatus";
 import { AnimatedMoney } from "./AnimatedMoney";
 import AnimatedPage from "./AnimatedPage";
@@ -3325,16 +3326,26 @@ export default function App() {
                 <nav className="bottom-nav" aria-label="Main navigation">
                     {tabs.map((item) => {
                         const Icon = item.icon;
+                        const isActive = item.id === "settings" ? settingsOpen : tab === item.id;
 
                         return (
                             <button
                                 key={item.id}
-                                className={(item.id === "settings" ? settingsOpen : tab === item.id) ? "active" : ""}
+                                className={isActive ? "active" : ""}
+                                aria-current={isActive ? "page" : undefined}
                                 onClick={() => {
                                     if (item.id === "settings") setSettingsOpen(true);
                                     else setTab(item.id);
                                 }}
                             >
+                                {isActive ? (
+                                    <motion.span
+                                        className="nav-indicator"
+                                        layoutId="nav-indicator"
+                                        aria-hidden="true"
+                                        transition={reducedMotion ? { duration: 0 } : { type: "spring", stiffness: 420, damping: 34 }}
+                                    />
+                                ) : null}
                                 <Icon size={20} />
                                 <span>{item.label}</span>
                                 {item.id === "home" && proposalCount > 0 ? (

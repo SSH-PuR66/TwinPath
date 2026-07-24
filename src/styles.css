@@ -1184,6 +1184,7 @@ small {
 }
 
 .bottom-nav button {
+    position: relative;
     display: grid;
     min-width: 0;
     padding: 0.45rem 0.2rem;
@@ -1203,15 +1204,62 @@ small {
 
 .bottom-nav button.active {
     color: var(--text);
+}
+
+.nav-indicator {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    border-radius: 15px;
     background:
         linear-gradient(135deg,
             color-mix(in srgb, var(--accent) 12%, transparent),
             color-mix(in srgb, var(--accent-2) 12%, transparent));
+    pointer-events: none;
+}
+
+.bottom-nav button > svg,
+.bottom-nav button > span,
+.bottom-nav button > .nav-badge {
+    position: relative;
+    z-index: 1;
+}
+
+.bottom-nav button.active span {
+    font-weight: 800;
 }
 
 .bottom-nav button.active svg {
     color: var(--accent);
+    fill: color-mix(in srgb, var(--accent) 20%, transparent);
     filter: drop-shadow(0 0 8px color-mix(in srgb, var(--accent) 55%, transparent));
+}
+
+@media (hover: hover) {
+
+    .bottom-nav button {
+        opacity: 0.84;
+        transition: opacity 140ms ease-out, color 140ms ease-out;
+    }
+
+    .bottom-nav button:hover,
+    .bottom-nav button.active {
+        opacity: 1;
+    }
+
+    .bottom-nav button > svg {
+        transition: transform 140ms ease-out;
+    }
+
+    .bottom-nav button:hover > svg {
+        transform: translateY(-2px);
+    }
+
+    .bottom-nav button:active > svg,
+    .bottom-nav button:active > span {
+        transform: scale(0.96);
+        transition: transform 90ms ease-out;
+    }
 }
 
 .modal-backdrop {
@@ -3147,6 +3195,8 @@ textarea {
 .benefit-drawer-backdrop { position: fixed; inset: 0; z-index: 70; display: grid; padding: max(var(--space-4), env(safe-area-inset-top)) max(var(--space-4), env(safe-area-inset-right)) max(var(--space-4), env(safe-area-inset-bottom)) max(var(--space-4), env(safe-area-inset-left)); overflow-y: auto; place-items: center; background: var(--overlay); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); }
 .benefit-drawer { width: min(100%, 40rem); max-height: calc(100vh - 2rem); max-height: calc(100dvh - 2rem); padding: var(--space-5); overflow: auto; background: var(--surface-strong); border: 1px solid var(--border-strong); border-radius: 20px; box-shadow: var(--shadow); }
 .benefit-drawer > header { display: flex; justify-content: space-between; gap: var(--space-4); }
+.inline-external-link { display: inline-flex; align-items: baseline; gap: 0.25rem; color: var(--accent); font-weight: 600; text-decoration: underline; text-underline-offset: 2px; white-space: nowrap; }
+.inline-external-link svg { align-self: center; }
 .benefit-status-control { display: grid; min-width: 0; margin: 0; padding: 0; gap: var(--space-2); border: 0; }
 .benefit-status-control legend { padding: 0; color: var(--muted); font-size: 0.8rem; }
 .benefit-status-control [role="radiogroup"] { display: flex; flex-wrap: wrap; gap: var(--space-2); }
