@@ -116,8 +116,8 @@ export default function PublicProduct({ product }) {
             )}
 
             <small>
-              Payment details and file delivery are handled by the listed
-              checkout provider. TwinPath does not store card data.
+              Secure Stripe checkout. Guides and session scheduling details are
+              delivered to your email within 24 hours. TwinPath does not store card data.
             </small>
           </aside>
         </article>

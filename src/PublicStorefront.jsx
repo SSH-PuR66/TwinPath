@@ -182,17 +182,16 @@ export default function PublicStorefront() {
                 <section className="store-hero">
                     <div className="store-hero-copy">
                         <span className="store-kicker">
-                            ORIGINAL DIGITAL TOOLS
+                            MONEY SYSTEMS FOR NEW PARENTS
                         </span>
 
                         <h1>
-                            Practical systems for a safer and more organized digital life.
+                            Money systems from a family actually living them.
                         </h1>
 
                         <p>
-                            Downloadable checklists and templates for students,
-                            individuals and small organizations. Built for practical use,
-                            not empty promises.
+                            Built by a student-parent family, verified against primary sources,
+                            and updated as rules change. Educational guides and practical support—never earnings promises.
                         </p>
 
                         <div className="store-hero-actions">
@@ -223,7 +222,7 @@ export default function PublicStorefront() {
 
                             <span>
                                 <LockKeyhole size={16} />
-                                No card storage here
+                                Secure Stripe checkout
                             </span>
                         </div>
                     </div>
@@ -255,8 +254,8 @@ export default function PublicStorefront() {
                             <span className="store-kicker">THE LIBRARY</span>
                             <h2>Choose a useful starting point</h2>
                             <p>
-                                Start with one product, measure real demand and improve what
-                                customers actually value.
+                                Updated July 2026. Guides are emailed within 24 hours while
+                                fulfillment automation is being built.
                             </p>
                         </div>
                     </div>

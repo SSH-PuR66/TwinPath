@@ -4,105 +4,16 @@ export const storeSettings = {
 };
 
 export const storeProducts = [
-    {
-        id: "digital-safety-checklist",
-        title: "Personal Digital Safety Checklist",
-        shortTitle: "Safety Checklist",
-        category: "Personal security",
-        price: 5,
-        originalPrice: null,
-        featured: false,
-        description:
-            "A practical checklist for improving account security, recovery settings, backups and device hygiene.",
-        benefits: [
-            "MFA setup checklist",
-            "Account-recovery review",
-            "Password-manager migration plan",
-            "Device and backup checklist",
-            "Printable completion tracker",
-        ],
-        format: "PDF",
-        delivery: "Automatic digital delivery",
-        checkoutUrl: "https://sergiowrdz.gumroad.com/l/ppeyi",
-        previewUrl: "",
-        accent: "#65e8ff",
-    },
-    {
-        id: "cyber-lab-tracker",
-        title: "Cybersecurity Lab and Portfolio Tracker",
-        shortTitle: "Cyber Lab Tracker",
-        category: "Student tools",
-        price: 9,
-        originalPrice: null,
-        featured: false,
-        description:
-            "A structured template for documenting labs, lessons, evidence, remediation steps and portfolio-ready summaries.",
-        benefits: [
-            "Lab planning template",
-            "Evidence and screenshot index",
-            "Technical finding format",
-            "Remediation tracker",
-            "Portfolio publishing checklist",
-        ],
-        format: "PDF + editable templates",
-        delivery: "Automatic digital delivery",
-        checkoutUrl: "https://sergiowrdz.gumroad.com/l/fcvupnx",
-        previewUrl: "",
-        accent: "#8b7cff",
-    },
-    {
-        id: "security-incident-notebook",
-        title: "Security Incident Notebook",
-        shortTitle: "Incident Notebook",
-        category: "Small business",
-        price: 12,
-        originalPrice: null,
-        featured: false,
-        description:
-            "A non-technical incident documentation pack for recording account, device and business-security events.",
-        benefits: [
-            "Initial incident checklist",
-            "Timeline worksheet",
-            "Affected-account inventory",
-            "Evidence-preservation reminders",
-            "Post-incident action plan",
-        ],
-        format: "PDF + editable templates",
-        delivery: "Automatic digital delivery",
-        checkoutUrl: "https://sergiowrdz.gumroad.com/l/rexvyg",
-        previewUrl: "",
-        accent: "#ff79bd",
-    },
-    {
-        id: "digital-security-bundle",
-        title: "Complete Digital Security Starter Bundle",
-        shortTitle: "Starter Bundle",
-        category: "Bundle",
-        price: 24,
-        originalPrice: 31,
-        featured: true,
-        description:
-            "The complete collection for individuals, students and very small organizations that need a structured security starting point.",
-        benefits: [
-            "Personal Digital Safety Checklist",
-            "Cybersecurity Lab and Portfolio Tracker",
-            "Security Incident Notebook",
-            "Future version updates when included by the seller",
-            "Immediate digital delivery",
-        ],
-        format: "Complete digital bundle",
-        delivery: "Automatic digital delivery",
-        checkoutUrl: "https://sergiowrdz.gumroad.com/l/dcbkre",
-        previewUrl: "",
-        accent: "#5ee5a3",
-    },
+    { id: "student-parent-money-map-ny", title: "The Student-Parent Money Map: New York Edition", shortTitle: "Money Map", category: "Money guide", price: 29, originalPrice: null, featured: true, description: "A cited, lived guide to overlooked family benefits, federally required appeal mechanics, and the deadlines that make the difference for New York student parents.", benefits: ["Benefits and appeal roadmap", "Deadline calendar", "Primary-source verification notes", "Family-first action plan"], format: "PDF guide", delivery: "Delivered to your email within 24 hours.", checkoutUrl: "https://buy.stripe.com/5kQ9AVdgi7vYcPp5WAes004", accent: "#65e8ff" },
+    { id: "before-the-twins-benefits-system", title: "Before the Twins: The Benefits Checklist System", shortTitle: "Benefits Checklist", category: "Money guide", price: 19, originalPrice: null, featured: false, description: "A clear, generalized checklist for the Tier 1 benefits, birth-week actions, and application follow-through that new families can use without losing the thread.", benefits: ["Before-birth checklist", "Birth-week application sequence", "Household document checklist", "Follow-up calendar"], format: "PDF guide", delivery: "Delivered to your email within 24 hours.", checkoutUrl: "https://buy.stripe.com/3cIcN77VYdUmcPp2Koes005", accent: "#8b7cff" },
+    { id: "digital-safety-new-parents-session", title: "Digital Safety Setup for New Parents — 1:1 Session", shortTitle: "Safety Session", category: "1:1 service", price: 49, originalPrice: null, featured: false, description: "A 60–90 minute practical digital-safety setup for new parents, offered remotely or locally in the Hudson Valley.", benefits: ["Account and recovery review", "Family device and backup setup", "Simple next-step plan", "CCST · ISC2 CC · Blue Team pathway"], format: "60–90 minute session", delivery: "Scheduling details delivered to your email within 24 hours.", checkoutUrl: "https://buy.stripe.com/aFa8wR2BE17A2aLbgUes006", accent: "#5ee5a3" },
 ];
 
 export const storeFaq = [
     {
         question: "How are files delivered?",
         answer:
-            "Checkout and file delivery are handled by the listed payment platform. Customers receive access according to that platform's current delivery process.",
+            "Checkout is handled by Stripe. PDF guides and session scheduling details are delivered by email within 24 hours.",
     },
     {
         question: "Is this professional cybersecurity advice?",
