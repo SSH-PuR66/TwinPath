@@ -215,10 +215,23 @@ function Field({ label, children, hint }) {
     );
 }
 
+// Where a sign-in link is allowed to land. Local dev keeps its own origin;
+// every other origin is pinned to the deployed app so an emailed link can
+// never drop someone on a host their phone cannot reach.
+const CANONICAL_APP_URL = "https://twinpath.srodriguez46.workers.dev";
+
+function authRedirectUrl() {
+  const origin = typeof window !== "undefined" ? window.location.origin : "";
+  if (/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)) return origin;
+  const configured = String(import.meta.env.VITE_PUBLIC_APP_URL || "").trim();
+  return configured || CANONICAL_APP_URL;
+}
+
 function AuthScreen() {
   const [mode, setMode] = useState("password");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [code, setCode] = useState("");
   const [sent, setSent] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -255,7 +268,7 @@ function AuthScreen() {
       await supabase.auth.signInWithOtp({
         email: email.trim(),
         options: {
-          emailRedirectTo: window.location.origin,
+          emailRedirectTo: authRedirectUrl(),
           shouldCreateUser: true,
         },
       });
@@ -277,7 +290,31 @@ function AuthScreen() {
       return;
     }
 
+    setCode("");
     setSent(true);
+  }
+
+  // Redirect-free sign-in. The same email carries a short code, so a phone
+  // that cannot open the link can still get in by typing the code.
+  async function verifyCode(event) {
+    event.preventDefault();
+    setBusy(true);
+    setError("");
+
+    const { error: authError } =
+      await supabase.auth.verifyOtp({
+        email: email.trim(),
+        token: code.trim(),
+        type: "email",
+      });
+
+    setBusy(false);
+
+    if (authError) {
+      setError(
+        "That code did not work. Codes expire after an hour — use the newest email, or request one more link."
+      );
+    }
   }
 
   return (
@@ -385,17 +422,65 @@ function AuthScreen() {
             </button>
           </form>
         ) : sent ? (
-          <div className="success-box">
-            <CheckCircle2 />
+          <>
+            <div className="success-box">
+              <CheckCircle2 />
 
-            <div>
-              <strong>Check your email</strong>
-              <p>
-                Open the secure sign-in link on this
-                device. Do not request another link.
-              </p>
+              <div>
+                <strong>Check your email</strong>
+                <p>
+                  Open the sign-in link on this device,
+                  or type the code from that email
+                  below. Either one works.
+                </p>
+              </div>
             </div>
-          </div>
+
+            <form onSubmit={verifyCode} className="stack">
+              <Field
+                label="Code from the email"
+                hint="Use this if the link will not open on your phone."
+              >
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
+                  placeholder="123456"
+                  value={code}
+                  onChange={(event) =>
+                    setCode(event.target.value)
+                  }
+                />
+              </Field>
+
+              {error && (
+                <div className="error-box">{error}</div>
+              )}
+
+              <Button
+                type="submit"
+                disabled={busy || code.trim().length < 6}
+              >
+                {busy && (
+                  <Loader2 className="spin" size={18} />
+                )}
+
+                Sign in with code
+              </Button>
+
+              <button
+                className="text-button"
+                type="button"
+                onClick={() => {
+                  setSent(false);
+                  setCode("");
+                  setError("");
+                }}
+              >
+                Use a different email
+              </button>
+            </form>
+          </>
         ) : (
           <form
             onSubmit={sendMagicLink}
@@ -604,7 +689,14 @@ function SummaryCard({ icon: Icon, label, value, detail }) {
     );
 }
 
+const MEMBER_TRACKS = ["household", "cyber", "nursing"];
+
 function resolveMemberTrack(profile, user) {
+    // profiles.track is the source of truth, so each member keeps their own
+    // dashboard on every device. The name check below only covers accounts
+    // saved before that column existed.
+    const stored = String(profile?.track || "").trim().toLowerCase();
+    if (MEMBER_TRACKS.includes(stored)) return stored;
     const identity = `${profile?.display_name || ""} ${profile?.email || user?.email || ""}`.toLowerCase();
     if (identity.includes("brianna")) return "nursing";
     if (identity.includes("sergio")) return "cyber";
@@ -612,6 +704,106 @@ function resolveMemberTrack(profile, user) {
 }
 
 const memberTrackLabel = (track) => track === "cyber" ? "Cyber" : track === "nursing" ? "Nursing" : "Household";
+
+// Each member's own lane. Household steps are shared; the cyber and nursing
+// lists are the personal path that only that member sees.
+const TRACK_PATHS = {
+    nursing: {
+        eyebrow: "NURSING PATH",
+        title: "Brianna's next moves",
+        blurb: "School, licensure, and the support programs that pay for both — in the order that matters before late December.",
+        steps: [
+            {
+                title: "Call WIC while you are still pregnant",
+                detail: "Pregnant applicants qualify now — there is no reason to wait for the birth. Food benefits plus nutrition support for you and, once they arrive, both twins.",
+                link: { label: "New York WIC", url: "https://www.health.ny.gov/prevention/nutrition/wic/" },
+            },
+            {
+                title: "Confirm prenatal coverage before the next appointment",
+                detail: "Verify Medicaid or CHIP is active. If any hospital bill shows up, ask for the financial-assistance application before you pay a dollar of it.",
+            },
+            {
+                title: "Ask DCC financial aid about a December-term plan",
+                detail: "Do this before you register, not after. Ask specifically about reduced course load, leave of absence, and what either one does to your aid — the answer changes which classes you take this fall.",
+            },
+            {
+                title: "Price out the CNA bridge",
+                detail: "A CNA certificate is the short paid step between now and the RN license. Clinical hours also count as real experience on a nursing school record.",
+            },
+            {
+                title: "Line up the Nurse Corps Scholarship window",
+                detail: "Tuition, fees, and a monthly stipend in exchange for serving at a shortage facility after licensure. The cycle opens once a year, so check the current dates and get transcripts and the essay ready early.",
+                link: { label: "HRSA Nurse Corps", url: "https://www.hrsa.gov/loan-scholarships/nurse-corps/scholarship" },
+            },
+            {
+                title: "Get child care assistance in motion early",
+                detail: "New York helps student-parents with child care costs, and the waitlists are the slow part. Starting the paperwork now is worth more than starting it perfectly later.",
+            },
+        ],
+    },
+    cyber: {
+        eyebrow: "CYBER PATH",
+        title: "Sergio's next moves",
+        blurb: "Iona deadlines first, then the certifications and campus income that compound.",
+        steps: [
+            {
+                title: "Call Student Financial Services before August 3",
+                detail: "914-633-2497. The appeal window closes and nothing else on this list matters as much.",
+            },
+            {
+                title: "Finish required trainings by August 20",
+                detail: "These block registration holds. Short tasks, hard deadline.",
+            },
+            {
+                title: "Send the transcript by August 24",
+                detail: "Late transcripts delay credit evaluation, which delays aid.",
+            },
+            {
+                title: "Keep TAP and FAFSA current",
+                detail: "State aid renews on its own clock. A missed renewal is the most common way a semester gets expensive.",
+                link: { label: "HESC financial aid", url: "https://www.hesc.ny.gov/" },
+            },
+            {
+                title: "Chase funded certifications, not paid ones",
+                detail: "Security+ and similar exams are often covered by student vouchers, department funds, or workforce grants. Ask the department before paying retail.",
+            },
+            {
+                title: "Put work-study on campus, in IT",
+                detail: "Help desk hours pay like work-study and read like experience. Same paycheck, better resume.",
+            },
+        ],
+    },
+};
+
+function TrackPathCard({ memberTrack }) {
+    const path = TRACK_PATHS[memberTrack];
+    if (!path) return null;
+    return (
+        <Card>
+            <div className="section-title">
+                <div>
+                    <span className="eyebrow">{path.eyebrow}</span>
+                    <h3>{path.title}</h3>
+                </div>
+                <Pill tone="blue">{path.steps.length} steps</Pill>
+            </div>
+            <p className="muted">{path.blurb}</p>
+            <ol className="track-path-list">
+                {path.steps.map((step) => (
+                    <li key={step.title}>
+                        <strong>{step.title}</strong>
+                        <small>{step.detail}</small>
+                        {step.link ? (
+                            <a href={step.link.url} target="_blank" rel="noreferrer noopener">
+                                {step.link.label}
+                            </a>
+                        ) : null}
+                    </li>
+                ))}
+            </ol>
+        </Card>
+    );
+}
 
 function HomeMoneySnapshot({ householdId, privateMode, proposalCount }) {
     const [overview, setOverview] = useState(null);
@@ -796,6 +988,8 @@ function TodayTab({
                     Add task
                 </Button>
             </section>
+
+            <TrackPathCard memberTrack={memberTrack} />
 
             <HomeMoneySnapshot
                 householdId={householdId}
@@ -2353,7 +2547,7 @@ function SettingsModal({
                         <option value="cyber">Cyber</option>
                         <option value="nursing">Nursing</option>
                     </select>
-                    <small className="muted">Your sign-in defaults to {memberTrackLabel(resolveMemberTrack(profile))}; switch the view any time without changing shared records.</small>
+                    <small className="muted">Saved to your account as {memberTrackLabel(resolveMemberTrack(profile))} — switching changes only what you see, never shared records.</small>
                 </label>
 
                 <Button variant="danger" icon={LogOut} onClick={signOut}>
@@ -2408,6 +2602,26 @@ export default function App() {
         setToast(message);
         window.setTimeout(() => setToast((current) => current === message ? "" : current), 5000);
     }, []);
+
+    // View focus is a per-member setting, not a per-session toggle, so it is
+    // written back to the profile row and follows them to any device.
+    const changeMemberTrack = useCallback(async (nextTrack) => {
+        const track = MEMBER_TRACKS.includes(nextTrack) ? nextTrack : "household";
+        setMemberTrack(track);
+        const userId = session?.user?.id;
+        if (!userId) return;
+        const { data, error: trackError } = await supabase
+            .from("profiles")
+            .update({ track })
+            .eq("id", userId)
+            .select()
+            .maybeSingle();
+        if (trackError) {
+            showToast("View focus changed for now, but it could not be saved to your profile.");
+            return;
+        }
+        if (data) setProfile(data);
+    }, [session?.user?.id, showToast]);
     const clearSharedLink = useCallback(() => {
         setSharedImport((current) => current?.kind === "link" ? null : current);
     }, []);
@@ -3184,7 +3398,7 @@ export default function App() {
                     setReducedMotion={setReducedMotion}
                     privateMode={privateMode}
                     memberTrack={memberTrack}
-                    setMemberTrack={setMemberTrack}
+                    setMemberTrack={changeMemberTrack}
                     showThemeCatalog={isFeatureEnabled("theme_catalog")}
                     sharedLink={sharedImport?.kind === "link" ? sharedImport : null}
                     onSharedLinkHandled={clearSharedLink}
