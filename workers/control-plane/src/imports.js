@@ -242,15 +242,53 @@ export async function financialSummary(env, auth) {
     order: "transaction_date.desc",
     limit: "5000",
   });
-  const rows = await selectRows(env, "transactions", params.toString());
+  // Unified ledger (manual + CSV imports).
+  const ledgerRows = await selectRows(env, "transactions", params.toString());
+
+  // Plaid-synced transactions live in their own table with Plaid's sign
+  // convention (positive amount = money OUT). Normalize into the same
+  // income/expense shape so the Money view reflects connected banks too.
+  let plaidRows = [];
+  try {
+    const plaidParams = new URLSearchParams({
+      select: "amount,name,merchant_name,posted_date,authorized_date,pending",
+      household_id: `eq.${auth.household.id}`,
+      order: "posted_date.desc",
+      limit: "5000",
+    });
+    plaidRows = await selectRows(env, "plaid_transactions", plaidParams.toString());
+  } catch {
+    plaidRows = [];
+  }
+
+  const normalized = [
+    ...ledgerRows.map((row) => ({
+      kind: row.kind,
+      amount: Number(row.amount) || 0,
+      category: row.category,
+      date: row.transaction_date,
+    })),
+    ...plaidRows
+      .filter((row) => !row.pending)
+      .map((row) => {
+        const raw = Number(row.amount) || 0;
+        return {
+          kind: raw > 0 ? "expense" : "income",
+          amount: Math.abs(raw),
+          category: row.merchant_name || row.name || "bank",
+          date: String(row.posted_date || row.authorized_date || "").slice(0, 10),
+        };
+      })
+      .filter((row) => row.date >= since),
+  ];
 
   let income = 0;
   let expense = 0;
   const byCategory = new Map();
   const byMonth = new Map();
-  for (const row of rows) {
-    const amount = Number(row.amount) || 0;
-    const month = String(row.transaction_date || "").slice(0, 7);
+  for (const row of normalized) {
+    const amount = row.amount;
+    const month = String(row.date || "").slice(0, 7);
     const monthEntry = byMonth.get(month) || { income: 0, expense: 0 };
     if (row.kind === "income") {
       income += amount;
@@ -263,6 +301,7 @@ export async function financialSummary(env, auth) {
     }
     if (month) byMonth.set(month, monthEntry);
   }
+  const rows = normalized;
 
   const round = (value) => Math.round(value * 100) / 100;
   return {

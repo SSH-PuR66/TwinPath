@@ -35,7 +35,7 @@ export async function watchDeposits(event, env) {
       new Date(event.scheduledTime).getTime() - LOOKBACK_MINUTES * 60 * 1000,
     ).toISOString();
 
-    const deposits = await selectRows(
+    const ledgerDeposits = await selectRows(
       env,
       "transactions",
       new URLSearchParams({
@@ -48,6 +48,35 @@ export async function watchDeposits(event, env) {
       }).toString(),
     );
 
+    // Also catch Plaid-synced income (deposits show as negative amounts in
+    // Plaid's convention). Normalize to the same shape the watcher expects.
+    let plaidDeposits = [];
+    try {
+      const plaidRows = await selectRows(
+        env,
+        "plaid_transactions",
+        new URLSearchParams({
+          select: "id,household_id,amount,name,merchant_name,created_at,pending",
+          amount: `lte.-${MIN_DEPOSIT}`,
+          created_at: `gte.${sinceIso}`,
+          order: "created_at.desc",
+          limit: "20",
+        }).toString(),
+      );
+      plaidDeposits = plaidRows
+        .filter((row) => !row.pending)
+        .map((row) => ({
+          id: `plaid:${row.id}`,
+          household_id: row.household_id,
+          amount: Math.abs(Number(row.amount) || 0),
+          description: row.merchant_name || row.name || "Bank deposit",
+          created_at: row.created_at,
+        }));
+    } catch {
+      plaidDeposits = [];
+    }
+
+    const deposits = [...ledgerDeposits, ...plaidDeposits];
     if (deposits.length === 0) {
       return { checked: 0, proposed: 0 };
     }
