@@ -418,7 +418,7 @@ function AuthScreen() {
                 setError("");
               }}
             >
-              Email me a sign-in code instead
+              Email me a sign-in link instead
             </button>
           </form>
         ) : sent ? (
@@ -429,17 +429,18 @@ function AuthScreen() {
               <div>
                 <strong>Check your email</strong>
                 <p>
-                  Open the sign-in link on this device,
-                  or type the code from that email
-                  below. Either one works.
+                  Tap the sign-in link in that email on
+                  this device and you are in. If your
+                  email also shows a 6-digit code, you
+                  can type it below instead.
                 </p>
               </div>
             </div>
 
             <form onSubmit={verifyCode} className="stack">
               <Field
-                label="Code from the email"
-                hint="Use this if the link will not open on your phone."
+                label="6-digit code (only if the email has one)"
+                hint="Not every email includes a code. If yours does not, use the link above."
               >
                 <input
                   type="text"
