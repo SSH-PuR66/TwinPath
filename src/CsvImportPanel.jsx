@@ -29,7 +29,6 @@ export default function CsvImportPanel({ householdId, onImported, onToast, share
         setCsv(String(sharedImport.text).slice(0, 512 * 1024));
         setSourceLabel(String(sharedImport.label || "shared-import").toLowerCase().replace(/[^a-z0-9._-]/g, "").slice(0, 41) || "shared-import");
         setError("");
-        onSharedImportHandled?.();
     }, [onSharedImportHandled, sharedImport?.id, sharedImport?.kind, sharedImport?.label, sharedImport?.text]);
 
     async function readFile(file) {
@@ -59,6 +58,9 @@ export default function CsvImportPanel({ householdId, onImported, onToast, share
             });
             setResult(payload);
             await Promise.all([refreshSummary(), onImported?.()]);
+            // Only discard a share-sheet payload after the human confirms its
+            // reviewed CSV. A failed import stays available for correction.
+            if (sharedImport?.kind === "csv") onSharedImportHandled?.();
             onToast?.(`${payload.imported} transaction${payload.imported === 1 ? "" : "s"} imported.`);
         } catch (importError) {
             setError(importError.message);
@@ -75,7 +77,7 @@ export default function CsvImportPanel({ householdId, onImported, onToast, share
                 <div>
                     <span className="eyebrow">CSV FALLBACK</span>
                     <h3 id="csv-import-title">Import an account the bank connection cannot reach</h3>
-                    <p>Paste or drop a bank CSV. Duplicate rows are safely ignored. TwinPath never sees your bank login and never moves money.</p>
+                    <p>{sharedImport?.kind === "csv" ? "Review the shared rows below, then confirm the import. Nothing is imported automatically." : "Paste or drop a bank CSV. iOS share-target support varies by version, so this paste path is always available. Duplicate rows are safely ignored."} TwinPath never sees your bank login and never moves money.</p>
                 </div>
             </header>
             <form className="csv-import-form" onSubmit={submit}>

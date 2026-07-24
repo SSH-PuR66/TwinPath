@@ -43,6 +43,7 @@ import ProposalsPanel from "./ProposalsPanel";
 import { useFeatureFlags } from "./useFeatureFlags";
 import DepositRouter from "./DepositRouter";
 import MoneyActionCenter from "./MoneyActionCenter";
+import CsvImportPanel from "./CsvImportPanel";
 import IosInstallHint from "./IosInstallHint";
 import FinancialSummary from "./FinancialSummary";
 import WatchedSourcesPanel from "./WatchedSourcesPanel";
@@ -2354,16 +2355,21 @@ export default function App() {
     }, []);
     const clearSharedCsv = useCallback(() => {
         setSharedImport((current) => current?.kind === "csv" ? null : current);
+        // This is handled by the service worker when present. A failure here
+        // is harmless: an old local share is overwritten by the next share.
+        fetch("/__twinpath-share/pending", { method: "DELETE" }).catch(() => {});
     }, []);
 
     useEffect(() => {
         const currentUrl = new URL(window.location.href);
         const shareError = currentUrl.searchParams.get("share-error");
         const sharedId = currentUrl.searchParams.get("shared-import");
-        if (!shareError && !sharedId) return undefined;
+        const shared = currentUrl.searchParams.get("shared");
+        if (!shareError && !sharedId && !shared) return undefined;
 
         currentUrl.searchParams.delete("share-error");
         currentUrl.searchParams.delete("shared-import");
+        currentUrl.searchParams.delete("shared");
         window.history.replaceState({}, "", `${currentUrl.pathname}${currentUrl.search}${currentUrl.hash}`);
 
         if (shareError) {
@@ -2372,11 +2378,12 @@ export default function App() {
         }
 
         let active = true;
-        fetch(`/__twinpath-share/${encodeURIComponent(sharedId)}`, { cache: "no-store" })
+        const sharePath = shared ? "/__twinpath-share/pending" : `/__twinpath-share/${encodeURIComponent(sharedId)}`;
+        fetch(sharePath, { cache: "no-store" })
             .then((response) => response.ok ? response.json() : Promise.reject(new Error("Shared item expired.")))
             .then((payload) => {
                 if (!active || !payload || !["csv", "link"].includes(payload.kind)) return;
-                setSharedImport({ ...payload, id: sharedId });
+                setSharedImport({ ...payload, id: shared ? "pending" : sharedId });
                 if (payload.kind === "csv") {
                     setTab("money");
                     showToast("Shared CSV ready to review before import.");
@@ -2870,6 +2877,8 @@ export default function App() {
         return <HouseholdSetup onReady={loadIdentity} />;
     }
 
+    const importRoute = window.location.pathname === "/import";
+
     return (
         <div
             className={`app-shell ${privateMode ? "private-display" : ""}`}
@@ -2913,7 +2922,19 @@ export default function App() {
                 )}
 
                 <main className="content">
-                    <AnimatedPage key={tab} reducedMotion={reducedMotion}>
+                    {importRoute ? (
+                        <section className="page-stack import-route" aria-label="Review shared CSV import">
+                            <div className="page-heading"><div><p className="eyebrow">SHARED CSV</p><h2>Review before importing</h2><p>Nothing reaches your financial records until you confirm the reviewed rows.</p></div></div>
+                            <CsvImportPanel
+                                householdId={household.id}
+                                onImported={loadData}
+                                onToast={showToast}
+                                sharedImport={sharedImport?.kind === "csv" ? sharedImport : null}
+                                onSharedImportHandled={clearSharedCsv}
+                            />
+                            <Button type="button" variant="secondary" onClick={() => { window.history.replaceState({}, "", "/"); setTab("money"); }}>Back to Money</Button>
+                        </section>
+                    ) : <AnimatedPage key={tab} reducedMotion={reducedMotion}>
                     {tab === "home" && (
                         <TodayTab
                             householdId={household.id}
@@ -3026,7 +3047,7 @@ export default function App() {
                         </Suspense>
                     )}
 
-                    </AnimatedPage>
+                    </AnimatedPage>}
                 </main>
 
                 <nav className="bottom-nav" aria-label="Main navigation">

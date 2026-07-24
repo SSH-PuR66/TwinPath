@@ -1,6 +1,8 @@
-const CACHE = "twinpath-shell-v9";
-const SHARE_CACHE = "twinpath-share-inbox-v1";
-const SHARE_PATH = "/__twinpath-share/";
+const CACHE = "twinpath-shell-v10";
+// The share sheet can be destroyed before React starts on iOS. Keep the
+// incoming payload in a dedicated Cache entry first, then let /import read it.
+const SHARE_CACHE = "twinpath-share-inbox-v2";
+const SHARE_PATH = "/__twinpath-share/pending";
 const MAX_SHARED_TEXT_BYTES = 512 * 1024;
 const SHELL = ["/", "/offline.html", "/manifest.webmanifest", "/icon.svg", "/themes/manifest.json"];
 
@@ -49,7 +51,7 @@ self.addEventListener("activate", (event) => {
                 .then((keys) =>
                     Promise.all(
                         keys
-                            .filter((key) => key !== CACHE)
+                            .filter((key) => key !== CACHE && key !== SHARE_CACHE)
                             .map((key) => caches.delete(key))
                     )
                 ),
@@ -120,26 +122,27 @@ async function receiveSharedImport(request) {
             return Response.redirect("/?share-error=nothing-shared", 303);
         }
 
-        const id = crypto.randomUUID();
         const cache = await caches.open(SHARE_CACHE);
         await cache.put(
-            `${SHARE_PATH}${id}`,
+            SHARE_PATH,
             new Response(JSON.stringify(payload), {
                 headers: { "content-type": "application/json", "cache-control": "no-store" },
             })
         );
-        return Response.redirect(`/?shared-import=${encodeURIComponent(id)}`, 303);
+        // Do not wait for app hydration to retain the stream. The redirect is
+        // deliberately a normal GET so Safari can open the installed PWA.
+        return Response.redirect("/import?shared=1", 303);
     } catch {
         return Response.redirect("/?share-error=import-unavailable", 303);
     }
 }
 
+// Kept under the established helper name so deployment validation can assert
+// the share inbox route exists; acknowledgement happens only after import.
 async function consumeSharedImport(request) {
     const cache = await caches.open(SHARE_CACHE);
     const response = await cache.match(request);
-    if (!response) return new Response(null, { status: 404 });
-    await cache.delete(request);
-    return response;
+    return response || new Response(null, { status: 404 });
 }
 
 self.addEventListener("fetch", (event) => {
@@ -153,9 +156,17 @@ self.addEventListener("fetch", (event) => {
         return;
     }
 
+    if (request.method === "DELETE" && url.pathname === SHARE_PATH) {
+        event.respondWith(caches.open(SHARE_CACHE).then(async (cache) => {
+            await cache.delete(SHARE_PATH);
+            return new Response(null, { status: 204 });
+        }));
+        return;
+    }
+
     if (request.method !== "GET") return;
 
-    if (url.pathname.startsWith(SHARE_PATH)) {
+    if (url.pathname === SHARE_PATH) {
         event.respondWith(consumeSharedImport(request));
         return;
     }
