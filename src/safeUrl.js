@@ -10,6 +10,7 @@ const APPROVED_CHECKOUT_HOSTS = new Set([
   "gumroad.com",
   "www.gumroad.com",
   "checkout.stripe.com",
+  "buy.stripe.com",
   "billing.stripe.com",
 ]);
 

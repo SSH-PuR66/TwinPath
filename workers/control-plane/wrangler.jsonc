@@ -18,7 +18,7 @@
     "PLAID_SYNC_STALE_MINUTES": "30",
     "PLAID_WEBHOOK_URL": "https://twinpath-control-plane.srodriguez46.workers.dev/v1/webhooks/plaid",
     "PLAID_REDIRECT_URI": "https://twinpath.srodriguez46.workers.dev/",
-    "STRIPE_ALLOWED_PRICE_IDS": "",
+    "STRIPE_ALLOWED_PRICE_IDS": "price_1Twln5Q9XY1ln9nHsob1PaVN,price_1TwlnJQ9XY1ln9nHz11PrBLJ,price_1TwlnQQ9XY1ln9nHd0nvwFkJ",
     "STRIPE_CHECKOUT_SUCCESS_URL": "https://twinpath.srodriguez46.workers.dev/?billing=success",
     "STRIPE_CHECKOUT_CANCEL_URL": "https://twinpath.srodriguez46.workers.dev/?billing=cancelled",
     "STRIPE_PORTAL_RETURN_URL": "https://twinpath.srodriguez46.workers.dev/",
