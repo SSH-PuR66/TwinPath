@@ -22,7 +22,18 @@ function deadlineTone(deadline) {
     return days >= 0 && days < 14 ? "urgent" : "";
 }
 
-export default function BenefitsRadar({ householdId, onToast }) {
+const NURSING_PROGRAMS = new Set(["wic", "chip_medicaid", "ny_childcare", "snap"]);
+const CYBER_PROGRAMS = new Set(["tap", "savers_credit", "roth_ira", "ida_match"]);
+const displayTrack = (track) => track === "cyber" ? "Cyber" : track === "nursing" ? "Nursing" : "Household";
+
+function programTrack(program) {
+    if (program?.enrollment?.track) return program.enrollment.track;
+    if (NURSING_PROGRAMS.has(program?.key)) return "nursing";
+    if (CYBER_PROGRAMS.has(program?.key)) return "cyber";
+    return "household";
+}
+
+export default function BenefitsRadar({ householdId, onToast, memberTrack = "household", currentUserId }) {
     const { request, configured } = useControlPlane(householdId);
     const [data, setData] = useState(null);
     const [selected, setSelected] = useState(null);
@@ -52,6 +63,7 @@ export default function BenefitsRadar({ householdId, onToast }) {
                     est_annual_value: Number(selected.enrollment?.est_annual_value) || 0,
                     notes: selected.enrollment?.notes || null,
                     checklist: selected.enrollment?.checklist || [],
+                    track: selected.enrollment?.track || programTrack(selected),
                 }),
             });
             onToast?.("Benefits status saved.");
@@ -67,6 +79,10 @@ export default function BenefitsRadar({ householdId, onToast }) {
 
     if (!configured) return null;
     const programs = Array.isArray(data?.programs) ? data.programs : [];
+    const visibleTracks = new Set(["household", memberTrack]);
+    const orderedPrograms = [...programs]
+        .filter((program) => visibleTracks.has(programTrack(program)))
+        .sort((a, b) => Number(programTrack(b) === memberTrack) - Number(programTrack(a) === memberTrack));
     const programsByKey = new Map(programs.map((program) => [program.key, program]));
     const tierOneDone = TIER_ONE_CHECKLIST.filter((item) => item.programKeys.some((key) => enrollmentIsMoving(programsByKey.get(key)?.enrollment))).length;
     return (
@@ -95,13 +111,13 @@ export default function BenefitsRadar({ householdId, onToast }) {
                         })}
                     </div>
                 </section>
-                <div className="benefit-grid">{programs.map((program) => {
+                <div className="benefit-grid">{orderedPrograms.map((program) => {
                 const enrollment = program.enrollment;
                 const deadline = enrollment?.next_deadline_on;
                 const checklist = enrollment?.checklist || [];
                 const checklistDone = checklist.filter((item) => item.done).length;
                 return <article className="benefit-card" key={program.key}>
-                    <div className="benefit-card-top"><span className="pill blue">{program.category}</span><span className={`status-chip ${enrollment?.status || "researching"}`}>{statusLabel(enrollment?.status)}</span></div>
+                    <div className="benefit-card-top"><span className="pill blue">{program.category}</span><span className="track-chip">{displayTrack(programTrack(program))}</span><span className={`status-chip ${enrollment?.status || "researching"}`}>{statusLabel(enrollment?.status)}</span></div>
                     <h4>{program.name}</h4><p>{program.eligibility_summary}</p>
                     {deadline ? <small className={`deadline ${deadlineTone(deadline)}`}><CalendarClock size={14} /> {deadlineTone(deadline) ? "Act within 14 days · " : "Deadline "}{new Date(`${deadline}T00:00:00`).toLocaleDateString()}</small> : <small>{program.est_value_note}</small>}
                     {checklist.length ? <small className="benefit-progress">{checklistDone}/{checklist.length} checklist steps done</small> : null}
@@ -109,7 +125,7 @@ export default function BenefitsRadar({ householdId, onToast }) {
                 </article>;
             })}</div>
             </>}
-            {selected ? <div className="benefit-drawer-backdrop" onMouseDown={() => setSelected(null)}><aside className="benefit-drawer" onMouseDown={(event) => event.stopPropagation()} aria-label={`Review ${selected.name}`}><header><div><span className="eyebrow">BENEFIT CHECKLIST</span><h2>{selected.name}</h2></div><button className="icon-button" type="button" onClick={() => setSelected(null)} aria-label="Close"><X size={19} /></button></header><p>{selected.how_to_apply}</p><a className="button secondary" href={safeExternalUrl(selected.official_url) || undefined} target="_blank" rel="noopener noreferrer">Official program site</a><form className="benefit-form" onSubmit={save}><label>Status<select value={selected.enrollment?.status || "researching"} onChange={(event) => updateEnrollment({ status: event.target.value })}>{statuses.map((status) => <option key={status} value={status}>{statusLabel(status)}</option>)}</select></label><label>Next deadline<input type="date" value={selected.enrollment?.next_deadline_on || ""} onChange={(event) => updateEnrollment({ next_deadline_on: event.target.value || null })} /></label><label>Estimated annual value<input type="number" min="0" max="1000000" step="1" value={selected.enrollment?.est_annual_value || ""} onChange={(event) => updateEnrollment({ est_annual_value: event.target.value })} /></label><label>Notes<textarea value={selected.enrollment?.notes || ""} onChange={(event) => updateEnrollment({ notes: event.target.value })} maxLength={2000} /></label><div className="benefit-checklist"><strong>Checklist</strong>{(selected.enrollment?.checklist || []).map((item, index) => <label key={`${item.label}-${index}`}><input type="checkbox" checked={item.done} onChange={(event) => updateEnrollment({ checklist: selected.enrollment.checklist.map((entry, entryIndex) => entryIndex === index ? { ...entry, done: event.target.checked } : entry) })} />{item.label}</label>)}{selected.enrollment?.checklist?.length ? null : <small>Add checklist items after your first application step.</small>}</div><button className="button primary" type="submit" disabled={busy}>{busy ? <Loader2 className="spin" size={16} /> : <CheckCircle2 size={16} />} Save status</button></form></aside></div> : null}
+            {selected ? <div className="benefit-drawer-backdrop" onMouseDown={() => setSelected(null)}><aside className="benefit-drawer" onMouseDown={(event) => event.stopPropagation()} aria-label={`Review ${selected.name}`}><header><div><span className="eyebrow">BENEFIT CHECKLIST · {displayTrack(programTrack(selected)).toUpperCase()}</span><h2>{selected.name}</h2></div><button className="icon-button" type="button" onClick={() => setSelected(null)} aria-label="Close"><X size={19} /></button></header><p>{selected.how_to_apply}</p><a className="button secondary" href={safeExternalUrl(selected.official_url) || undefined} target="_blank" rel="noopener noreferrer">Official program site</a><form className="benefit-form" onSubmit={save}><label>Status<select value={selected.enrollment?.status || "researching"} onChange={(event) => updateEnrollment({ status: event.target.value })}>{statuses.map((status) => <option key={status} value={status}>{statusLabel(status)}</option>)}</select></label><label>Next deadline<input type="date" value={selected.enrollment?.next_deadline_on || ""} onChange={(event) => updateEnrollment({ next_deadline_on: event.target.value || null })} /></label><label>Estimated annual value<input type="number" min="0" max="1000000" step="1" value={selected.enrollment?.est_annual_value || ""} onChange={(event) => updateEnrollment({ est_annual_value: event.target.value })} /></label><label>Notes<textarea value={selected.enrollment?.notes || ""} onChange={(event) => updateEnrollment({ notes: event.target.value })} maxLength={2000} /></label><div className="benefit-checklist"><strong>Your checklist progress</strong>{(selected.enrollment?.checklist || []).map((item, index) => <label key={`${item.label}-${index}`}><input type="checkbox" checked={item.done && item.done_by === currentUserId} onChange={(event) => updateEnrollment({ checklist: selected.enrollment.checklist.map((entry, entryIndex) => entryIndex === index ? { ...entry, done: event.target.checked, done_by: event.target.checked ? currentUserId : null } : entry) })} />{item.label}</label>)}{selected.enrollment?.checklist?.length ? null : <small>Add checklist items after your first application step.</small>}</div><button className="button primary" type="submit" disabled={busy}>{busy ? <Loader2 className="spin" size={16} /> : <CheckCircle2 size={16} />} Save status</button></form></aside></div> : null}
         </section>
     );
 }

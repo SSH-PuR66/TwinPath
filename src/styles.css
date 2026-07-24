@@ -2967,6 +2967,7 @@ textarea {
 .proposal-list,
 .deposit-steps,
 .benefit-grid { display: grid; gap: 0.75rem; }
+.track-chip { padding: 0.2rem 0.45rem; color: var(--accent); background: color-mix(in srgb, var(--accent) 14%, transparent); border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent); border-radius: 999px; font-size: 0.68rem; font-weight: 700; }
 .home-control-grid { display: grid; gap: 1rem; }
 .home-money-hero { overflow: visible; }
 .import-route { max-width: 54rem; margin: 0 auto; }

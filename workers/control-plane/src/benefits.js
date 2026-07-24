@@ -11,6 +11,8 @@ const ENROLLMENT_STATUSES = new Set([
   "renewing",
   "not_eligible",
 ]);
+const TRACKS = new Set(["household", "cyber", "nursing"]);
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 export async function listBenefits(env, auth) {
   const [programs, enrollments] = await Promise.all([
@@ -76,12 +78,21 @@ export async function upsertEnrollment(env, auth, body) {
       || !body.checklist.every(
         (item) => typeof item === "object" && item !== null
           && typeof item.label === "string" && item.label.length <= 160
-          && typeof item.done === "boolean",
+          && typeof item.done === "boolean"
+          && (item.done_by === undefined || item.done_by === null || UUID_PATTERN.test(item.done_by)),
       )
     ) {
       throw new HttpError(400, "invalid_checklist", "checklist must be up to 30 {label, done} items");
     }
-    checklist = body.checklist;
+    checklist = body.checklist.map((item) => ({
+      label: item.label,
+      done: item.done,
+      done_by: item.done ? (item.done_by || auth.user.id) : null,
+    }));
+  }
+  const track = typeof body.track === "string" ? body.track : "household";
+  if (!TRACKS.has(track)) {
+    throw new HttpError(400, "invalid_track", "track must be household, cyber, or nursing");
   }
   const rows = await upsertRows(
     env,
@@ -94,6 +105,7 @@ export async function upsertEnrollment(env, auth, body) {
       next_deadline_on: deadline,
       notes: typeof body.notes === "string" ? body.notes.slice(0, 2000) : null,
       checklist,
+      track,
       updated_at: new Date().toISOString(),
     }],
     "household_id,program_key",

@@ -17,6 +17,7 @@ export default function ProposalsPanel({
     onPendingCount,
     refreshKey = 0,
     onToast,
+    memberTrack = "household",
 }) {
     const { request, configured } = useControlPlane(householdId);
     const [proposals, setProposals] = useState([]);
@@ -57,7 +58,10 @@ export default function ProposalsPanel({
     }
 
     if (!householdId || !configured) return null;
-    const pendingCount = proposals.length;
+    const visibleProposals = [...proposals]
+        .filter((proposal) => ["household", memberTrack].includes(proposal.track || "household"))
+        .sort((a, b) => Number((b.track || "household") === memberTrack) - Number((a.track || "household") === memberTrack));
+    const pendingCount = visibleProposals.length;
 
     return (
         <section className={`proposals-panel ${pendingCount ? "has-pending" : "is-clear"}`} aria-label="Pending proposals">
@@ -70,14 +74,14 @@ export default function ProposalsPanel({
                 </div>
             </header>
             {error ? <div className="error-box" role="alert">{error}</div> : null}
-            {proposals.length === 0 ? (
+            {visibleProposals.length === 0 ? (
                 <div className="proposal-empty">No approvals waiting. When a new deposit or useful change needs your call, it will appear here live.</div>
             ) : (
                 <div className="proposal-list">
-                    {proposals.map((proposal) => (
+                    {visibleProposals.map((proposal) => (
                         <article className="proposal-card" key={proposal.id}>
                             <div className="proposal-card-top">
-                                <span className="pill blue">{labels[proposal.kind] || "Suggestion"}</span>
+                                <span className="pill blue">{labels[proposal.kind] || "Suggestion"}</span><span className="track-chip">{proposal.track || "household"}</span>
                                 <small>{new Date(proposal.created_at).toLocaleDateString()}</small>
                             </div>
                             <h4>{proposal.title}</h4>

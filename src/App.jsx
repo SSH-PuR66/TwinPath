@@ -603,6 +603,15 @@ function SummaryCard({ icon: Icon, label, value, detail }) {
     );
 }
 
+function resolveMemberTrack(profile, user) {
+    const identity = `${profile?.display_name || ""} ${profile?.email || user?.email || ""}`.toLowerCase();
+    if (identity.includes("brianna")) return "nursing";
+    if (identity.includes("sergio")) return "cyber";
+    return "household";
+}
+
+const memberTrackLabel = (track) => track === "cyber" ? "Cyber" : track === "nursing" ? "Nursing" : "Household";
+
 function HomeMoneySnapshot({ householdId, privateMode, proposalCount }) {
     const [overview, setOverview] = useState(null);
     const [status, setStatus] = useState("loading");
@@ -712,6 +721,7 @@ function TodayTab({
     onProposalCount,
     onFlagsChanged,
     onToast,
+    memberTrack,
 }) {
     const incomplete = tasks
         .filter((task) => !task.completed)
@@ -745,11 +755,10 @@ function TodayTab({
     return (
         <div className="page-stack">
             <section className="hero">
-                <p className="eyebrow">FAMILY RUNWAY · LATE DECEMBER</p>
-                <h2>{daysUntilTwins} days until twin time.</h2>
+                <p className="eyebrow">{memberTrack === "cyber" ? "CYBER + FAMILY RUNWAY" : memberTrack === "nursing" ? "NURSING + FAMILY RUNWAY" : "FAMILY RUNWAY · LATE DECEMBER"}</p>
+                <h2>{memberTrack === "cyber" ? `${daysUntilTwins} days to twin time — keep Iona deadlines visible.` : memberTrack === "nursing" ? "Nurse Corps, CNA, and child-care steps—one calm checklist." : `${daysUntilTwins} days until twin time.`}</h2>
                 <p>
-                    Keep the next move small and useful: care, housing, food, rides, and
-                    reliable income first. You two are building calm, one decision at a time.
+                    {memberTrack === "cyber" ? "Household foundations first, then cyber coursework, Iona opportunities, and deadlines that compound your options." : memberTrack === "nursing" ? "Household support first, then Nurse Corps timing, the CNA option, and DCC-specific care planning." : "Keep the next move small and useful: care, housing, food, rides, and reliable income first. You two are building calm, one decision at a time."}
                 </p>
 
                 <Button icon={Plus} onClick={() => setTaskModal(true)}>
@@ -770,6 +779,7 @@ function TodayTab({
                     onFlagsChanged={onFlagsChanged}
                     refreshKey={proposalRefreshKey}
                     onToast={onToast}
+                    memberTrack={memberTrack}
                 />
                 <AutomationStatus proposalCount={proposalCount} />
             </div>
@@ -1044,6 +1054,7 @@ function PlanTab({
 function MoneyTab({
     householdId,
     currentUserId,
+    memberTrack,
     onImported,
     onToast,
     transactions,
@@ -1117,6 +1128,7 @@ function MoneyTab({
                 onToast={onToast}
                 sharedImport={sharedImport}
                 onSharedImportHandled={onSharedImportHandled}
+                memberTrack={memberTrack}
             />
             <Suspense fallback={<FeatureLoader label="Opening live money overview…" />}>
                 <FinancialConnectionsPanel
@@ -2055,6 +2067,8 @@ function SettingsModal({
     reducedMotion,
     setReducedMotion,
     privateMode,
+    memberTrack,
+    setMemberTrack,
     showThemeCatalog,
     sharedLink,
     onSharedLinkHandled,
@@ -2299,6 +2313,16 @@ function SettingsModal({
                     </form>
                 </Card>
 
+                <label className="field">
+                    <span>View focus</span>
+                    <select value={memberTrack} onChange={(event) => setMemberTrack(event.target.value)}>
+                        <option value="household">Household</option>
+                        <option value="cyber">Cyber</option>
+                        <option value="nursing">Nursing</option>
+                    </select>
+                    <small className="muted">Your sign-in defaults to {memberTrackLabel(resolveMemberTrack(profile))}; switch the view any time without changing shared records.</small>
+                </label>
+
                 <Button variant="danger" icon={LogOut} onClick={signOut}>
                     Sign out
                 </Button>
@@ -2335,6 +2359,7 @@ export default function App() {
     const [proposalRefreshKey, setProposalRefreshKey] = useState(0);
     const [toast, setToast] = useState("");
     const [sharedImport, setSharedImport] = useState(null);
+    const [memberTrack, setMemberTrack] = useState("household");
     const { isEnabled: isFeatureEnabled, refresh: refreshFeatureFlags } = useFeatureFlags(household?.id);
     const onProposalCount = useCallback((count) => setProposalCount(Number(count) || 0), []);
     const refreshPendingProposalCount = useCallback(async () => {
@@ -2396,6 +2421,10 @@ export default function App() {
 
         return () => { active = false; };
     }, [showToast]);
+
+    useEffect(() => {
+        if (profile || session?.user) setMemberTrack(resolveMemberTrack(profile, session?.user));
+    }, [profile?.id, session?.user?.id]);
 
     useEffect(() => {
         const overlayOpen =
@@ -2950,6 +2979,7 @@ export default function App() {
                             onProposalCount={onProposalCount}
                             onFlagsChanged={refreshFeatureFlags}
                             onToast={showToast}
+                            memberTrack={memberTrack}
                         />
                     )}
 
@@ -2972,6 +3002,7 @@ export default function App() {
                             onToast={showToast}
                             sharedImport={sharedImport?.kind === "csv" ? sharedImport : null}
                             onSharedImportHandled={clearSharedCsv}
+                            memberTrack={memberTrack}
                         />
                     )}
 
@@ -3119,6 +3150,8 @@ export default function App() {
                     reducedMotion={reducedMotion}
                     setReducedMotion={setReducedMotion}
                     privateMode={privateMode}
+                    memberTrack={memberTrack}
+                    setMemberTrack={setMemberTrack}
                     showThemeCatalog={isFeatureEnabled("theme_catalog")}
                     sharedLink={sharedImport?.kind === "link" ? sharedImport : null}
                     onSharedLinkHandled={clearSharedLink}
