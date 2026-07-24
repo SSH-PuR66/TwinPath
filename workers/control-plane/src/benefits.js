@@ -28,7 +28,7 @@ export async function listBenefits(env, auth) {
       env,
       "benefit_enrollments",
       new URLSearchParams({
-        select: "program_key,status,next_deadline_on,est_annual_value,notes,checklist,updated_at",
+        select: "program_key,status,next_deadline_on,est_annual_value,notes,checklist,track,updated_at",
         household_id: `eq.${auth.household.id}`,
         limit: "100",
       }).toString(),

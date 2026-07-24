@@ -213,3 +213,33 @@ documented plan to update dependency + family size in December (they are
 REQUIRED to process it), (c) spring Pell/TAP projection so the family can
 see the number, (d) deferment and per-credit terms in writing as
 fallbacks. Bring: pregnancy documentation, support plan, the legacy story.
+
+
+---
+
+# APPENDIX B — Verified monitorable money sources (research pass 5, July 24 2026)
+
+All verified 3-0 by live fetch unless noted. The Site Watcher is seeded
+with the winners.
+
+- **Grants.gov Search2 API** — public POST endpoint, NO auth required,
+  supports an eligibilities filter (api.grants.gov/v1/api/search2).
+  Verified live ("Webservice Succeeds"). The four advertised RSS feeds
+  are DEAD (404, verified) — do not use. Watcher note: needs POST, so
+  this becomes a future worker enhancement (POST-mode watcher), not a
+  page watch.
+- **Federal Student Aid hidden JSON feed** — studentaid.gov/json/
+  announcement.json returns all announcements as structured JSON (the
+  HTML page is an SPA that serves "Loading..."). robots.txt permits
+  crawling with a 7-second delay; daily polite checks are within policy.
+  NOW WATCHED.
+- **NY HESC news-updates index** — no RSS exists; the financial-aid-
+  professionals News & Updates index page is actively maintained (July
+  21, 2026 post) and is the correct URL to watch for TAP changes. NOW
+  WATCHED.
+- **TAP 2026-27** — opened Oct 2, 2025; final deadline June 30, 2027;
+  ~$800M/year statewide need-based program (verified via HESC release).
+  Sergio's TAP application should be confirmed filed alongside FAFSA.
+- SFS/ISC2/Nurse Corps cycle-page claims from this pass hit verification
+  limits — the pages are already under watch, which is the durable
+  answer.

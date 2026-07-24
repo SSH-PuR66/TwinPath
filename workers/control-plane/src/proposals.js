@@ -70,7 +70,7 @@ export function validateProposalInput(body) {
 
 export async function listProposals(env, auth, statusFilter) {
   const params = new URLSearchParams({
-    select: "id,kind,title,rationale,payload,flag_key,status,origin,decision_note,decided_at,created_at",
+    select: "id,kind,title,rationale,payload,flag_key,status,origin,track,decision_note,decided_at,created_at",
     household_id: `eq.${auth.household.id}`,
     order: "created_at.desc",
     limit: "50",
