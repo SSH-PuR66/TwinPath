@@ -418,7 +418,7 @@ function AuthScreen() {
                 setError("");
               }}
             >
-              I have not created a password yet
+              Email me a sign-in code instead
             </button>
           </form>
         ) : sent ? (
@@ -534,8 +534,9 @@ function AuthScreen() {
           <ShieldCheck size={18} />
 
           <span>
-            Each partner should have a separate account.
-            Never share account passwords.
+            You each get your own account, so your space stays
+            yours. Keep your password to yourself — that is what
+            keeps the private side private.
           </span>
         </div>
       </Card>
