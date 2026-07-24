@@ -2374,7 +2374,7 @@ textarea {
 .connections-panel {
   display: grid;
   min-width: 0;
-  gap: 1rem;
+  gap: var(--space-4);
 }
 
 .grow-tabs {
@@ -2383,7 +2383,7 @@ textarea {
   z-index: 18;
   display: grid;
   min-width: 0;
-  padding: 0.32rem;
+  padding: var(--space-1);
   grid-template-columns: repeat(6, minmax(0, 1fr));
   background: rgba(7, 11, 19, 0.9);
   border: 1px solid var(--border-strong);
@@ -2433,7 +2433,7 @@ textarea {
 .profit-hero {
   display: flex;
   min-width: 0;
-  padding: clamp(1.15rem, 3vw, 2rem);
+  padding: clamp(var(--space-5), 3vw, 2rem);
   align-items: flex-start;
   justify-content: space-between;
   gap: 1rem;
@@ -2471,7 +2471,7 @@ textarea {
 .grow-notice {
   display: flex;
   min-width: 0;
-  padding: 0.8rem;
+  padding: var(--space-3);
   align-items: flex-start;
   gap: 0.55rem;
   color: #d8c296;
@@ -2495,7 +2495,7 @@ textarea {
 .profit-summary,
 .connection-status-grid {
   display: grid;
-  gap: 0.75rem;
+  gap: var(--space-3);
   grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
@@ -2507,8 +2507,8 @@ textarea {
 .connection-status-grid article {
   display: grid;
   min-width: 0;
-  padding: 1rem;
-  gap: 0.25rem;
+  padding: var(--space-4);
+  gap: var(--space-1);
   background: rgba(255, 255, 255, 0.04);
   border: 1px solid var(--border);
   border-radius: 16px;
@@ -2531,7 +2531,7 @@ textarea {
 .profit-columns {
   display: grid;
   min-width: 0;
-  gap: 0.85rem;
+  gap: var(--space-4);
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
@@ -3801,7 +3801,7 @@ textarea {
 .theme-shop {
   display: grid;
   margin-top: 1rem;
-  padding: 1rem;
+  padding: var(--space-4);
   gap: 0.9rem;
   background: linear-gradient(145deg, color-mix(in srgb, var(--accent) 9%, #10111b), rgba(9, 11, 20, 0.84));
   border: 1px solid color-mix(in srgb, var(--accent) 22%, var(--border));
