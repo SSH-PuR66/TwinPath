@@ -48,6 +48,7 @@ import IosInstallHint from "./IosInstallHint";
 import FinancialSummary from "./FinancialSummary";
 import WatchedSourcesPanel from "./WatchedSourcesPanel";
 import ProfileVaultPanel from "./ProfileVaultPanel";
+import NowPath from "./NowPath";
 
 import {
     initialAllocation,
@@ -972,7 +973,7 @@ function TodayTab({
     privateMode,
     reducedMotion,
     setTaskModal,
-    toggleTask,
+    openTaskDetail,
     proposalCount,
     proposalRefreshKey,
     onProposalCount,
@@ -1022,6 +1023,8 @@ function TodayTab({
                     Add task
                 </Button>
             </section>
+
+            <NowPath householdId={householdId} tasks={tasks} appointments={appointments} onOpenTask={openTaskDetail} />
 
             <TrackPathCard memberTrack={memberTrack} />
 
@@ -1094,7 +1097,7 @@ function TodayTab({
                             <button
                                 key={task.id}
                                 className="task-row"
-                                onClick={() => toggleTask(task)}
+                                onClick={() => openTaskDetail(task)}
                             >
                                 <span className="check-circle" />
 
@@ -1624,7 +1627,6 @@ function MoneyTab({
 function FamilyTab({
     appointments,
     setAppointmentModal,
-    deleteAppointment,
 }) {
     const safeAppointments = Array.isArray(appointments)
         ? appointments
@@ -1698,62 +1700,12 @@ function FamilyTab({
             <Card>
                 <div className="section-title">
                     <div>
-                        <h3>Appointments</h3>
-                        <p>Only share medical details both partners consent to sharing.</p>
+                        <h3>Calendar</h3>
+                        <p>Review the day schedule below; appointment details stay there instead of repeating in a long list.</p>
                     </div>
+                    <Pill tone="blue">{safeAppointments.length}</Pill>
                 </div>
-
-                {safeAppointments.length ? (
-                    <div className="appointment-list">
-                        {safeAppointments.map((item) => (
-                            <article className="appointment-row" key={item.id}>
-                                <div className="date-block">
-                                    <strong>
-                                        {new Date(item.starts_at).toLocaleDateString("en-US", {
-                                            day: "2-digit",
-                                        })}
-                                    </strong>
-                                    <span>
-                                        {new Date(item.starts_at)
-                                            .toLocaleDateString("en-US", { month: "short" })
-                                            .toUpperCase()}
-                                    </span>
-                                </div>
-
-                                <div className="appointment-copy">
-                                    <strong>{item.title}</strong>
-                                    <small>
-                                        {new Date(item.starts_at).toLocaleTimeString("en-US", {
-                                            hour: "numeric",
-                                            minute: "2-digit",
-                                        })}
-                                        {item.location ? ` · ${item.location}` : ""}
-                                        {item.visibility === "private" ? " · Only me" : ""}
-                                    </small>
-                                    {item.notes && <p>{item.notes}</p>}
-                                </div>
-
-                                <button
-                                    className="icon-button small"
-                                    onClick={() => downloadAppointmentICS(item)}
-                                    aria-label="Add appointment to calendar"
-                                >
-                                    <Download size={16} />
-                                </button>
-
-                                <button
-                                    className="icon-button small danger"
-                                    onClick={() => deleteAppointment(item)}
-                                    aria-label="Delete appointment"
-                                >
-                                    <Trash2 size={16} />
-                                </button>
-                            </article>
-                        ))}
-                    </div>
-                ) : (
-                    <Empty>No appointments recorded.</Empty>
-                )}
+                <p className="family-calendar-summary">{safeAppointments.length ? `${safeAppointments.length} scheduled items are available in the calendar’s day sheets.` : "No appointments recorded."}</p>
             </Card>
 
             <div className="checklist-grid">
@@ -1995,6 +1947,22 @@ function TaskModal({ onClose, onSave }) {
                     Save task
                 </Button>
             </form>
+        </Modal>
+    );
+}
+
+function TaskDetailModal({ task, onClose, onToggle }) {
+    return (
+        <Modal title={task.title} onClose={onClose}>
+            <div className="task-detail stack">
+                <p>{task.category || "General"} · {task.priority || "medium"} priority</p>
+                {task.due_date ? <p>Due {dateFormatter.format(new Date(`${task.due_date}T12:00:00`))}</p> : <p>No due date</p>}
+                <p>{task.visibility === "private" ? "Only me" : "Shared with your household"}</p>
+                <Button type="button" onClick={() => { onToggle(task); onClose(); }}>
+                    <Check size={17} />
+                    {task.completed ? "Mark open" : "Mark complete"}
+                </Button>
+            </div>
         </Modal>
     );
 }
@@ -2608,6 +2576,7 @@ export default function App() {
     const [documents, setDocuments] = useState([]);
 
     const [taskModal, setTaskModal] = useState(false);
+    const [selectedTask, setSelectedTask] = useState(null);
     const [transactionModal, setTransactionModal] = useState(false);
     const [appointmentModal, setAppointmentModal] = useState(false);
     const [appointmentDraftDate, setAppointmentDraftDate] = useState(null);
@@ -3254,7 +3223,7 @@ export default function App() {
                             privateMode={privateMode}
                             reducedMotion={reducedMotion}
                             setTaskModal={setTaskModal}
-                            toggleTask={toggleTask}
+                            openTaskDetail={setSelectedTask}
                             proposalCount={proposalCount}
                             proposalRefreshKey={proposalRefreshKey}
                             onProposalCount={onProposalCount}
@@ -3296,17 +3265,8 @@ export default function App() {
                             <div className="page-stack">
                                 <FamilyTab
                                     appointments={appointments}
-                                    householdId={household.id}
-                                    currentUserId={session.user.id}
-                                    privateMode={privateMode}
                                     setAppointmentModal={
                                         setAppointmentModal
-                                    }
-                                    deleteAppointment={(item) =>
-                                        deleteRecord(
-                                            "appointments",
-                                            item
-                                        )
                                     }
                                 />
 
@@ -3390,6 +3350,14 @@ export default function App() {
                 <TaskModal
                     onClose={() => setTaskModal(false)}
                     onSave={saveTask}
+                />
+            )}
+
+            {selectedTask && (
+                <TaskDetailModal
+                    task={selectedTask}
+                    onClose={() => setSelectedTask(null)}
+                    onToggle={toggleTask}
                 />
             )}
 
