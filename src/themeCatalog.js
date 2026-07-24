@@ -1,8 +1,17 @@
 import { validateImportedTheme } from "./themeValidation";
 
-export const DEFAULT_THEME_KEY = "aurora";
+export const DEFAULT_THEME_KEY = "hearth";
 
 export const includedThemes = {
+  hearth: {
+    name: "Hearth",
+    description: "Terracotta and sage on warm clay \u2014 a lamp in the room, not a dashboard.",
+    background: "#14100e",
+    accent: "#f0a184",
+    accent2: "#a9c8a4",
+    scene: "sunrise",
+    included: true,
+  },
   nursery: {
     name: "Cozy Nursery",
     description: "A soft moon, floating mobile, and gentle clouds create a calm bedtime scene.",
