@@ -13,6 +13,8 @@ import {
 } from "lucide-react";
 import { safeCheckoutUrl, safeExternalUrl } from "./safeUrl";
 import { supabase } from "./supabase";
+import { Skeleton } from "./Skeleton";
+import { CONTROL_PLANE_TIMEOUT_MS, readControlPlaneResponse } from "./useControlPlane";
 
 const PLAID_SCRIPT = "https://cdn.plaid.com/link/v2/stable/link-initialize.js";
 
@@ -68,6 +70,7 @@ export default function FinancialConnectionsPanel({
         billing: {},
     });
     const [busy, setBusy] = useState("");
+    const [loaded, setLoaded] = useState(false);
     const [error, setError] = useState("");
     const oauthResumeAttempted = useRef(false);
     const providerDisabled = state.provider_mode === "disabled";
@@ -83,22 +86,26 @@ export default function FinancialConnectionsPanel({
         if (sessionError) throw sessionError;
         if (!data.session?.access_token) throw new Error("Sign in again to continue.");
 
-        const response = await fetch(`${controlPlaneUrl}${path}`, {
-            ...options,
-            headers: {
-                Accept: "application/json",
-                Authorization: `Bearer ${data.session.access_token}`,
-                "X-Household-Id": String(householdId),
-                ...(options.body ? { "Content-Type": "application/json" } : {}),
-                ...options.headers,
-            },
-        });
-        const text = await response.text();
-        let payload = {};
-        if (text) {
-            try { payload = JSON.parse(text); }
-            catch { payload = { message: text }; }
-        }
+        const controller = new AbortController();
+        const timeout = window.setTimeout(() => controller.abort(), CONTROL_PLANE_TIMEOUT_MS);
+        let response;
+        try {
+            response = await fetch(`${controlPlaneUrl}${path}`, {
+                ...options,
+                signal: controller.signal,
+                headers: {
+                    Accept: "application/json",
+                    Authorization: `Bearer ${data.session.access_token}`,
+                    "X-Household-Id": String(householdId),
+                    ...(options.body ? { "Content-Type": "application/json" } : {}),
+                    ...options.headers,
+                },
+            });
+        } catch (fetchError) {
+            if (fetchError?.name === "AbortError") throw new Error("Financial connections took longer than 8 seconds. Retry, or import a CSV instead.");
+            throw fetchError;
+        } finally { window.clearTimeout(timeout); }
+        const payload = await readControlPlaneResponse(response);
         if (!response.ok) {
             throw new Error(payload.error?.message || payload.message || `Request failed (${response.status}).`);
         }
@@ -126,6 +133,7 @@ export default function FinancialConnectionsPanel({
             setError(requestError.message);
         } finally {
             setBusy("");
+            setLoaded(true);
         }
     }, [apiRequest, controlPlaneUrl, currentUserId, householdId]);
 
@@ -242,6 +250,8 @@ export default function FinancialConnectionsPanel({
         }
     }
 
+    if (!loaded && busy === "refresh") return <section className="connections-panel" aria-label="Loading financial connections"><Skeleton className="skeleton-hero" /><Skeleton className="skeleton-list" /></section>;
+
     return (
         <section className="connections-panel">
             <header className="grow-feature-heading">
@@ -354,6 +364,7 @@ export default function FinancialConnectionsPanel({
                 </div>
             )}
             {error && <div className="error-box" role="alert">{error}</div>}
+            {error && <button className="button secondary" type="button" onClick={refresh}><RefreshCw size={16} /> Retry connections</button>}
 
             {state.readiness.length > 0 && (
                 <div className="readiness-list">
@@ -455,7 +466,7 @@ export default function FinancialConnectionsPanel({
                         </div>
                     </article>
                 )) : (
-                    <div className="empty">No bank connected yet. Connect one for a live 90-day picture, or import a CSV in about two minutes.</div>
+                    <div className="empty">No bank connected yet. Connect one for a live 90-day picture, or import a CSV in about two minutes. Bank deposits can take a few minutes to appear after Chime posts them.</div>
                 )}
             </div>
 

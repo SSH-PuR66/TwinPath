@@ -637,13 +637,17 @@ function HomeMoneySnapshot({ householdId, privateMode, proposalCount }) {
                     .limit(90);
                 const { data } = await supabase.auth.getSession();
                 if (!data.session?.access_token) throw new Error("No session");
-                const response = await fetch(`${controlPlaneUrl}/v1/financial/summary`, {
+                const controller = new AbortController();
+                const timeout = window.setTimeout(() => controller.abort(), 8_000);
+                let response;
+                try { response = await fetch(`${controlPlaneUrl}/v1/financial/summary`, {
+                    signal: controller.signal,
                     headers: {
                         Accept: "application/json",
                         Authorization: `Bearer ${data.session.access_token}`,
                         "X-Household-Id": String(householdId),
                     },
-                });
+                }); } finally { window.clearTimeout(timeout); }
                 if (!response.ok) throw new Error("Overview unavailable");
                 const [next, snapshots] = await Promise.all([response.json(), networthRequest]);
                 if (active) {

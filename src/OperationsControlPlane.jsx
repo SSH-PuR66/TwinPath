@@ -34,6 +34,7 @@ import {
 } from "./operationsCatalog";
 import { safeExternalUrl } from "./safeUrl";
 import { supabase } from "./supabase";
+import { CONTROL_PLANE_TIMEOUT_MS, readControlPlaneResponse } from "./useControlPlane";
 
 const operationsStyles = `
 .operations-shell{--operations-ink:#172033;--operations-muted:#667085;--operations-border:#e6e9ef;--operations-surface:#fff;--operations-soft:#f7f8fb;display:grid;gap:20px;color:var(--operations-ink);font-family:inherit}
@@ -176,27 +177,26 @@ export default function OperationsControlPlane({
         if (sessionError) throw sessionError;
         if (!session?.access_token) throw new Error("Sign in again to access the control plane.");
 
-        const response = await fetch(`${workerUrl}${path}`, {
-            ...options,
-            headers: {
-                Accept: "application/json",
-                Authorization: `Bearer ${session.access_token}`,
-                "X-Household-Id": String(householdId),
-                ...(options.body ? { "Content-Type": "application/json" } : {}),
-                ...options.headers,
-            },
-        });
-
-        const text = await response.text();
-        let payload = {};
-
-        if (text) {
-            try {
-                payload = JSON.parse(text);
-            } catch {
-                payload = { message: text };
-            }
-        }
+        const controller = new AbortController();
+        const timeout = window.setTimeout(() => controller.abort(), CONTROL_PLANE_TIMEOUT_MS);
+        let response;
+        try {
+            response = await fetch(`${workerUrl}${path}`, {
+                ...options,
+                signal: controller.signal,
+                headers: {
+                    Accept: "application/json",
+                    Authorization: `Bearer ${session.access_token}`,
+                    "X-Household-Id": String(householdId),
+                    ...(options.body ? { "Content-Type": "application/json" } : {}),
+                    ...options.headers,
+                },
+            });
+        } catch (fetchError) {
+            if (fetchError?.name === "AbortError") throw new Error("Control plane took longer than 8 seconds. Please retry.");
+            throw fetchError;
+        } finally { window.clearTimeout(timeout); }
+        const payload = await readControlPlaneResponse(response);
 
         if (!response.ok) {
             throw new Error(
