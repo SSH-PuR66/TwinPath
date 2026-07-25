@@ -1068,111 +1068,131 @@ function TodayTab({
 
             <NowPath householdId={householdId} tasks={tasks} appointments={appointments} onOpenTask={openTaskDetail} />
 
-            <TrackPathCard memberTrack={memberTrack} />
+            <DisclosureSection
+                id="home-today"
+                title="Today at a glance"
+                hint="Open tasks, the next appointment, the tracked balance"
+            >
+                <div className="summary-grid">
+                    <SummaryCard
+                        icon={CheckCircle2}
+                        label="Open tasks"
+                        value={incomplete.length}
+                        detail={`${tasks.filter((task) => task.completed).length} completed`}
+                    />
 
-            <HomeMoneySnapshot
-                householdId={householdId}
-                privateMode={privateMode}
-                proposalCount={proposalCount}
-            />
+                    <SummaryCard
+                        icon={CalendarDays}
+                        label="Next appointment"
+                        value={
+                            nextAppointment?.starts_at
+                                ? dateFormatter.format(
+                                      new Date(nextAppointment.starts_at)
+                                  )
+                                : "None"
+                        }
+                        detail={nextAppointment?.title || "No upcoming appointments"}
+                    />
 
-            <div className="home-control-grid">
-                <ProposalsPanel
-                    householdId={householdId}
-                    onPendingCount={onProposalCount}
-                    onFlagsChanged={onFlagsChanged}
-                    refreshKey={proposalRefreshKey}
-                    onToast={onToast}
-                    memberTrack={memberTrack}
-                />
-                <AutomationStatus proposalCount={proposalCount} />
-            </div>
-
-            <DepositRouter householdId={householdId} onToast={onToast} />
-
-            <div className="summary-grid">
-                <SummaryCard
-                    icon={CheckCircle2}
-                    label="Open tasks"
-                    value={incomplete.length}
-                    detail={`${tasks.filter((task) => task.completed).length} completed`}
-                />
-
-                <SummaryCard
-                    icon={CalendarDays}
-                    label="Next appointment"
-                    value={
-                        nextAppointment?.starts_at
-                            ? dateFormatter.format(
-                                  new Date(nextAppointment.starts_at)
-                              )
-                            : "None"
-                    }
-                    detail={nextAppointment?.title || "No upcoming appointments"}
-                />
-
-                <SummaryCard
-                    icon={CircleDollarSign}
-                    label="Tracked balance"
-                    value={
-                        privateMode
-                            ? "••••••"
-                            : <AnimatedMoney value={balance} reducedMotion={reducedMotion} />
-                    }
-                    detail="Income minus expenses"
-                />
-            </div>
-
-            <Card>
-                <div className="section-title">
-                    <div>
-                        <span className="eyebrow">PRIORITY</span>
-                        <h3>Next actions</h3>
-                    </div>
-
-                    <Pill tone="blue">{incomplete.length} open</Pill>
+                    <SummaryCard
+                        icon={CircleDollarSign}
+                        label="Tracked balance"
+                        value={
+                            privateMode
+                                ? "••••••"
+                                : <AnimatedMoney value={balance} reducedMotion={reducedMotion} />
+                        }
+                        detail="Income minus expenses"
+                    />
                 </div>
 
-                {incomplete.length ? (
-                    <div className="task-list">
-                        {incomplete.slice(0, 6).map((task) => (
-                            <button
-                                key={task.id}
-                                className="task-row"
-                                onClick={() => openTaskDetail(task)}
-                            >
-                                <span className="check-circle" />
+                <Card>
+                    <div className="section-title">
+                        <div>
+                            <span className="eyebrow">PRIORITY</span>
+                            <h3>Next actions</h3>
+                        </div>
 
-                                <span className="task-content">
-                                    <strong>{task.title}</strong>
-                                    <small>
-                                        {task.category || "General"}
-                                        {task.due_date
-                                            ? ` · Due ${dateFormatter.format(
-                                                new Date(`${task.due_date}T12:00:00`)
-                                            )}`
-                                            : ""}
-                                    </small>
-                                </span>
-
-                                <Pill
-                                    tone={
-                                        task.priority === "urgent"
-                                            ? "red"
-                                            : task.priority === "high"
-                                                ? "amber"
-                                                : "neutral"
-                                    }
-                                >
-                                    {task.priority}
-                                </Pill>
-                            </button>
-                        ))}
+                        <Pill tone="blue">{incomplete.length} open</Pill>
                     </div>
-                ) : (
-                    <Empty>Nothing urgent. Add the next useful action.</Empty>
-                )}
-            </Card>
+
+                    {incomplete.length ? (
+                        <div className="task-list">
+                            {incomplete.slice(0, 6).map((task) => (
+                                <button
+                                    key={task.id}
+                                    className="task-row"
+                                    onClick={() => openTaskDetail(task)}
+                                >
+                                    <span className="check-circle" />
+
+                                    <span className="task-content">
+                                        <strong>{task.title}</strong>
+                                        <small>
+                                            {task.category || "General"}
+                                            {task.due_date
+                                                ? ` · Due ${dateFormatter.format(
+                                                    new Date(`${task.due_date}T12:00:00`)
+                                                )}`
+                                                : ""}
+                                        </small>
+                                    </span>
+
+                                    <Pill
+                                        tone={
+                                            task.priority === "urgent"
+                                                ? "red"
+                                                : task.priority === "high"
+                                                    ? "amber"
+                                                    : "neutral"
+                                        }
+                                    >
+                                        {task.priority}
+                                    </Pill>
+                                </button>
+                            ))}
+                        </div>
+                    ) : (
+                        <Empty>Nothing urgent. Add the next useful action.</Empty>
+                    )}
+                </Card>
+            </DisclosureSection>
+
+            <DisclosureSection
+                id="home-track"
+                title="Your track and the money snapshot"
+                hint="Where this household stands right now"
+                collapseOnPhone
+            >
+                <TrackPathCard memberTrack={memberTrack} />
+
+                <HomeMoneySnapshot
+                    householdId={householdId}
+                    privateMode={privateMode}
+                    proposalCount={proposalCount}
+                />
+            </DisclosureSection>
+
+            <DisclosureSection
+                id="home-automation"
+                title="Approvals, automation and deposit routing"
+                hint="What the app is waiting on you to decide"
+                collapseOnPhone
+            >
+                <div className="home-control-grid">
+                    <ProposalsPanel
+                        householdId={householdId}
+                        onPendingCount={onProposalCount}
+                        onFlagsChanged={onFlagsChanged}
+                        refreshKey={proposalRefreshKey}
+                        onToast={onToast}
+                        memberTrack={memberTrack}
+                    />
+                    <AutomationStatus proposalCount={proposalCount} />
+                </div>
+
+                <DepositRouter householdId={householdId} onToast={onToast} />
+            </DisclosureSection>
 
             <Card className="warning-card">
                 <ShieldCheck size={23} />

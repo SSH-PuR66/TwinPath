@@ -3274,3 +3274,22 @@ textarea {
 }
 
 @media (min-width: 840px) { .home-control-grid { grid-template-columns: minmax(0, 1.12fr) minmax(0, 0.88fr); align-items: start; }.home-money-layout { grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr); align-items: end; } }
+
+@keyframes card-rise {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: none; }
+}
+
+.summary-grid > *, .checklist-grid > *, .opportunity-grid > *, .home-control-grid > * { animation: card-rise 180ms ease-out backwards; }
+.summary-grid > *:nth-child(2), .checklist-grid > *:nth-child(2), .opportunity-grid > *:nth-child(2), .home-control-grid > *:nth-child(2) { animation-delay: 24ms; }
+.summary-grid > *:nth-child(3), .checklist-grid > *:nth-child(3), .opportunity-grid > *:nth-child(3), .home-control-grid > *:nth-child(3) { animation-delay: 48ms; }
+.summary-grid > *:nth-child(4), .checklist-grid > *:nth-child(4), .opportunity-grid > *:nth-child(4), .home-control-grid > *:nth-child(4) { animation-delay: 72ms; }
+.summary-grid > *:nth-child(5), .checklist-grid > *:nth-child(5), .opportunity-grid > *:nth-child(5), .home-control-grid > *:nth-child(5) { animation-delay: 96ms; }
+.summary-grid > *:nth-child(6), .checklist-grid > *:nth-child(6), .opportunity-grid > *:nth-child(6), .home-control-grid > *:nth-child(6) { animation-delay: 120ms; }
+.summary-grid > *:nth-child(7), .checklist-grid > *:nth-child(7), .opportunity-grid > *:nth-child(7), .home-control-grid > *:nth-child(7) { animation-delay: 144ms; }
+.summary-grid > *:nth-child(8), .checklist-grid > *:nth-child(8), .opportunity-grid > *:nth-child(8), .home-control-grid > *:nth-child(8) { animation-delay: 168ms; }
+.summary-grid > *:nth-child(n + 9), .checklist-grid > *:nth-child(n + 9), .opportunity-grid > *:nth-child(n + 9), .home-control-grid > *:nth-child(n + 9) { animation: none; }
+
+@media (prefers-reduced-motion: reduce) {
+    .summary-grid > *, .checklist-grid > *, .opportunity-grid > *, .home-control-grid > * { animation: none; }
+}
