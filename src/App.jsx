@@ -2569,7 +2569,7 @@ function SettingsModal({
                     <small>{profile?.email}</small>
                 </Card>
 
-                <div>
+                <div className="stack">
                     <span className="field-label">Partner invitation code</span>
 
                     <div className="invite-code">

@@ -8,5 +8,5 @@ export default function MoneyActionCenter(props) {
     useEffect(() => {
         if (props.sharedImport?.kind === "csv") setView("import");
     }, [props.sharedImport?.id, props.sharedImport?.kind]);
-    return <section className="money-action-center"><nav className="grow-tabs" aria-label="Money tools"><button type="button" className={view === "benefits" ? "active" : ""} onClick={() => setView("benefits")}><HeartHandshake size={18} /> Benefits</button><button type="button" className={view === "import" ? "active" : ""} onClick={() => setView("import")}><FileSpreadsheet size={18} /> Import</button></nav>{view === "benefits" ? <BenefitsRadar {...props} /> : <CsvImportPanel {...props} />}</section>;
+    return <section className="money-action-center"><nav className="grow-tabs money-tool-tabs" aria-label="Money tools"><button type="button" className={view === "benefits" ? "active" : ""} onClick={() => setView("benefits")}><HeartHandshake size={18} /><span>Benefits</span></button><button type="button" className={view === "import" ? "active" : ""} onClick={() => setView("import")}><FileSpreadsheet size={18} /><span>Import</span></button></nav>{view === "benefits" ? <BenefitsRadar {...props} /> : <CsvImportPanel {...props} />}</section>;
 }

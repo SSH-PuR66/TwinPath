@@ -4193,3 +4193,115 @@ textarea {
 
 
 
+
+/* ------------------------------------------------------------------
+   Money tool tabs -- two buttons, two tracks
+   ------------------------------------------------------------------ */
+
+/* .grow-tabs hard-codes six equal columns and re-declares them inside two
+   media queries, so MoneyActionCenter's two buttons sat crammed in the
+   leftmost third with the icon overlapping the label. 0,2,0 wins over every
+   one of those .grow-tabs declarations regardless of source order. */
+.grow-tabs.money-tool-tabs {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.grow-tabs.money-tool-tabs button {
+    padding: 0.55rem 0.5rem;
+    flex-direction: row;
+    gap: 0.4rem;
+}
+
+.grow-tabs.money-tool-tabs button span {
+    font-size: 0.78rem;
+}
+
+/* ------------------------------------------------------------------
+   Sub-nav feedback
+   ------------------------------------------------------------------ */
+
+@media (hover: hover) {
+    .grow-tabs button:hover,
+    .family-workspace-tabs button:hover {
+        color: var(--text);
+        transform: translateY(-1px);
+        transition: color 140ms ease-out, transform 140ms ease-out;
+    }
+}
+
+.grow-tabs button:active,
+.family-workspace-tabs button:active {
+    transform: scale(0.97);
+}
+
+/* Becoming the active tab. Adding the class starts the animation. */
+@keyframes tab-pop {
+    from { transform: scale(0.94); }
+    to { transform: none; }
+}
+
+.grow-tabs button.active,
+.family-workspace-tabs button.active {
+    animation: tab-pop 180ms ease-out;
+}
+
+/* A tab switch swaps one panel for another. Fade the arriving panel in so the
+   change reads as a move rather than a flash. Runs on mount only, so a data
+   refresh inside a panel does not re-trigger it. */
+@keyframes panel-in {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: none; }
+}
+
+.money-action-center > *:not(.grow-tabs) {
+    animation: panel-in 200ms ease-out;
+}
+
+/* ------------------------------------------------------------------
+   Phone height budget -- Brief 10 A4, B1, B2, B4
+   ------------------------------------------------------------------ */
+
+/* The one unpaired 100vh in the codebase. On iOS Safari 100vh counts the
+   retracted toolbar, so the page was taller than the viewport by design. */
+.store-legal-page {
+    min-height: 100dvh;
+}
+
+@media (max-width: 480px) {
+    .card {
+        padding: var(--space-4);
+    }
+
+    .page-stack {
+        gap: var(--space-3);
+    }
+
+    .stack {
+        gap: var(--space-3);
+    }
+
+    .empty-note {
+        padding: var(--space-4) var(--space-3);
+    }
+
+    .feature-loader {
+        min-height: 108px;
+        padding: var(--space-3);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .grow-tabs button:hover,
+    .family-workspace-tabs button:hover,
+    .grow-tabs button:active,
+    .family-workspace-tabs button:active {
+        transform: none;
+        transition: none;
+    }
+
+    .grow-tabs button.active,
+    .family-workspace-tabs button.active,
+    .money-action-center > *:not(.grow-tabs) {
+        animation: none;
+    }
+}
