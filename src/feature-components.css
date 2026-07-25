@@ -2398,13 +2398,13 @@ textarea {
 
 .grow-tabs {
   position: sticky;
-  top: calc(5rem + env(safe-area-inset-top));
-  z-index: 18;
+  top: calc(4.65rem + env(safe-area-inset-top));
+  z-index: 19;
   display: grid;
   min-width: 0;
   padding: var(--space-1);
   grid-template-columns: repeat(6, minmax(0, 1fr));
-  background: rgba(7, 11, 19, 0.9);
+  background: var(--surface-strong);
   border: 1px solid var(--border-strong);
   border-radius: 18px;
   box-shadow: 0 12px 36px rgba(0, 0, 0, 0.3);
@@ -3464,15 +3464,15 @@ textarea {
 .family-workspace-tabs {
   position: sticky;
   top: calc(
-    5rem + env(safe-area-inset-top)
+    4.65rem + env(safe-area-inset-top)
   );
-  z-index: 16;
+  z-index: 19;
   display: grid;
   min-width: 0;
   padding: 0.3rem;
   grid-template-columns:
     repeat(4, minmax(0, 1fr));
-  background: rgba(8, 12, 21, 0.88);
+  background: var(--surface-strong);
   border: 1px solid var(--border);
   border-radius: 16px;
   box-shadow:
@@ -3523,10 +3523,7 @@ textarea {
 
 @media (max-width: 430px) {
   .family-workspace-tabs {
-    top: calc(
-      4.65rem +
-      env(safe-area-inset-top)
-    );
+    top: calc(4.65rem + env(safe-area-inset-top));
   }
 
   .family-workspace-tabs button {

@@ -72,6 +72,7 @@ const FamilySavings = lazy(() => import("./FamilySavings.jsx"));
 const FamilyWorkspace = lazy(() => import("./FamilyWorkspace.jsx"));
 const GrowWorkspace = lazy(() => import("./GrowWorkspace.jsx"));
 const FinancialConnectionsPanel = lazy(() => import("./FinancialConnectionsPanel.jsx"));
+const RetirementTracker = lazy(() => import("./RetirementTracker.jsx"));
 const MoneyFlowMap = lazy(() => import("./MoneyFlowMap.jsx"));
 
 const moneyFormatter = new Intl.NumberFormat("en-US", {
@@ -1390,7 +1391,9 @@ function MoneyTab({
     deleteOpportunity,
     sharedImport,
     onSharedImportHandled,
+    twinsDueDate,
 }) {
+    const [showAllTransactions, setShowAllTransactions] = useState(false);
     const income = transactions
         .filter((item) => item.kind === "income")
         .reduce((sum, item) => sum + Number(item.amount), 0);
@@ -1460,6 +1463,7 @@ function MoneyTab({
                 id="money-accounts"
                 title="Accounts, transactions and the starting plan"
                 hint="Connect a bank, log money, read every line"
+                collapseOnPhone
             >
                 <MoneyActionCenter
                     householdId={householdId}
@@ -1476,6 +1480,9 @@ function MoneyTab({
                         currentUserId={currentUserId}
                         privateMode={privateMode}
                     />
+                </Suspense>
+                <Suspense fallback={<FeatureLoader label="Opening retirement tracker…" />}>
+                    <RetirementTracker householdId={householdId} privateMode={privateMode} dueDate={twinsDueDate} />
                 </Suspense>
                 <div className="page-heading">
                     <div>
@@ -1572,7 +1579,7 @@ function MoneyTab({
 
                     {transactions.length ? (
                         <div className="transaction-list">
-                            {transactions.map((item) => (
+                            {(showAllTransactions ? transactions : transactions.slice(0, 8)).map((item) => (
                                 <div className="transaction-row" key={item.id}>
                                     <div
                                         className={`transaction-icon ${item.kind === "income" ? "positive" : "negative"
@@ -1617,6 +1624,7 @@ function MoneyTab({
                     ) : (
                         <Empty>No transactions recorded.</Empty>
                     )}
+                    {transactions.length > 8 && !showAllTransactions ? <Button variant="secondary" onClick={() => setShowAllTransactions(true)}>Show all {transactions.length}</Button> : null}
                 </Card>
             </DisclosureSection>
 
@@ -3437,6 +3445,7 @@ export default function App() {
                             sharedImport={sharedImport?.kind === "csv" ? sharedImport : null}
                             onSharedImportHandled={clearSharedCsv}
                             memberTrack={memberTrack}
+                            twinsDueDate={twinsDueWindow}
                         />
                     )}
 

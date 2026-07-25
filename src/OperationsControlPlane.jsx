@@ -35,6 +35,7 @@ import {
 import { safeExternalUrl } from "./safeUrl";
 import { supabase } from "./supabase";
 import { CONTROL_PLANE_TIMEOUT_MS, readControlPlaneResponse } from "./useControlPlane";
+import DisclosureSection from "./DisclosureSection";
 
 const operationsStyles = `
 .operations-shell{--operations-ink:#172033;--operations-muted:#667085;--operations-border:#e6e9ef;--operations-surface:#fff;--operations-soft:#f7f8fb;display:grid;gap:20px;color:var(--operations-ink);font-family:inherit}
@@ -156,6 +157,9 @@ export default function OperationsControlPlane({
     const [busyKey, setBusyKey] = useState("");
     const [revealedArtifacts, setRevealedArtifacts] = useState(() => new Set());
     const [artifactUrls, setArtifactUrls] = useState({});
+    const [showAllRuns, setShowAllRuns] = useState(false);
+    const [showAllArtifacts, setShowAllArtifacts] = useState(false);
+    const [showAllApprovals, setShowAllApprovals] = useState(false);
     const [scopeOpen, setScopeOpen] = useState(false);
     const [scopeForm, setScopeForm] = useState({
         name: "",
@@ -460,6 +464,7 @@ export default function OperationsControlPlane({
                 </div>
             </div>
 
+            <DisclosureSection id="ops-engines" title="Engines" hint="Choose an automation workspace">
             <div className={operationsClass("toolbar")}>
                 <div>
                     <h3>Engine portfolio</h3>
@@ -519,6 +524,9 @@ export default function OperationsControlPlane({
                 })}
             </div>
 
+            </DisclosureSection>
+
+            <DisclosureSection id="ops-automation" title="Automation details" hint="Policy readiness, runs, and artifacts" collapseOnPhone>
             <div className={operationsClass("detail-grid")}>
                 <article
                     className={operationsClass("panel")}
@@ -767,8 +775,9 @@ export default function OperationsControlPlane({
                         <Clock3 size={21} aria-hidden="true" />
                     </div>
                     {selectedRuns.length ? (
+                        <>
                         <div className={operationsClass("timeline")}>
-                            {selectedRuns.map((run) => {
+                            {(showAllRuns ? selectedRuns : selectedRuns.slice(0, 8)).map((run) => {
                                 const status = String(run.status || "unknown").toLowerCase();
                                 const canPause = ["running", "queued"].includes(status);
                                 const canCancel = !terminalStatuses.has(status);
@@ -820,6 +829,12 @@ export default function OperationsControlPlane({
                                 );
                             })}
                         </div>
+                        {selectedRuns.length > 8 && !showAllRuns ? (
+                            <button type="button" className={operationsClass("button")} data-variant="secondary" onClick={() => setShowAllRuns(true)}>
+                                Show all {selectedRuns.length}
+                            </button>
+                        ) : null}
+                        </>
                     ) : (
                         <EmptyState icon={CirclePlay} title="No runs yet">
                             Start a sandbox run when you are ready to produce a reviewable plan.
@@ -836,8 +851,9 @@ export default function OperationsControlPlane({
                         <FileText size={21} aria-hidden="true" />
                     </div>
                     {selectedArtifacts.length ? (
+                        <>
                         <div className={operationsClass("artifacts")}>
-                            {selectedArtifacts.map((artifact) => {
+                            {(showAllArtifacts ? selectedArtifacts : selectedArtifacts.slice(0, 8)).map((artifact) => {
                                 const artifactId = artifact.id || `${artifact.name}-${artifact.created_at}`;
                                 const isConfidential =
                                     artifact.confidential !== false &&
@@ -934,6 +950,12 @@ export default function OperationsControlPlane({
                                 );
                             })}
                         </div>
+                        {selectedArtifacts.length > 8 && !showAllArtifacts ? (
+                            <button type="button" className={operationsClass("button")} data-variant="secondary" onClick={() => setShowAllArtifacts(true)}>
+                                Show all {selectedArtifacts.length}
+                            </button>
+                        ) : null}
+                        </>
                     ) : (
                         <EmptyState icon={FileText} title="No artifacts yet">
                             Drafts, reports, and redacted evidence from sandbox runs will appear here.
@@ -942,6 +964,9 @@ export default function OperationsControlPlane({
                 </section>
             </div>
 
+            </DisclosureSection>
+
+            <DisclosureSection id="ops-approvals" title="Approvals" hint="Consequential actions awaiting review" collapseOnPhone>
             <section className={operationsClass("panel")} aria-labelledby="operations-approvals-title">
                 <div className={operationsClass("panel-heading")}>
                     <div>
@@ -952,8 +977,9 @@ export default function OperationsControlPlane({
                     <BadgeCheck size={22} aria-hidden="true" />
                 </div>
                 {pendingApprovals.length ? (
+                    <>
                     <div className={operationsClass("queue")}>
-                        {pendingApprovals.map((approval) => {
+                        {(showAllApprovals ? pendingApprovals : pendingApprovals.slice(0, 8)).map((approval) => {
                             const engine = getOperationsEngine(engineIdFor(approval));
                             const consequence = approval.consequence_summary || approval.consequences || {};
                             return (
@@ -1023,12 +1049,19 @@ export default function OperationsControlPlane({
                             );
                         })}
                     </div>
+                    {pendingApprovals.length > 8 && !showAllApprovals ? (
+                        <button type="button" className={operationsClass("button")} data-variant="secondary" onClick={() => setShowAllApprovals(true)}>
+                            Show all {pendingApprovals.length}
+                        </button>
+                    ) : null}
+                    </>
                 ) : (
                     <EmptyState icon={BadgeCheck} title="Approval queue is clear">
                         Nothing can cross a consequential boundary without appearing here first.
                     </EmptyState>
                 )}
             </section>
+            </DisclosureSection>
 
             <span className={operationsClass("sr-only")} aria-live="polite">
                 {loading ? "Loading operations dashboard" : `${pendingApprovals.length} approvals pending`}

@@ -14,6 +14,7 @@ import {
 
 import { supabase } from "./supabase";
 import { safeExternalUrl } from "./safeUrl";
+import DisclosureSection from "./DisclosureSection";
 
 // Mirror of the server-side cap enforced in review_spend_proposal().
 // The database is the real gate; this is advisory UX only.
@@ -56,6 +57,7 @@ export default function ExperimentBudget({
     const [proposalForm, setProposalForm] = useState(emptyProposal);
     const [notice, setNotice] = useState("");
     const [error, setError] = useState("");
+    const [showAllProposals, setShowAllProposals] = useState(false);
     const loadRequestRef = useRef(0);
 
     const loadData = useCallback(async () => {
@@ -390,6 +392,7 @@ export default function ExperimentBudget({
                 <WalletCards size={26} />
             </div>
 
+            <DisclosureSection id="experiment-budget-summary" title="Budget summary" hint="Limit, totals, and spending guardrail">
             <div className="wallet-safety-strip">
                 <ShieldCheck size={19} />
                 <div>
@@ -503,6 +506,9 @@ export default function ExperimentBudget({
                 />
             </div>
 
+            </DisclosureSection>
+
+            <DisclosureSection id="experiment-budget-proposals" title="Purchase proposals" hint="Review requests before buying" collapseOnPhone>
             <form className="wallet-proposal-form" onSubmit={createProposal}>
                 <div className="wallet-proposal-heading">
                     <div>
@@ -676,7 +682,7 @@ export default function ExperimentBudget({
 
             {proposals.length ? (
                 <div className="experiment-proposal-list">
-                    {proposals.map((proposal) => {
+                    {(showAllProposals ? proposals : proposals.slice(0, 8)).map((proposal) => {
                         const providerUrl = safeExternalUrl(
                             proposal.official_url
                         );
@@ -821,6 +827,11 @@ export default function ExperimentBudget({
                     a valid result.
                 </div>
             )}
+            {proposals.length > 8 && !showAllProposals ? (
+                <button className="button secondary" type="button" onClick={() => setShowAllProposals(true)}>
+                    Show all {proposals.length}
+                </button>
+            ) : null}
 
             <div className="warning-inline">
                 <ShieldCheck size={18} />
@@ -829,6 +840,7 @@ export default function ExperimentBudget({
                     Chime, brokerage, or cryptocurrency wallet.
                 </span>
             </div>
+            </DisclosureSection>
         </section>
     );
 }
