@@ -6,11 +6,22 @@ const moneyFormatter = new Intl.NumberFormat("en-US", {
     currency: "USD",
 });
 
-export function AnimatedMoney({ value, hidden = false, reducedMotion = false }) {
+const wholeMoneyFormatter = new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    maximumFractionDigits: 0,
+});
+
+export function AnimatedMoney({
+    value,
+    hidden = false,
+    reducedMotion = false,
+    whole = false,
+}) {
     const motionValue = useMotionValue(0);
 
     const display = useTransform(motionValue, (current) =>
-        moneyFormatter.format(current)
+        (whole ? wholeMoneyFormatter : moneyFormatter).format(current)
     );
 
     useEffect(() => {
@@ -19,8 +30,8 @@ export function AnimatedMoney({ value, hidden = false, reducedMotion = false }) 
             return undefined;
         }
 
-        const controls = animate(motionValue, value, {
-            duration: 0.65,
+        const controls = animate(motionValue, Number(value) || 0, {
+            duration: 0.4,
             ease: "easeOut",
         });
 

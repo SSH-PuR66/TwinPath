@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { CalendarClock, Check, CheckCircle2, ChevronRight, ExternalLink, HeartHandshake, Loader2, X } from "lucide-react";
+import { AnimatedMoney } from "./AnimatedMoney";
 import { safeExternalUrl } from "./safeUrl";
 import { useControlPlane } from "./useControlPlane";
 
@@ -113,7 +114,7 @@ export default function BenefitsRadar({ householdId, onToast, memberTrack = "hou
                 <HeartHandshake size={23} />
                 <div><span className="eyebrow">BENEFITS RADAR</span><h3 id="benefits-radar-title">Keep support programs in view</h3><p>{data?.disclaimer || "Loading household benefit opportunities…"}</p></div>
             </header>
-            {data ? <div className="benefits-total"><span>Tracked annual value</span><strong>${Number(data.tracked_annual_value || 0).toLocaleString()}</strong></div> : null}
+            {data ? <div className="benefits-total"><span>Tracked annual value</span><strong><AnimatedMoney value={Number(data.tracked_annual_value || 0)} whole reducedMotion={prefersReducedMotion} /></strong></div> : null}
             {error ? <div className="error-box" role="alert">{error}</div> : null}
             {!data ? <div className="proposal-empty">Loading the benefit catalog…</div> : <>
                 <section className="twins-checklist" aria-labelledby="twins-checklist-title">
