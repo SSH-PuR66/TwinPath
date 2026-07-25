@@ -85,6 +85,14 @@ const dateFormatter = new Intl.DateTimeFormat("en-US", {
     year: "numeric",
 });
 
+const dateTimeFormatter = new Intl.DateTimeFormat("en-US", {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+});
+
 const twinsDueWindow = new Date("2026-12-25T12:00:00");
 
 const tabs = [
@@ -1013,6 +1021,29 @@ function TodayTab({
     const nextAppointment = upcomingAppointments[0] || null;
     const daysUntilTwins = Math.max(0, Math.ceil((twinsDueWindow.getTime() - Date.now()) / 86_400_000));
 
+    const nextDatedTask =
+        incomplete
+            .filter((task) => task.due_date)
+            .map((task) => ({
+                label: task.title,
+                at: new Date(`${task.due_date}T12:00:00`).getTime(),
+            }))
+            .filter((item) => Number.isFinite(item.at))
+            .sort((a, b) => a.at - b.at)[0] || null;
+
+    const nextObligation =
+        [
+            nextAppointment && Number.isFinite(new Date(nextAppointment.starts_at).getTime())
+                ? {
+                    label: nextAppointment.title,
+                    at: new Date(nextAppointment.starts_at).getTime(),
+                }
+                : null,
+            nextDatedTask,
+        ]
+            .filter(Boolean)
+            .sort((a, b) => a.at - b.at)[0] || null;
+
     return (
         <div className="page-stack">
             <section className="hero">
@@ -1021,6 +1052,14 @@ function TodayTab({
                 <p>
                     {memberTrack === "cyber" ? "Household foundations first, then cyber coursework, Iona opportunities, and deadlines that compound your options." : memberTrack === "nursing" ? "Household support first, then licensure timing, the CNA option, and the programs that help pay for nursing school." : "Keep the next move small and useful: care, housing, food, rides, and reliable income first. You two are building calm, one decision at a time."}
                 </p>
+
+                {nextObligation ? (
+                    <p className="hero-next">
+                        <CalendarDays size={15} aria-hidden="true" />
+                        <span>{`Next: ${nextObligation.label}`}</span>
+                        <strong>{dateFormatter.format(new Date(nextObligation.at))}</strong>
+                    </p>
+                ) : null}
 
                 <Button icon={Plus} onClick={() => setTaskModal(true)}>
                     Add task
@@ -1651,6 +1690,71 @@ function MoneyTab({
     );
 }
 
+const growStages = ["Idea", "Applied", "Interviewing", "Active", "Paid"];
+
+function GrowHero({ opportunities, privateMode, onAddRoute }) {
+    const routes = Array.isArray(opportunities) ? opportunities : [];
+
+    const lead =
+        routes
+            .map((item) => ({ item, stage: growStages.indexOf(item.status) }))
+            .filter((entry) => entry.stage >= 0)
+            .sort(
+                (a, b) =>
+                    b.stage - a.stage ||
+                    Number(b.item.estimated_monthly || 0) -
+                        Number(a.item.estimated_monthly || 0)
+            )[0] || null;
+
+    const step = lead ? lead.stage + 1 : 0;
+    const percent = lead ? Math.round((step / growStages.length) * 100) : 0;
+    const monthly = lead ? Number(lead.item.estimated_monthly || 0) : 0;
+
+    return (
+        <section className="hero">
+            <p className="eyebrow">CURRENT GOAL</p>
+
+            {lead ? (
+                <>
+                    <h2>{lead.item.title}</h2>
+                    <p>
+                        {lead.item.organization || "Independent route"}
+                        {monthly > 0 && !privateMode
+                            ? `, worth about ${moneyFormatter.format(monthly)} a month once it pays.`
+                            : "."}
+                    </p>
+
+                    <div className="grow-hero-progress">
+                        <div
+                            className="grow-hero-track"
+                            role="img"
+                            aria-label={`Stage ${step} of ${growStages.length}: ${lead.item.status}`}
+                        >
+                            <span
+                                className="grow-hero-fill"
+                                style={{ width: `${percent}%` }}
+                            />
+                        </div>
+
+                        <strong className="grow-hero-stage">{`${lead.item.status}, ${step} of ${growStages.length}`}</strong>
+                    </div>
+                </>
+            ) : (
+                <>
+                    <h2>No income route is in motion yet.</h2>
+                    <p>
+                        Add one route and this line tracks it from idea to first payment.
+                    </p>
+                </>
+            )}
+
+            <Button icon={Plus} onClick={onAddRoute}>
+                Add route
+            </Button>
+        </section>
+    );
+}
+
 function FamilyTab({
     appointments,
     setAppointmentModal,
@@ -1658,6 +1762,13 @@ function FamilyTab({
     const safeAppointments = Array.isArray(appointments)
         ? appointments
         : [];
+
+    const nextShared =
+        safeAppointments
+            .map((item) => ({ item, at: new Date(item.starts_at).getTime() }))
+            .filter((entry) => Number.isFinite(entry.at))
+            .filter((entry) => entry.at >= Date.now() - 3_600_000)
+            .sort((a, b) => a.at - b.at)[0] || null;
 
     const checklists = [
         {
@@ -1701,56 +1812,82 @@ function FamilyTab({
 
     return (
         <div className="page-stack">
-            <div className="page-heading">
-                <div>
-                    <p className="eyebrow">FAMILY</p>
-                    <h2>Prepare safely together</h2>
-                </div>
+            <section className="hero">
+                <p className="eyebrow">NEXT TOGETHER</p>
+
+                {nextShared ? (
+                    <>
+                        <h2>{nextShared.item.title}</h2>
+                        <p className="hero-next">
+                            <CalendarDays size={15} aria-hidden="true" />
+                            <span>{nextShared.item.location || "Shared calendar"}</span>
+                            <strong>{dateTimeFormatter.format(new Date(nextShared.at))}</strong>
+                        </p>
+                    </>
+                ) : (
+                    <>
+                        <h2>Nothing is on the shared calendar yet.</h2>
+                        <p>Add the next appointment and it will lead this tab.</p>
+                    </>
+                )}
 
                 <Button icon={CalendarDays} onClick={() => setAppointmentModal(true)}>
                     Appointment
                 </Button>
-            </div>
+            </section>
 
-            <Card className="warning-card">
-                <Baby size={24} />
-                <div>
-                    <strong>This app does not provide medical advice</strong>
-                    <p>
-                        A twin pregnancy may require additional monitoring. Follow the
-                        obstetric and maternal-fetal medicine teams, and seek emergency
-                        help for symptoms they identify as urgent.
-                    </p>
-                </div>
-            </Card>
-
-            <Card>
-                <div className="section-title">
+            <DisclosureSection
+                id="family-calendar"
+                title="Safety notes and the calendar count"
+                hint="What this app is not, plus every scheduled item"
+            >
+                <Card className="warning-card">
+                    <Baby size={24} />
                     <div>
-                        <h3>Calendar</h3>
-                        <p>Review the day schedule below; appointment details stay there instead of repeating in a long list.</p>
+                        <strong>This app does not provide medical advice</strong>
+                        <p>
+                            A twin pregnancy may require additional monitoring. Follow the
+                            obstetric and maternal-fetal medicine teams, and seek emergency
+                            help for symptoms they identify as urgent.
+                        </p>
                     </div>
-                    <Pill tone="blue">{safeAppointments.length}</Pill>
+                </Card>
+
+                <Card>
+                    <div className="section-title">
+                        <div>
+                            <h3>Calendar</h3>
+                            <p>Review the day schedule below; appointment details stay there instead of repeating in a long list.</p>
+                        </div>
+                        <Pill tone="blue">{safeAppointments.length}</Pill>
+                    </div>
+                    <p className="family-calendar-summary">{safeAppointments.length ? `${safeAppointments.length} scheduled items are available in the calendar day sheets.` : "No appointments recorded."}</p>
+                </Card>
+            </DisclosureSection>
+
+            <DisclosureSection
+                id="family-checklists"
+                title="Preparation checklists"
+                hint="Healthcare, transportation, discharge and safe essentials"
+                collapseOnPhone
+            >
+                <div className="checklist-grid">
+                    {checklists.map((list) => (
+                        <Card key={list.title}>
+                            <h3>{list.title}</h3>
+
+                            <ul className="safe-list">
+                                {list.items.map((item) => (
+                                    <li key={item}>
+                                        <CheckCircle2 size={17} />
+                                        <span>{item}</span>
+                                    </li>
+                                ))}
+                            </ul>
+                        </Card>
+                    ))}
                 </div>
-                <p className="family-calendar-summary">{safeAppointments.length ? `${safeAppointments.length} scheduled items are available in the calendar’s day sheets.` : "No appointments recorded."}</p>
-            </Card>
-
-            <div className="checklist-grid">
-                {checklists.map((list) => (
-                    <Card key={list.title}>
-                        <h3>{list.title}</h3>
-
-                        <ul className="safe-list">
-                            {list.items.map((item) => (
-                                <li key={item}>
-                                    <CheckCircle2 size={17} />
-                                    <span>{item}</span>
-                                </li>
-                            ))}
-                        </ul>
-                    </Card>
-                ))}
-            </div>
+            </DisclosureSection>
         </div>
     );
 }
@@ -3325,25 +3462,33 @@ export default function App() {
                     )}
 
                     {tab === "grow" && (
-                        <Suspense
-                            fallback={
-                                <FeatureLoader label="Opening Growth Center…" />
-                            }
-                        >
-                            <GrowWorkspace
-                                householdId={household.id}
-                                currentUserId={session.user.id}
-                                transactions={transactions}
+                        <div className="page-stack">
+                            <GrowHero
+                                opportunities={opportunities}
                                 privateMode={privateMode}
-                                reducedMotion={reducedMotion}
-                                onLogTransaction={() => setTransactionModal(true)}
-                                onAddOpportunity={(route) => {
-                                    setOpportunityDraft(route || null);
-                                    setOpportunityModal(true);
-                                }}
-                                onImported={loadData}
+                                onAddRoute={() => setOpportunityModal(true)}
                             />
-                        </Suspense>
+
+                            <Suspense
+                                fallback={
+                                    <FeatureLoader label="Opening Growth Center…" />
+                                }
+                            >
+                                <GrowWorkspace
+                                    householdId={household.id}
+                                    currentUserId={session.user.id}
+                                    transactions={transactions}
+                                    privateMode={privateMode}
+                                    reducedMotion={reducedMotion}
+                                    onLogTransaction={() => setTransactionModal(true)}
+                                    onAddOpportunity={(route) => {
+                                        setOpportunityDraft(route || null);
+                                        setOpportunityModal(true);
+                                    }}
+                                    onImported={loadData}
+                                />
+                            </Suspense>
+                        </div>
                     )}
 
                     </AnimatedPage>}
