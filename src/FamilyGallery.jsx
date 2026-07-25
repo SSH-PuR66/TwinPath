@@ -14,6 +14,7 @@ import {
 
 import { supabase } from "./supabase";
 import { processFamilyImage } from "./imageProcessing";
+import DisclosureSection from "./DisclosureSection";
 import {
     deleteFamilyPhoto,
     FAMILY_GALLERY_BUCKET,
@@ -42,6 +43,7 @@ export default function FamilyGallery({
     const [uploading, setUploading] = useState(false);
     const [deletingPhotoId, setDeletingPhotoId] = useState(null);
     const [error, setError] = useState("");
+    const [showAllPhotos, setShowAllPhotos] = useState(false);
 
     const [form, setForm] = useState({
         album: "Family",
@@ -471,6 +473,7 @@ export default function FamilyGallery({
                 </button>
             </div>
 
+            <DisclosureSection id="gallery-upload" title="Add a memory" hint="Photo, album, visibility, and caption" collapseOnPhone>
             <div className="gallery-upload-panel">
                 <div className="gallery-upload-copy">
                     <ImagePlus size={27} />
@@ -573,6 +576,7 @@ export default function FamilyGallery({
                     />
                 </label>
             </div>
+            </DisclosureSection>
 
             {error && (
                 <div className="error-box" role="alert">
@@ -580,6 +584,7 @@ export default function FamilyGallery({
                 </div>
             )}
 
+            <DisclosureSection id="gallery-memories" title="Memories" hint={`${visiblePhotos.length} shown`}>
             <div className="gallery-album-row">
                 {["All", ...albums].map((album) => (
                     <button
@@ -601,7 +606,7 @@ export default function FamilyGallery({
                 </div>
             ) : visiblePhotos.length ? (
                 <div className="family-photo-grid">
-                    {visiblePhotos.map((photo) => (
+                    {(showAllPhotos ? visiblePhotos : visiblePhotos.slice(0, 8)).map((photo) => (
                         <article
                             className={`family-photo-card${photo.objectUrl ? "" : " is-unavailable"}`}
                             key={photo.id}
@@ -682,6 +687,9 @@ export default function FamilyGallery({
                     No photos here yet. Save the little moments now — you will be glad you did later.
                 </div>
             )}
+            {visiblePhotos.length > 8 && !showAllPhotos ? <button className="button secondary" type="button" onClick={() => setShowAllPhotos(true)}>Show all {visiblePhotos.length}</button> : null}
+
+            </DisclosureSection>
 
             <div className="warning-inline">
                 <ShieldCheck size={18} />

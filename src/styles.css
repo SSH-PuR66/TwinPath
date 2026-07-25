@@ -3027,6 +3027,24 @@ textarea {
 .task-detail p { margin: 0; }
 .family-calendar-summary { margin: 0; }
 
+.retirement-tracker { display: grid; gap: var(--space-3); padding: var(--space-4); background: var(--surface-soft); border: 1px solid var(--border); border-radius: 16px; }
+.retirement-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-3); }
+.retirement-heading h3, .retirement-heading p { margin: 0; }
+.retirement-heading p { margin-top: var(--space-1); font-size: 0.82rem; }
+.retirement-heading svg { flex: 0 0 auto; color: var(--accent); }
+.retirement-account-list { display: grid; gap: var(--space-2); }
+.retirement-account { display: grid; gap: var(--space-2); padding: var(--space-3); background: var(--surface); border: 1px solid var(--border); border-radius: 13px; }
+.retirement-account-name { display: grid; gap: var(--space-1); }
+.retirement-account-name small { font-size: 0.72rem; }
+.retirement-account dl { display: grid; margin: 0; gap: var(--space-2); grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.retirement-account dl div { min-width: 0; }
+.retirement-account dt { color: var(--subtle); font-size: 0.65rem; }
+.retirement-account dd { margin: var(--space-1) 0 0; overflow: hidden; font-size: 0.86rem; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
+.retirement-limit, .retirement-birth-rule, .retirement-empty { margin: 0; color: var(--muted); font-size: 0.78rem; line-height: 1.5; }
+.retirement-birth-rule { padding-top: var(--space-3); border-top: 1px solid var(--border); }
+.retirement-birth-rule a { color: var(--accent); text-decoration: underline; }
+@media (max-width: 480px) { .retirement-account dl { grid-template-columns: 1fr; } }
+
 @media (max-width: 430px) {
     .now-path { padding: var(--space-3); }
     .now-path-step > button, .now-path-step > div { grid-template-columns: 2.25rem minmax(0, 1fr); gap: var(--space-2); }

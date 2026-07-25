@@ -37,6 +37,12 @@ import {
 import { watchDeposits } from "./deposit-watch.js";
 import { getProfile, putProfile } from "./profile.js";
 import {
+  createRetirementAccount,
+  listRetirementAccounts,
+  removeRetirementAccount,
+  updateRetirementAccount,
+} from "./retirement.js";
+import {
   addWatcher,
   checkWatchedSources,
   deactivateWatcher,
@@ -273,6 +279,25 @@ async function handleAuthenticated(request, env, pathname) {
 
   if (request.method === "GET" && pathname === "/v1/financial/summary") {
     return json(request, env, await financialSummary(env, auth));
+  }
+
+  if (request.method === "GET" && pathname === "/v1/retirement/accounts") {
+    return json(request, env, { accounts: await listRetirementAccounts(env, auth) });
+  }
+
+  if (request.method === "POST" && pathname === "/v1/retirement/accounts") {
+    const body = assertObject(await readJson(request));
+    return json(request, env, { account: await createRetirementAccount(env, auth, body) }, { status: 201 });
+  }
+
+  if (request.method === "PATCH" && pathname === "/v1/retirement/accounts") {
+    const body = assertObject(await readJson(request));
+    return json(request, env, { account: await updateRetirementAccount(env, auth, body) });
+  }
+
+  if (request.method === "DELETE" && pathname === "/v1/retirement/accounts") {
+    const id = new URL(request.url).searchParams.get("id");
+    return json(request, env, { account: await removeRetirementAccount(env, auth, id) });
   }
 
   if (request.method === "GET" && pathname === "/v1/benefits") {

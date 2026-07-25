@@ -21,6 +21,7 @@ import {
 
 import { supabase } from "./supabase";
 import { safeExternalUrl } from "./safeUrl";
+import DisclosureSection from "./DisclosureSection";
 
 const currency = new Intl.NumberFormat("en-US", {
     style: "currency",
@@ -366,6 +367,7 @@ export default function FamilySavings({
         useState(null);
 
     const [showForm, setShowForm] = useState(false);
+    const [showAllRoutes, setShowAllRoutes] = useState(false);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [starterBusy, setStarterBusy] =
@@ -1077,6 +1079,7 @@ export default function FamilySavings({
                 </button>
             )}
 
+            <DisclosureSection id="savings-goals" title="Savings goals" hint={`${routes.length} tracked routes`}>
             {loading ? (
                 <div className="savings-loading">
                     <Loader2 className="spin" size={24} />
@@ -1084,7 +1087,7 @@ export default function FamilySavings({
                 </div>
             ) : routes.length ? (
                 <div className="savings-route-list">
-                    {routes.map((route) => {
+                    {(showAllRoutes ? routes : routes.slice(0, 8)).map((route) => {
                         const officialUrl =
                             safeExternalUrl(
                                 route.official_url,
@@ -1317,7 +1320,10 @@ export default function FamilySavings({
                     organizations.
                 </div>
             )}
+            {routes.length > 8 && !showAllRoutes ? <button className="button secondary" type="button" onClick={() => setShowAllRoutes(true)}>Show all {routes.length}</button> : null}
+            </DisclosureSection>
 
+            <DisclosureSection id="savings-records" title="Record quality" hint="Approvals and reporting" collapseOnPhone>
             <div className="warning-inline">
                 <ShieldCheck size={18} />
 
@@ -1328,6 +1334,7 @@ export default function FamilySavings({
                     written decisions and reporting instructions.
                 </span>
             </div>
+            </DisclosureSection>
 
             {showForm && (
                 <div

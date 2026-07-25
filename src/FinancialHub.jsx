@@ -20,6 +20,7 @@ import {
 
 import { financialRoutes } from "./financialRoutes";
 import { safeExternalUrl } from "./safeUrl";
+import DisclosureSection from "./DisclosureSection";
 
 const currency = new Intl.NumberFormat("en-US", {
     style: "currency",
@@ -392,6 +393,8 @@ export default function FinancialHub({
 
     const [category, setCategory] =
         useState("All");
+    const [showAllRoutes, setShowAllRoutes] =
+        useState(false);
 
     const [paypalHandle, setPaypalHandle] =
         useState(readSavedPayPalHandle);
@@ -568,6 +571,7 @@ export default function FinancialHub({
 
     return (
         <div className="financial-hub">
+            <DisclosureSection id="financial-budget" title="Budget summary" hint="Give money already available a clear job">
             <section className="money-planner">
                 <div className="section-title">
                     <div>
@@ -718,7 +722,9 @@ export default function FinancialHub({
                     </span>
                 </div>
             </section>
+            </DisclosureSection>
 
+            <DisclosureSection id="financial-payment-link" title="Receiving link" hint="A public PayPal.me handle" collapseOnPhone>
             <section className="paypal-link-builder">
                 <div>
                     <span className="eyebrow">
@@ -811,7 +817,9 @@ export default function FinancialHub({
                     </div>
                 )}
             </section>
+            </DisclosureSection>
 
+            <DisclosureSection id="financial-routes" title="Resource map" hint="Official-source research routes" collapseOnPhone>
             <section className="route-explorer">
                 <div className="section-title">
                     <div>
@@ -845,7 +853,10 @@ export default function FinancialHub({
                                 }`}
                             type="button"
                             key={item}
-                            onClick={() => setCategory(item)}
+                            onClick={() => {
+                                setCategory(item);
+                                setShowAllRoutes(false);
+                            }}
                             aria-pressed={
                                 category === item
                             }
@@ -857,7 +868,7 @@ export default function FinancialHub({
 
                 {visibleRoutes.length ? (
                     <div className="financial-route-grid">
-                        {visibleRoutes.map((route) => (
+                        {(showAllRoutes ? visibleRoutes : visibleRoutes.slice(0, 8)).map((route) => (
                             <article
                                 className="financial-route-card"
                                 key={route.id}
@@ -958,7 +969,13 @@ export default function FinancialHub({
                         category.
                     </div>
                 )}
+                {visibleRoutes.length > 8 && !showAllRoutes ? (
+                    <button className="button secondary" type="button" onClick={() => setShowAllRoutes(true)}>
+                        Show all {visibleRoutes.length}
+                    </button>
+                ) : null}
             </section>
+            </DisclosureSection>
         </div>
     );
 }

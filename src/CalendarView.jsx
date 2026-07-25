@@ -154,6 +154,7 @@ export default function CalendarView({ appointments = [], currentUserId, onAdd, 
     const [selectedDay, setSelectedDay] = useState(startOfDay(new Date()));
     const [sheetDay, setSheetDay] = useState(null);
     const [expandedId, setExpandedId] = useState(null);
+    const [showAllAppointments, setShowAllAppointments] = useState(false);
     const prefersReducedMotion = useReducedMotion();
     const normalized = useMemo(() => (Array.isArray(appointments) ? appointments : []).map((appointment) => ({ ...appointment, parsedDate: safeDate(appointment.starts_at) })).filter((appointment) => appointment.parsedDate).sort((a, b) => a.parsedDate.getTime() - b.parsedDate.getTime()), [appointments]);
     const appointmentsByDate = useMemo(() => normalized.reduce((days, appointment) => {
@@ -164,8 +165,9 @@ export default function CalendarView({ appointments = [], currentUserId, onAdd, 
         return days;
     }, new Map()), [normalized]);
     const sheetAppointments = sheetDay ? normalized.filter((appointment) => isSameDay(appointment.parsedDate, sheetDay)) : [];
-    const classes = sheetAppointments.filter((appointment) => appointment.category === "School");
-    const otherAppointments = sheetAppointments.filter((appointment) => appointment.category !== "School");
+    const visibleSheetAppointments = showAllAppointments ? sheetAppointments : sheetAppointments.slice(0, 8);
+    const classes = visibleSheetAppointments.filter((appointment) => appointment.category === "School");
+    const otherAppointments = visibleSheetAppointments.filter((appointment) => appointment.category !== "School");
 
     useEffect(() => {
         if (!sheetDay) return undefined;
@@ -179,6 +181,7 @@ export default function CalendarView({ appointments = [], currentUserId, onAdd, 
         const nextDay = startOfDay(day);
         setSelectedDay(nextDay);
         setExpandedId(null);
+        setShowAllAppointments(false);
         if ((appointmentsByDate.get(format(nextDay, "yyyy-MM-dd")) || []).length) setSheetDay(nextDay);
     }
 
@@ -197,7 +200,7 @@ export default function CalendarView({ appointments = [], currentUserId, onAdd, 
             {sheetDay ? <motion.div className="day-sheet-backdrop" onMouseDown={() => setSheetDay(null)} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: prefersReducedMotion ? 0 : 0.18 }}>
                 <motion.aside className="day-sheet" role="dialog" aria-modal="true" aria-labelledby="day-sheet-title" onMouseDown={(event) => event.stopPropagation()} initial={prefersReducedMotion ? false : { opacity: 0, y: 120 }} animate={{ opacity: 1, y: 0 }} exit={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, y: 120 }} transition={{ duration: prefersReducedMotion ? 0 : 0.18, ease: "easeOut" }}>
                     <header><div><span className="eyebrow">DAY SCHEDULE</span><h2 id="day-sheet-title">{format(sheetDay, "EEEE, MMMM d")}</h2><p>{sheetAppointments.length} {sheetAppointments.length === 1 ? "appointment" : "appointments"}</p></div><div className="day-sheet-header-actions"><button className="button secondary" type="button" onClick={() => onAdd(sheetDay)}><Plus size={16} />Add</button><button className="icon-button" type="button" onClick={() => setSheetDay(null)} aria-label="Close"><X size={19} /></button></div></header>
-                    <div className="day-sheet-timeline"><AppointmentGroup title="Classes" appointments={classes} currentUserId={currentUserId} onDelete={onDelete} expandedId={expandedId} setExpandedId={setExpandedId} /><AppointmentGroup title="Appointments" appointments={otherAppointments} currentUserId={currentUserId} onDelete={onDelete} expandedId={expandedId} setExpandedId={setExpandedId} /></div>
+                    <div className="day-sheet-timeline"><AppointmentGroup title="Classes" appointments={classes} currentUserId={currentUserId} onDelete={onDelete} expandedId={expandedId} setExpandedId={setExpandedId} /><AppointmentGroup title="Appointments" appointments={otherAppointments} currentUserId={currentUserId} onDelete={onDelete} expandedId={expandedId} setExpandedId={setExpandedId} />{sheetAppointments.length > 8 && !showAllAppointments ? <button className="button secondary" type="button" onClick={() => setShowAllAppointments(true)}>Show all {sheetAppointments.length}</button> : null}</div>
                 </motion.aside>
             </motion.div> : null}
         </AnimatePresence>

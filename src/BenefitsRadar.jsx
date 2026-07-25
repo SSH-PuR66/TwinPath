@@ -51,6 +51,7 @@ export default function BenefitsRadar({ householdId, onToast, memberTrack = "hou
     const [selected, setSelected] = useState(null);
     const [busy, setBusy] = useState(false);
     const [error, setError] = useState("");
+    const [showAllPrograms, setShowAllPrograms] = useState(false);
     const prefersReducedMotion = useReducedMotion();
 
     const refresh = useCallback(async () => {
@@ -134,7 +135,7 @@ export default function BenefitsRadar({ householdId, onToast, memberTrack = "hou
                         })}
                     </div>
                 </section>
-                <div className="benefit-grid">{orderedPrograms.map((program) => {
+                <div className="benefit-grid">{(showAllPrograms ? orderedPrograms : orderedPrograms.slice(0, 8)).map((program) => {
                 const enrollment = program.enrollment;
                 const deadline = enrollment?.next_deadline_on;
                 const checklist = enrollment?.checklist || [];
@@ -147,6 +148,7 @@ export default function BenefitsRadar({ householdId, onToast, memberTrack = "hou
                     <button className="button ghost" type="button" onClick={() => setSelected({ ...program, enrollment: enrollment || { status: "researching", checklist: [] } })}>Review <ChevronRight size={16} /></button>
                 </article>;
             })}</div>
+            {orderedPrograms.length > 8 && !showAllPrograms ? <button className="button secondary" type="button" onClick={() => setShowAllPrograms(true)}>Show all {orderedPrograms.length}</button> : null}
             </>}
             </div>
             <AnimatePresence>{selected ? <motion.div className="benefit-drawer-backdrop" onMouseDown={() => setSelected(null)} initial={prefersReducedMotion ? false : { opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: prefersReducedMotion ? 0 : 0.16, ease: "easeOut" }}><motion.aside className="benefit-drawer" role="dialog" aria-modal="true" aria-label={`Review ${selected.name}`} onMouseDown={(event) => event.stopPropagation()} initial={prefersReducedMotion ? false : { opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} exit={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, scale: 0.96 }} transition={{ duration: prefersReducedMotion ? 0 : 0.16, ease: "easeOut" }}><header><div><span className="eyebrow">BENEFIT CHECKLIST · {displayTrack(programTrack(selected)).toUpperCase()}</span><h2>{selected.name}</h2></div><button className="icon-button" type="button" onClick={() => setSelected(null)} aria-label="Close"><X size={19} /></button></header><p>{selected.how_to_apply}{officialSiteHost(selected.official_url) ? <>{" "}<a className="inline-external-link" href={safeExternalUrl(selected.official_url) || undefined} target="_blank" rel="noopener noreferrer">{officialSiteHost(selected.official_url)}<ExternalLink size={13} aria-hidden="true" /></a></> : null}</p><form className="benefit-form" onSubmit={save}><fieldset className="benefit-status-control"><legend>Status</legend><div role="radiogroup" aria-label="Benefit status">{statuses.map((status) => <button key={status} className={selected.enrollment?.status === status || (!selected.enrollment?.status && status === "researching") ? "active" : ""} type="button" role="radio" aria-checked={selected.enrollment?.status === status || (!selected.enrollment?.status && status === "researching")} onClick={() => updateEnrollment({ status })}>{statusLabel(status)}</button>)}</div></fieldset><label>Next deadline<input type="date" value={selected.enrollment?.next_deadline_on || ""} onChange={(event) => updateEnrollment({ next_deadline_on: event.target.value || null })} /></label><label>Estimated annual value<input type="number" min="0" max="1000000" step="1" value={selected.enrollment?.est_annual_value || ""} onChange={(event) => updateEnrollment({ est_annual_value: event.target.value })} /></label><label>Notes<textarea value={selected.enrollment?.notes || ""} onChange={(event) => updateEnrollment({ notes: event.target.value })} maxLength={2000} /></label><div className="benefit-checklist"><strong>Your checklist progress</strong>{(selected.enrollment?.checklist || []).map((item, index) => <label key={`${item.label}-${index}`}><input type="checkbox" checked={item.done && item.done_by === currentUserId} onChange={(event) => updateEnrollment({ checklist: selected.enrollment.checklist.map((entry, entryIndex) => entryIndex === index ? { ...entry, done: event.target.checked, done_by: event.target.checked ? currentUserId : null } : entry) })} />{item.label}</label>)}{selected.enrollment?.checklist?.length ? null : <small>Add checklist items after your first application step.</small>}</div><button className="button primary" type="submit" disabled={busy}>{busy ? <Loader2 className="spin" size={16} /> : <CheckCircle2 size={16} />} Save status</button></form></motion.aside></motion.div> : null}</AnimatePresence>
