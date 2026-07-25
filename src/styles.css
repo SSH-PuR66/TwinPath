@@ -3197,6 +3197,37 @@ textarea {
 .benefit-drawer > header { display: flex; justify-content: space-between; gap: var(--space-4); }
 .inline-external-link { display: inline-flex; align-items: baseline; gap: 0.25rem; color: var(--accent); font-weight: 600; text-decoration: underline; text-underline-offset: 2px; white-space: nowrap; }
 .inline-external-link svg { align-self: center; }
+.disclosure-section { display: grid; gap: 0.6rem; }
+.disclosure-summary { display: flex; width: 100%; align-items: center; justify-content: space-between; gap: 0.75rem; padding: 0.7rem 0.85rem; color: var(--text); font: inherit; text-align: left; background: var(--surface-soft); border: 1px solid var(--border); border-radius: 15px; cursor: pointer; }
+.disclosure-heading { display: grid; gap: 0.1rem; }
+.disclosure-title { font-size: 0.9rem; font-weight: 700; }
+.disclosure-hint { color: var(--subtle); font-size: 0.74rem; }
+.disclosure-chevron { flex-shrink: 0; color: var(--muted); transition: transform 160ms ease-out; }
+.disclosure-section[data-open="yes"] .disclosure-chevron { transform: rotate(180deg); }
+.disclosure-panel { display: grid; gap: 0.85rem; }
+.disclosure-panel[hidden] { display: none; }
+
+.money-flow-map { display: grid; gap: 0.85rem; }
+.money-flow-figure { display: grid; gap: 0.5rem; margin: 0; }
+.money-flow-empty { margin: 0; color: var(--muted); font-size: 0.82rem; }
+.flow-diagram { width: 100%; height: auto; }
+.flow-ribbon { fill: none; opacity: 0.55; transition: opacity 160ms ease-out; }
+.flow-ribbon[data-tone="in"] { stroke: color-mix(in srgb, var(--accent) 70%, transparent); }
+.flow-ribbon[data-tone="out"] { stroke: color-mix(in srgb, var(--accent-2) 70%, transparent); }
+.flow-ribbon[data-dim="yes"] { opacity: 0.1; }
+.flow-node { cursor: pointer; }
+.flow-node:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.flow-node-shape[data-tone="in"] { fill: var(--accent); }
+.flow-node-shape[data-tone="out"] { fill: var(--accent-2); }
+.flow-hub-shape { fill: color-mix(in srgb, var(--text) 76%, transparent); }
+.flow-label { fill: var(--text); font-size: 9px; font-weight: 600; }
+.flow-value { fill: var(--muted); font-size: 8px; }
+.flow-hub-label { fill: var(--text); font-size: 9px; font-weight: 700; letter-spacing: 0.04em; }
+.flow-caption { color: var(--muted); font-size: 0.78rem; text-align: center; }
+.flow-summary { display: grid; gap: 0.3rem; }
+.flow-summary-row { display: flex; justify-content: space-between; gap: 0.75rem; color: var(--muted); font-size: 0.82rem; }
+.flow-summary-row b { color: var(--text); }
+.flow-note { margin: 0; color: var(--subtle); font-size: 0.72rem; }
 .benefit-status-control { display: grid; min-width: 0; margin: 0; padding: 0; gap: var(--space-2); border: 0; }
 .benefit-status-control legend { padding: 0; color: var(--muted); font-size: 0.8rem; }
 .benefit-status-control [role="radiogroup"] { display: flex; flex-wrap: wrap; gap: var(--space-2); }

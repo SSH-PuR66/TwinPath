@@ -49,6 +49,7 @@ import FinancialSummary from "./FinancialSummary";
 import WatchedSourcesPanel from "./WatchedSourcesPanel";
 import ProfileVaultPanel from "./ProfileVaultPanel";
 import NowPath from "./NowPath";
+import DisclosureSection from "./DisclosureSection";
 
 import {
     initialAllocation,
@@ -71,6 +72,7 @@ const FamilySavings = lazy(() => import("./FamilySavings.jsx"));
 const FamilyWorkspace = lazy(() => import("./FamilyWorkspace.jsx"));
 const GrowWorkspace = lazy(() => import("./GrowWorkspace.jsx"));
 const FinancialConnectionsPanel = lazy(() => import("./FinancialConnectionsPanel.jsx"));
+const MoneyFlowMap = lazy(() => import("./MoneyFlowMap.jsx"));
 
 const moneyFormatter = new Intl.NumberFormat("en-US", {
     style: "currency",
@@ -1384,243 +1386,267 @@ function MoneyTab({
     return (
         <div className="page-stack">
             <FinancialSummary householdId={householdId} privateMode={privateMode} />
-            <MoneyActionCenter
-                householdId={householdId}
-                currentUserId={currentUserId}
-                onImported={onImported}
-                onToast={onToast}
-                sharedImport={sharedImport}
-                onSharedImportHandled={onSharedImportHandled}
-                memberTrack={memberTrack}
-            />
-            <Suspense fallback={<FeatureLoader label="Opening live money overview…" />}>
-                <FinancialConnectionsPanel
+            <DisclosureSection
+                id="money-flow"
+                title="Where the money went"
+                hint="The last 90 days, drawn as a flow"
+                collapseOnPhone
+            >
+                <Suspense fallback={<FeatureLoader label="Drawing the money flow" />}>
+                    <MoneyFlowMap householdId={householdId} privateMode={privateMode} />
+                </Suspense>
+            </DisclosureSection>
+
+            <DisclosureSection
+                id="money-accounts"
+                title="Accounts, transactions and the starting plan"
+                hint="Connect a bank, log money, read every line"
+            >
+                <MoneyActionCenter
                     householdId={householdId}
                     currentUserId={currentUserId}
-                    privateMode={privateMode}
+                    onImported={onImported}
+                    onToast={onToast}
+                    sharedImport={sharedImport}
+                    onSharedImportHandled={onSharedImportHandled}
+                    memberTrack={memberTrack}
                 />
-            </Suspense>
-            <div className="page-heading">
-                <div>
-                    <p className="eyebrow">MONEY</p>
-                    <h2>Protect, earn, then grow</h2>
-                </div>
-
-                <Button icon={Plus} onClick={() => setTransactionModal(true)}>
-                    Transaction
-                </Button>
-            </div>
-
-            <div className="summary-grid">
-                <SummaryCard
-                    icon={CircleDollarSign}
-                    label="Income"
-                    value={shownMoney(income)}
-                />
-
-                <SummaryCard
-                    icon={WalletCards}
-                    label="Expenses"
-                    value={shownMoney(expenses)}
-                />
-
-                <SummaryCard
-                    icon={ShieldCheck}
-                    label="Balance"
-                    value={shownMoney(balance)}
-                />
-            </div>
-
-            <Card>
-                <RevenueAllocator
-                    privateMode={privateMode}
-                    onLogIncome={() => setTransactionModal(true)}
-                />
-            </Card>
-
-            <Card>
-                <div className="section-title">
+                <Suspense fallback={<FeatureLoader label="Opening live money overview…" />}>
+                    <FinancialConnectionsPanel
+                        householdId={householdId}
+                        currentUserId={currentUserId}
+                        privateMode={privateMode}
+                    />
+                </Suspense>
+                <div className="page-heading">
                     <div>
-                        <span className="eyebrow">STARTING PLAN</span>
-                        <h3>A cautious \$2,000 allocation</h3>
-                        <p>
-                            Adjust this to your actual essential expenses and medical needs.
-                        </p>
-                    </div>
-                </div>
-
-                <div className="allocation-list">
-                    {initialAllocation.map((item) => (
-                        <div className="allocation-row" key={item.name}>
-                            <span>{item.name}</span>
-                            <strong>
-                                {privateMode ? "••••" : moneyFormatter.format(item.amount)}
-                            </strong>
-                            <div className="progress-track">
-                                <span
-                                    style={{
-                                        width: `${Math.max(4, (item.amount / 2000) * 100)}%`,
-                                    }}
-                                />
-                            </div>
-                        </div>
-                    ))}
-                </div>
-
-                <div className="warning-inline">
-                    <ShieldCheck size={18} />
-                    <span>
-                        Do not put near-term family money into options, leverage, meme
-                        coins, gambling or unauthorized security work.
-                    </span>
-                </div>
-            </Card>
-
-            <Card>
-                <div className="section-title">
-                    <div>
-                        <h3>Transactions</h3>
-                        <p>Track actual profit, not only gross money received.</p>
+                        <p className="eyebrow">MONEY</p>
+                        <h2>Protect, earn, then grow</h2>
                     </div>
 
-                    <Button
-                        icon={Download}
-                        variant="secondary"
-                        onClick={exportCSV}
-                        disabled={!transactions.length}
-                    >
-                        CSV
+                    <Button icon={Plus} onClick={() => setTransactionModal(true)}>
+                        Transaction
                     </Button>
                 </div>
 
-                {transactions.length ? (
-                    <div className="transaction-list">
-                        {transactions.map((item) => (
-                            <div className="transaction-row" key={item.id}>
-                                <div
-                                    className={`transaction-icon ${item.kind === "income" ? "positive" : "negative"
-                                        }`}
-                                >
-                                    <CircleDollarSign size={18} />
-                                </div>
+                <div className="summary-grid">
+                    <SummaryCard
+                        icon={CircleDollarSign}
+                        label="Income"
+                        value={shownMoney(income)}
+                    />
 
-                                <div className="transaction-copy">
-                                    <strong>{item.description || item.category}</strong>
-                                    <small>
-                                        {item.category || "Other"} ·{" "}
-                                        {dateFormatter.format(
-                                            new Date(`${item.transaction_date}T12:00:00`)
-                                        )}
-                                        {item.visibility === "private" ? " · Only me" : ""}
-                                    </small>
-                                </div>
+                    <SummaryCard
+                        icon={WalletCards}
+                        label="Expenses"
+                        value={shownMoney(expenses)}
+                    />
 
-                                <strong
-                                    className={
-                                        item.kind === "income" ? "money-positive" : "money-negative"
-                                    }
-                                >
-                                    {privateMode
-                                        ? "••••"
-                                        : `${item.kind === "income" ? "+" : "-"}${moneyFormatter.format(
-                                            Number(item.amount)
-                                        )}`}
+                    <SummaryCard
+                        icon={ShieldCheck}
+                        label="Balance"
+                        value={shownMoney(balance)}
+                    />
+                </div>
+
+                <Card>
+                    <RevenueAllocator
+                        privateMode={privateMode}
+                        onLogIncome={() => setTransactionModal(true)}
+                    />
+                </Card>
+
+                <Card>
+                    <div className="section-title">
+                        <div>
+                            <span className="eyebrow">STARTING PLAN</span>
+                            <h3>A cautious \$2,000 allocation</h3>
+                            <p>
+                                Adjust this to your actual essential expenses and medical needs.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div className="allocation-list">
+                        {initialAllocation.map((item) => (
+                            <div className="allocation-row" key={item.name}>
+                                <span>{item.name}</span>
+                                <strong>
+                                    {privateMode ? "••••" : moneyFormatter.format(item.amount)}
                                 </strong>
-
-                                <button
-                                    className="icon-button small danger"
-                                    onClick={() => deleteTransaction(item)}
-                                    aria-label="Delete transaction"
-                                >
-                                    <Trash2 size={16} />
-                                </button>
+                                <div className="progress-track">
+                                    <span
+                                        style={{
+                                            width: `${Math.max(4, (item.amount / 2000) * 100)}%`,
+                                        }}
+                                    />
+                                </div>
                             </div>
                         ))}
                     </div>
-                ) : (
-                    <Empty>No transactions recorded.</Empty>
-                )}
-            </Card>
 
-            <Card>
-                <div className="section-title">
-                    <div>
-                        <span className="eyebrow">INCOME PIPELINE</span>
-                        <h3>Build reliable income</h3>
+                    <div className="warning-inline">
+                        <ShieldCheck size={18} />
+                        <span>
+                            Do not put near-term family money into options, leverage, meme
+                            coins, gambling or unauthorized security work.
+                        </span>
+                    </div>
+                </Card>
+
+                <Card>
+                    <div className="section-title">
+                        <div>
+                            <h3>Transactions</h3>
+                            <p>Track actual profit, not only gross money received.</p>
+                        </div>
+
+                        <Button
+                            icon={Download}
+                            variant="secondary"
+                            onClick={exportCSV}
+                            disabled={!transactions.length}
+                        >
+                            CSV
+                        </Button>
                     </div>
 
-                    <Button
-                        icon={Plus}
-                        variant="secondary"
-                        onClick={() => setOpportunityModal(true)}
-                    >
-                        Add route
-                    </Button>
-                </div>
+                    {transactions.length ? (
+                        <div className="transaction-list">
+                            {transactions.map((item) => (
+                                <div className="transaction-row" key={item.id}>
+                                    <div
+                                        className={`transaction-icon ${item.kind === "income" ? "positive" : "negative"
+                                            }`}
+                                    >
+                                        <CircleDollarSign size={18} />
+                                    </div>
 
-                {opportunities.length ? (
-                    <div className="opportunity-grid">
-                        {opportunities.map((item) => (
-                            <article className="opportunity-card" key={item.id}>
-                                <div className="opportunity-top">
-                                    <Pill tone="blue">{item.status}</Pill>
+                                    <div className="transaction-copy">
+                                        <strong>{item.description || item.category}</strong>
+                                        <small>
+                                            {item.category || "Other"} ·{" "}
+                                            {dateFormatter.format(
+                                                new Date(`${item.transaction_date}T12:00:00`)
+                                            )}
+                                            {item.visibility === "private" ? " · Only me" : ""}
+                                        </small>
+                                    </div>
+
+                                    <strong
+                                        className={
+                                            item.kind === "income" ? "money-positive" : "money-negative"
+                                        }
+                                    >
+                                        {privateMode
+                                            ? "••••"
+                                            : `${item.kind === "income" ? "+" : "-"}${moneyFormatter.format(
+                                                Number(item.amount)
+                                            )}`}
+                                    </strong>
 
                                     <button
                                         className="icon-button small danger"
-                                        onClick={() => deleteOpportunity(item)}
-                                        aria-label="Delete opportunity"
+                                        onClick={() => deleteTransaction(item)}
+                                        aria-label="Delete transaction"
                                     >
-                                        <Trash2 size={15} />
+                                        <Trash2 size={16} />
                                     </button>
                                 </div>
+                            ))}
+                        </div>
+                    ) : (
+                        <Empty>No transactions recorded.</Empty>
+                    )}
+                </Card>
+            </DisclosureSection>
 
-                                <h4>{item.title}</h4>
-                                <p>{item.organization || "Independent route"}</p>
+            <DisclosureSection
+                id="money-routes"
+                title="Income routes and the road up"
+                hint="Where the next dollar could come from"
+                collapseOnPhone
+            >
+                <Card>
+                    <div className="section-title">
+                        <div>
+                            <span className="eyebrow">INCOME PIPELINE</span>
+                            <h3>Build reliable income</h3>
+                        </div>
 
-                                {item.estimated_monthly > 0 && (
-                                    <strong>
-                                        Potential:{" "}
-                                        {privateMode
-                                            ? "••••"
-                                            : moneyFormatter.format(item.estimated_monthly)}
-                                        /month
-                                    </strong>
-                                )}
+                        <Button
+                            icon={Plus}
+                            variant="secondary"
+                            onClick={() => setOpportunityModal(true)}
+                        >
+                            Add route
+                        </Button>
+                    </div>
 
-                                {item.notes && <small>{item.notes}</small>}
-                            </article>
+                    {opportunities.length ? (
+                        <div className="opportunity-grid">
+                            {opportunities.map((item) => (
+                                <article className="opportunity-card" key={item.id}>
+                                    <div className="opportunity-top">
+                                        <Pill tone="blue">{item.status}</Pill>
+
+                                        <button
+                                            className="icon-button small danger"
+                                            onClick={() => deleteOpportunity(item)}
+                                            aria-label="Delete opportunity"
+                                        >
+                                            <Trash2 size={15} />
+                                        </button>
+                                    </div>
+
+                                    <h4>{item.title}</h4>
+                                    <p>{item.organization || "Independent route"}</p>
+
+                                    {item.estimated_monthly > 0 && (
+                                        <strong>
+                                            Potential:{" "}
+                                            {privateMode
+                                                ? "••••"
+                                                : moneyFormatter.format(item.estimated_monthly)}
+                                            /month
+                                        </strong>
+                                    )}
+
+                                    {item.notes && <small>{item.notes}</small>}
+                                </article>
+                            ))}
+                        </div>
+                    ) : (
+                        <Empty>
+                            Add campus IT, work-study, remote support, performance bookings or
+                            another legal income route.
+                        </Empty>
+                    )}
+                </Card>
+
+                <Card>
+                    <div className="section-title">
+                        <div>
+                            <span className="eyebrow">WEALTH ROADMAP</span>
+                            <h3>The realistic path upward</h3>
+                        </div>
+                    </div>
+
+                    <div className="timeline">
+                        {wealthSteps.map((step, index) => (
+                            <div className="timeline-row" key={step.stage}>
+                                <div className="timeline-number">{index + 1}</div>
+
+                                <div>
+                                    <Pill>{step.stage}</Pill>
+                                    <h4>{step.title}</h4>
+                                    <p>{step.body}</p>
+                                </div>
+                            </div>
                         ))}
                     </div>
-                ) : (
-                    <Empty>
-                        Add campus IT, work-study, remote support, performance bookings or
-                        another legal income route.
-                    </Empty>
-                )}
-            </Card>
-
-            <Card>
-                <div className="section-title">
-                    <div>
-                        <span className="eyebrow">WEALTH ROADMAP</span>
-                        <h3>The realistic path upward</h3>
-                    </div>
-                </div>
-
-                <div className="timeline">
-                    {wealthSteps.map((step, index) => (
-                        <div className="timeline-row" key={step.stage}>
-                            <div className="timeline-number">{index + 1}</div>
-
-                            <div>
-                                <Pill>{step.stage}</Pill>
-                                <h4>{step.title}</h4>
-                                <p>{step.body}</p>
-                            </div>
-                        </div>
-                    ))}
-                </div>
-            </Card>
+                </Card>
+            </DisclosureSection>
         </div>
     );
 }
