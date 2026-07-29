@@ -11,18 +11,18 @@ import {
 
 const HEX_COLOR = /^#[0-9a-f]{6}$/i;
 
-test("ships nineteen uniquely named included live themes", () => {
+test("ships twenty-seven uniquely named included live themes", () => {
   const entries = Object.entries(includedThemes);
   const names = entries.map(([, theme]) => theme.name);
 
-  assert.equal(entries.length, 19);
+  assert.equal(entries.length, 27);
   assert.equal(new Set(names).size, entries.length);
 });
 
-test("ships 190 selectable Theme Shop variants", () => {
+test("ships 270 selectable Theme Shop variants", () => {
   const entries = Object.entries(shopThemes);
-  assert.equal(entries.length, 190);
-  assert.equal(Object.keys(themes).length, 209);
+  assert.equal(entries.length, 270);
+  assert.equal(Object.keys(themes).length, 297);
   assert.ok(entries.every(([, theme]) => theme.source === "TwinPath Theme Shop"));
   assert.ok(entries.every(([, theme]) => typeof theme.pack === "string" && theme.pack.length > 0));
 });
@@ -40,9 +40,9 @@ test("every theme is included free and has complete scene metadata", () => {
   }
 });
 
-test("falls back safely to Aurora Glass for invalid stored keys", () => {
-  assert.equal(DEFAULT_THEME_KEY, "aurora");
-  assert.equal(themes[DEFAULT_THEME_KEY].name, "Aurora Glass");
+test("falls back safely to Hearth for invalid stored keys", () => {
+  assert.equal(DEFAULT_THEME_KEY, "hearth");
+  assert.equal(themes[DEFAULT_THEME_KEY].name, "Hearth");
   assert.equal(resolveThemeKey("cyber"), "cyber");
   assert.equal(resolveThemeKey("missing-theme"), DEFAULT_THEME_KEY);
   assert.equal(resolveThemeKey(null), DEFAULT_THEME_KEY);

@@ -1,4 +1,4 @@
-import { validateImportedTheme } from "./themeValidation";
+import { validateImportedTheme } from "./themeValidation.js";
 
 export const DEFAULT_THEME_KEY = "hearth";
 
