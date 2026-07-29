@@ -1,4 +1,5 @@
 const LEGAL_PAGES = new Set(["privacy", "terms", "refunds"]);
+const PRIVATE_APP_PATHS = new Set(["/", "/import", "/money", "/grow", "/family", "/settings"]);
 const PRODUCT_ROUTE = /^\/shop\/product\/([^/]+)$/;
 
 export function normalizeApplicationPath(pathname) {
@@ -14,7 +15,7 @@ export function normalizeApplicationPath(pathname) {
 export function resolveApplicationRoute(pathname, productIds = []) {
   const path = normalizeApplicationPath(pathname);
 
-  if (path === "/" || path === "/import") return { kind: "private-app" };
+  if (PRIVATE_APP_PATHS.has(path)) return { kind: "private-app" };
   if (path === "/shop") return { kind: "storefront" };
 
   const legalPage = path.match(/^\/shop\/(privacy|terms|refunds)$/)?.[1];

@@ -1,4 +1,4 @@
-import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Baby,
   Bell,
@@ -36,6 +36,14 @@ import {
 } from "lucide-react";
 
 import { supabase } from "./supabase";
+import {
+  isE2EMockAuth,
+  mockAppData,
+  mockHousehold,
+  mockProfile,
+  mockSession,
+} from "./mockAuth";
+import { usePaneOverflow } from "./hooks/usePaneOverflow";
 import ThemeScene, { ThemePreview, usePageHidden } from "./ThemeScene";
 import ThemeMarketplace from "./ThemeMarketplace";
 import { communityThemeCredits, includedThemes, resolveThemeKey, themes } from "./themeCatalog";
@@ -103,6 +111,13 @@ const tabs = [
     { id: "family", label: "Family", icon: Baby },
     { id: "settings", label: "Settings", icon: Settings },
 ];
+
+function tabFromPathname(pathname = window.location.pathname) {
+    const path = String(pathname).toLowerCase();
+    return ["money", "grow", "family"].includes(path.slice(1))
+        ? path.slice(1)
+        : "home";
+}
 
 const visibilityOptions = [
     { value: "shared", label: "Shared" },
@@ -829,7 +844,7 @@ function HomeMoneySnapshot({ householdId, privateMode, proposalCount }) {
     const [overview, setOverview] = useState(null);
     const [networthSnapshots, setNetworthSnapshots] = useState([]);
     const [status, setStatus] = useState("loading");
-    const controlPlaneUrl = (safeExternalUrl(String(import.meta.env.VITE_CONTROL_PLANE_URL || "").trim(), {
+    const controlPlaneUrl = isE2EMockAuth ? "" : (safeExternalUrl(String(import.meta.env.VITE_CONTROL_PLANE_URL || "").trim(), {
         allowLocalHttp: true,
     }) || "").replace(/\/+$/, "");
 
@@ -1394,6 +1409,8 @@ function MoneyTab({
     twinsDueDate,
 }) {
     const [showAllTransactions, setShowAllTransactions] = useState(false);
+    const paneRootRef = useRef(null);
+    usePaneOverflow(paneRootRef);
     const income = transactions
         .filter((item) => item.kind === "income")
         .reduce((sum, item) => sum + Number(item.amount), 0);
@@ -1446,8 +1463,32 @@ function MoneyTab({
     }
 
     return (
-        <div className="page-stack">
-            <FinancialSummary householdId={householdId} privateMode={privateMode} />
+        <div ref={paneRootRef} className="tp-shell money-density">
+            <section className="tp-pane money-density__summary">
+                <header className="tp-pane__head">
+                    <span>Financial pulse</span>
+                    <em>Read the last 90 days first</em>
+                </header>
+                <div className="tp-pane__body">
+                    <div className="money-density__pulse">
+                        <p className="eyebrow">MONEY</p>
+                        <h2>{shownMoney(balance)} available</h2>
+                        <p>{shownMoney(income)} in and {shownMoney(expenses)} out across logged transactions.</p>
+                        <div className="summary-grid tp-strip">
+                            <SummaryCard icon={CircleDollarSign} label="Income" value={shownMoney(income)} />
+                            <SummaryCard icon={WalletCards} label="Expenses" value={shownMoney(expenses)} />
+                            <SummaryCard icon={ShieldCheck} label="Balance" value={shownMoney(balance)} />
+                        </div>
+                    </div>
+                </div>
+            </section>
+            <section className="tp-pane money-density__workspace">
+                <header className="tp-pane__head">
+                    <span>Money workspace</span>
+                    <em>Scroll this pane, not the page</em>
+                </header>
+                <div className="tp-pane__body">
+                    <div className="page-stack">
             <DisclosureSection
                 id="money-flow"
                 title="Where the money went"
@@ -1714,6 +1755,67 @@ function MoneyTab({
                     </div>
                 </Card>
             </DisclosureSection>
+                    </div>
+                </div>
+            </section>
+        </div>
+    );
+}
+
+function GrowTab({
+    householdId,
+    currentUserId,
+    transactions,
+    opportunities,
+    privateMode,
+    reducedMotion,
+    setTransactionModal,
+    setOpportunityModal,
+    setOpportunityDraft,
+    onImported,
+}) {
+    const paneRootRef = useRef(null);
+    usePaneOverflow(paneRootRef);
+
+    return (
+        <div ref={paneRootRef} className="tp-shell grow-density">
+            <section className="tp-pane grow-density__hero">
+                <header className="tp-pane__head">
+                    <span>Current goal</span>
+                    <em>One next move at a time</em>
+                </header>
+                <div className="tp-pane__body">
+                    <GrowHero
+                        opportunities={opportunities}
+                        privateMode={privateMode}
+                        onAddRoute={() => setOpportunityModal(true)}
+                    />
+                </div>
+            </section>
+
+            <section className="tp-pane grow-density__workspace">
+                <header className="tp-pane__head">
+                    <span>Growth workspace</span>
+                    <em>Scroll this pane, not the page</em>
+                </header>
+                <div className="tp-pane__body">
+                    <Suspense fallback={<FeatureLoader label="Opening Growth Center..." />}>
+                        <GrowWorkspace
+                            householdId={householdId}
+                            currentUserId={currentUserId}
+                            transactions={transactions}
+                            privateMode={privateMode}
+                            reducedMotion={reducedMotion}
+                            onLogTransaction={() => setTransactionModal(true)}
+                            onAddOpportunity={(route) => {
+                                setOpportunityDraft(route || null);
+                                setOpportunityModal(true);
+                            }}
+                            onImported={onImported}
+                        />
+                    </Suspense>
+                </div>
+            </section>
         </div>
     );
 }
@@ -2753,19 +2855,19 @@ function SettingsModal({
 }
 
 export default function App() {
-    const [session, setSession] = useState(null);
-    const [profile, setProfile] = useState(null);
-    const [household, setHousehold] = useState(null);
-    const [loading, setLoading] = useState(true);
+    const [session, setSession] = useState(() => isE2EMockAuth ? mockSession : null);
+    const [profile, setProfile] = useState(() => isE2EMockAuth ? mockProfile : null);
+    const [household, setHousehold] = useState(() => isE2EMockAuth ? mockHousehold : null);
+    const [loading, setLoading] = useState(!isE2EMockAuth);
     const [refreshing, setRefreshing] = useState(false);
-    const [tab, setTab] = useState("home");
+    const [tab, setTab] = useState(() => tabFromPathname());
     const [error, setError] = useState("");
 
-    const [tasks, setTasks] = useState([]);
-    const [appointments, setAppointments] = useState([]);
-    const [transactions, setTransactions] = useState([]);
-    const [opportunities, setOpportunities] = useState([]);
-    const [documents, setDocuments] = useState([]);
+    const [tasks, setTasks] = useState(() => isE2EMockAuth ? mockAppData.tasks : []);
+    const [appointments, setAppointments] = useState(() => isE2EMockAuth ? mockAppData.appointments : []);
+    const [transactions, setTransactions] = useState(() => isE2EMockAuth ? mockAppData.transactions : []);
+    const [opportunities, setOpportunities] = useState(() => isE2EMockAuth ? mockAppData.opportunities : []);
+    const [documents, setDocuments] = useState(() => isE2EMockAuth ? mockAppData.documents : []);
 
     const [taskModal, setTaskModal] = useState(false);
     const [selectedTask, setSelectedTask] = useState(null);
@@ -2774,7 +2876,7 @@ export default function App() {
     const [appointmentDraftDate, setAppointmentDraftDate] = useState(null);
     const [opportunityModal, setOpportunityModal] = useState(false);
     const [opportunityDraft, setOpportunityDraft] = useState(null);
-    const [settingsOpen, setSettingsOpen] = useState(false);
+    const [settingsOpen, setSettingsOpen] = useState(() => window.location.pathname.toLowerCase() === "/settings");
     const [uploading, setUploading] = useState(false);
     const [privateMode, setPrivateMode] = useState(false);
     const [proposalCount, setProposalCount] = useState(0);
@@ -2954,6 +3056,7 @@ export default function App() {
     }
 
     useEffect(() => {
+        if (isE2EMockAuth) return undefined;
         supabase.auth.getSession().then(({ data }) => {
             setSession(data.session);
             if (!data.session) setLoading(false);
@@ -2980,10 +3083,12 @@ export default function App() {
     }, []);
 
     useEffect(() => {
+        if (isE2EMockAuth) return undefined;
         if (session?.user) loadIdentity();
     }, [session?.user?.id]);
 
     useEffect(() => {
+        if (isE2EMockAuth) return undefined;
         if (!household?.id) return;
 
         loadData();
@@ -3040,6 +3145,12 @@ export default function App() {
     }, [household?.id, refreshPendingProposalCount]);
 
     async function loadIdentity() {
+        if (isE2EMockAuth) {
+            setProfile(mockProfile);
+            setHousehold(mockHousehold);
+            setLoading(false);
+            return;
+        }
         setLoading(true);
         setError("");
 
@@ -3076,6 +3187,7 @@ export default function App() {
     }
 
     async function loadData() {
+        if (isE2EMockAuth) return;
         if (!household?.id) return;
 
         setRefreshing(true);
@@ -3352,7 +3464,7 @@ export default function App() {
 
     return (
         <div
-            className={`app-shell ${privateMode ? "private-display" : ""}`}
+            className={`app-shell ${privateMode ? "private-display" : ""} ${["money", "grow"].includes(tab) ? "density-route" : ""}`}
             style={{
                 "--accent": themes[themeKey]?.accent,
                 "--accent-2": themes[themeKey]?.accent2,
@@ -3405,7 +3517,7 @@ export default function App() {
                             />
                             <Button type="button" variant="secondary" onClick={() => { window.history.replaceState({}, "", "/"); setTab("money"); }}>Back to Money</Button>
                         </section>
-                    ) : <AnimatedPage key={tab} reducedMotion={reducedMotion}>
+                    ) : <AnimatedPage key={tab} reducedMotion={reducedMotion} className={["money", "grow"].includes(tab) ? "density-route-page" : ""}>
                     {tab === "home" && (
                         <TodayTab
                             householdId={household.id}
@@ -3491,33 +3603,18 @@ export default function App() {
                     )}
 
                     {tab === "grow" && (
-                        <div className="page-stack">
-                            <GrowHero
-                                opportunities={opportunities}
-                                privateMode={privateMode}
-                                onAddRoute={() => setOpportunityModal(true)}
-                            />
-
-                            <Suspense
-                                fallback={
-                                    <FeatureLoader label="Opening Growth Center…" />
-                                }
-                            >
-                                <GrowWorkspace
-                                    householdId={household.id}
-                                    currentUserId={session.user.id}
-                                    transactions={transactions}
-                                    privateMode={privateMode}
-                                    reducedMotion={reducedMotion}
-                                    onLogTransaction={() => setTransactionModal(true)}
-                                    onAddOpportunity={(route) => {
-                                        setOpportunityDraft(route || null);
-                                        setOpportunityModal(true);
-                                    }}
-                                    onImported={loadData}
-                                />
-                            </Suspense>
-                        </div>
+                        <GrowTab
+                            householdId={household.id}
+                            currentUserId={session.user.id}
+                            transactions={transactions}
+                            opportunities={opportunities}
+                            privateMode={privateMode}
+                            reducedMotion={reducedMotion}
+                            setTransactionModal={setTransactionModal}
+                            setOpportunityModal={setOpportunityModal}
+                            setOpportunityDraft={setOpportunityDraft}
+                            onImported={loadData}
+                        />
                     )}
 
                     </AnimatedPage>}

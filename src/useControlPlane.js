@@ -1,6 +1,7 @@
 import { useCallback } from "react";
 import { safeExternalUrl } from "./safeUrl";
 import { supabase } from "./supabase";
+import { isE2EMockAuth } from "./mockAuth";
 
 export const CONTROL_PLANE_TIMEOUT_MS = 8_000;
 
@@ -51,5 +52,5 @@ export function useControlPlane(householdId) {
         return payload;
     }, [baseUrl, householdId]);
 
-    return { request, configured: Boolean(baseUrl) };
+    return { request, configured: !isE2EMockAuth && Boolean(baseUrl) };
 }

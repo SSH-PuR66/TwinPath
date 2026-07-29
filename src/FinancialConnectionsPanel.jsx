@@ -15,6 +15,7 @@ import { safeCheckoutUrl, safeExternalUrl } from "./safeUrl";
 import { supabase } from "./supabase";
 import { Skeleton } from "./Skeleton";
 import { CONTROL_PLANE_TIMEOUT_MS, readControlPlaneResponse } from "./useControlPlane";
+import { isE2EMockAuth } from "./mockAuth";
 
 const PLAID_SCRIPT = "https://cdn.plaid.com/link/v2/stable/link-initialize.js";
 
@@ -53,7 +54,7 @@ export default function FinancialConnectionsPanel({
     privateMode = false,
     onOpenWallet,
 }) {
-    const controlPlaneUrl = (
+    const controlPlaneUrl = isE2EMockAuth ? "" : (
         safeExternalUrl(String(import.meta.env.VITE_CONTROL_PLANE_URL || "").trim(), {
             allowLocalHttp: true,
         }) || ""
