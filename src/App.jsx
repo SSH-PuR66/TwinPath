@@ -73,6 +73,7 @@ import AnimatedPage from "./AnimatedPage";
 import RevenueAllocator from "./RevenueAllocator";
 import FeatureLoader from "./FeatureLoader";
 import { safeExternalUrl } from "./safeUrl";
+import { TWINS_EDD, TWINS_LIKELY_ARRIVAL } from "./twinsDates";
 
 const CalendarView = lazy(() => import("./CalendarView.jsx"));
 const FamilyGallery = lazy(() => import("./FamilyGallery.jsx"));
@@ -102,7 +103,11 @@ const dateTimeFormatter = new Intl.DateTimeFormat("en-US", {
     minute: "2-digit",
 });
 
-const twinsDueWindow = new Date("2026-12-25T12:00:00");
+// Two dates on purpose - see src/twinsDates.js. The countdown plans against the
+// realistic arrival (median twin gestation is 35.2 weeks); anything that says
+// the words "due date" to Sergio has to show the EDD the practice wrote down.
+const twinsArrivalTarget = new Date(`${TWINS_LIKELY_ARRIVAL}T12:00:00`);
+const twinsDueWindow = new Date(`${TWINS_EDD}T12:00:00`);
 
 const tabs = [
     { id: "home", label: "Home", icon: Home },
@@ -1035,7 +1040,7 @@ function TodayTab({
         });
 
     const nextAppointment = upcomingAppointments[0] || null;
-    const daysUntilTwins = Math.max(0, Math.ceil((twinsDueWindow.getTime() - Date.now()) / 86_400_000));
+    const daysUntilTwins = Math.max(0, Math.ceil((twinsArrivalTarget.getTime() - Date.now()) / 86_400_000));
 
     const nextDatedTask =
         incomplete
