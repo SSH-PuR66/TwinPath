@@ -219,6 +219,8 @@ small {
 }
 
 .app-shell {
+    --tp-bottom-nav-height: 66px;
+    --tp-bottom-nav-offset: calc(0.65rem + env(safe-area-inset-bottom));
     min-height: 100dvh;
     background: transparent;
 }
@@ -1166,12 +1168,12 @@ small {
 .bottom-nav {
     position: fixed;
     right: max(0.7rem, env(safe-area-inset-right));
-    bottom: calc(0.65rem + env(safe-area-inset-bottom));
+    bottom: var(--tp-bottom-nav-offset, calc(0.65rem + env(safe-area-inset-bottom)));
     left: max(0.7rem, env(safe-area-inset-left));
     z-index: 40;
     display: grid;
     max-width: 740px;
-    min-height: 66px;
+    min-height: var(--tp-bottom-nav-height, 66px);
     margin: 0 auto;
     padding: 0.35rem;
     grid-template-columns: repeat(5, minmax(0, 1fr));
