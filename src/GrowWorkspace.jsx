@@ -5,9 +5,11 @@ import {
     ChartNoAxesCombined,
     GraduationCap,
     Landmark,
+    ShieldCheck,
     ShoppingCart,
     WalletCards,
 } from "lucide-react";
+import AidTimeline from "./AidTimeline";
 import ConnectorCenter from "./ConnectorCenter";
 import ExperimentBudget from "./ExperimentBudget";
 import FinancialConnectionsPanel from "./FinancialConnectionsPanel";
@@ -20,6 +22,7 @@ import TwinsPrep from "./TwinsPrep";
 
 const growTabs = [
     { id: "profit", label: "Profit plan", shortLabel: "Profit", icon: ChartNoAxesCombined },
+    { id: "aid", label: "Aid & deadlines", shortLabel: "Aid", icon: ShieldCheck },
     { id: "connections", label: "Connections", shortLabel: "Connect", icon: Landmark },
     { id: "wallet", label: "Approval wallet", shortLabel: "Wallet", icon: WalletCards },
     { id: "automations", label: "Automations", shortLabel: "Auto", icon: Bot },
@@ -121,6 +124,8 @@ export default function GrowWorkspace({
                         onTrack={onAddOpportunity}
                     />
                 )}
+
+                {activeTab === "aid" && <AidTimeline />}
 
                 {activeTab === "prep" && <TwinsPrep />}
 
