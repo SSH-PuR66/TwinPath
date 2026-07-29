@@ -16,12 +16,10 @@
 
 export const PREP_VERIFIED_ON = "2026-07-29";
 
-// The due date on the Optum records is Jan 20, 2027. Median twin gestation is
-// 35.2 weeks and roughly 57-60% of twin pregnancies deliver before 37 weeks,
-// which puts the realistic date near Dec 17, 2026. Everything here is timed to
-// the realistic date, not the EDD.
-export const TWINS_EDD = "2027-01-20";
-export const TWINS_LIKELY_ARRIVAL = "2026-12-17";
+// Everything here is timed to the realistic arrival date, not the EDD. Both
+// dates live in twinsDates.js so the countdown on Home and the copy on this
+// surface can never drift apart again.
+export { TWINS_EDD, TWINS_LIKELY_ARRIVAL } from "./twinsDates.js";
 
 export const AMAZON_CART_BASE =
   "https://www.amazon.com/gp/aws/cart/add.html";
