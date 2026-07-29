@@ -2470,7 +2470,7 @@ textarea {
    below, and removed once you reach the bottom. A permanent fade on a pane that
    fits reads as a rendering bug, which is how the current pages feel. */
 .tp-pane__body{
-  overflow-y:auto; overflow-x:hidden; min-height:0;
+  flex:1 1 auto; overflow-y:auto; overflow-x:hidden; min-height:0;
   padding:0 13px 12px;
   scrollbar-width:thin; scrollbar-color:var(--border) transparent;
   overscroll-behavior:contain;
@@ -2508,6 +2508,7 @@ textarea {
   .tp-pane{ max-height:min(56vh, 440px); }
   .tp-rail{ --tp-rail-item:148px; }
   .tp-strip{ grid-auto-flow:row; grid-auto-columns:auto; }
+  .grow-tabs.grow-workspace-tabs{ --tp-rail-item:auto; }
 }
 @media (prefers-reduced-motion:reduce){
   .tp-rail{ scroll-behavior:auto; }
@@ -2521,14 +2522,30 @@ textarea {
 .money-density__summary{ grid-area:hero; }
 .money-density__workspace{ grid-area:workspace; }
 .money-density__summary .tp-pane__body{ padding:0 13px 12px; }
+.density-route .tp-pane__body{
+  padding-bottom:calc(12px + var(--tp-bottom-nav-height, 66px) + var(--tp-bottom-nav-offset, calc(0.65rem + env(safe-area-inset-bottom))));
+}
 .money-density__pulse{ min-width:0; }
 .money-density__pulse h2{ margin:.35rem 0; }
 .money-density__pulse p{ margin:.35rem 0 1rem; }
 .money-density__pulse .summary-grid{ margin-top:1rem; }
-.money-density__pulse .summary-card{ border:0; border-radius:0; box-shadow:none; }
+.money-density__pulse .summary-card{
+  padding:8px 10px;
+  flex-direction:column;
+  align-items:flex-start;
+  gap:.35rem;
+  border:0;
+  border-radius:0;
+  box-shadow:none;
+}
+.money-density__pulse .summary-card > div:last-child{ width:100%; }
 .grow-density__hero{ grid-area:hero; }
 .grow-density__workspace{ grid-area:workspace; }
-.grow-density__hero .tp-pane__body{ padding:0; }
+/* Longhands, not the `padding` shorthand: this rule ties with
+   `.density-route .tp-pane__body` at (0,2,0) and wins on source order, so a
+   shorthand here silently erased the bottom-nav clearance and left the hero
+   pane's last row of controls unreachable under the nav. */
+.grow-density__hero .tp-pane__body{ padding-top:0; padding-right:0; padding-left:0; }
 .grow-tabs.grow-workspace-tabs.tp-rail{
   display:flex;
   grid-template-columns:none;
@@ -2542,10 +2559,13 @@ textarea {
 @media (min-width:861px){
   .density-route .app-layer{
     height:100dvh;
+    display:flex;
+    flex-direction:column;
     min-height:0;
   }
   .density-route .content{
-    height:calc(100dvh - 77px);
+    height:auto;
+    flex:1 1 auto;
     min-height:0;
     padding:0 1.5rem 1rem;
     overflow:hidden;
@@ -3735,12 +3755,12 @@ textarea {
 .bottom-nav {
   position: fixed;
   right: max(0.7rem, env(safe-area-inset-right));
-  bottom: calc(0.65rem + env(safe-area-inset-bottom) + var(--keyboard-inset, 0px));
+  bottom: calc(var(--tp-bottom-nav-offset, calc(0.65rem + env(safe-area-inset-bottom))) + var(--keyboard-inset, 0px));
   left: max(0.7rem, env(safe-area-inset-left));
   z-index: 40;
   display: grid;
   max-width: 740px;
-  min-height: 66px;
+  min-height: var(--tp-bottom-nav-height, 66px);
   margin: 0 auto;
   padding: 0.35rem;
   grid-template-columns: repeat(5, minmax(0, 1fr));
