@@ -5,6 +5,7 @@ import {
     ChartNoAxesCombined,
     GraduationCap,
     Landmark,
+    ShoppingCart,
     WalletCards,
 } from "lucide-react";
 import ConnectorCenter from "./ConnectorCenter";
@@ -15,6 +16,7 @@ import OperationsControlPlane from "./OperationsControlPlane";
 import OpportunityImporter from "./OpportunityImporter";
 import ProfitabilityWorkspace from "./ProfitabilityWorkspace";
 import StudentPerks from "./StudentPerks";
+import TwinsPrep from "./TwinsPrep";
 
 const growTabs = [
     { id: "profit", label: "Profit plan", shortLabel: "Profit", icon: ChartNoAxesCombined },
@@ -22,6 +24,7 @@ const growTabs = [
     { id: "wallet", label: "Approval wallet", shortLabel: "Wallet", icon: WalletCards },
     { id: "automations", label: "Automations", shortLabel: "Auto", icon: Bot },
     { id: "student", label: "Student perks", shortLabel: "Perks", icon: GraduationCap },
+    { id: "prep", label: "Twins prep", shortLabel: "Prep", icon: ShoppingCart },
     { id: "connectors", label: "Connectors", shortLabel: "Apply", icon: Cable },
 ];
 
@@ -118,6 +121,8 @@ export default function GrowWorkspace({
                         onTrack={onAddOpportunity}
                     />
                 )}
+
+                {activeTab === "prep" && <TwinsPrep />}
 
                 {activeTab === "connectors" && (
                     <ConnectorCenter
