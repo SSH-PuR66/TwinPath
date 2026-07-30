@@ -4349,6 +4349,12 @@ textarea {
    leftmost third with the icon overlapping the label. 0,2,0 wins over every
    one of those .grow-tabs declarations regardless of source order. */
 .grow-tabs.money-tool-tabs {
+    /* These live inside the Money pane, not the Grow workspace.  Inheriting
+       Grow's sticky header offset made the local switcher float over pane
+       content on phones. */
+    position: static;
+    z-index: auto;
+    width: 100%;
     grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
