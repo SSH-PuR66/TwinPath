@@ -15,6 +15,7 @@
         "preview": "vite preview",
         "heights": "node scripts/height-budget.mjs",
         "test:worker": "node --test workers/control-plane/test/*.test.js",
+        "test:stripe-webhook": "node --test test/stripeWebhook.test.js",
         "test:gallery": "node --test test/galleryStorage.test.js",
         "worker:dev": "wrangler dev --config workers/control-plane/wrangler.jsonc",
         "worker:types": "wrangler types --config workers/control-plane/wrangler.jsonc workers/control-plane/src/worker-configuration.d.ts",
