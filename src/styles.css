@@ -3161,7 +3161,7 @@ textarea {
 .csv-import-options .toggle-row { flex: 1 1 16rem; }
 .money-tool-summary { align-items: baseline; flex-wrap: wrap; padding: 0.75rem; background: rgba(101,232,255,0.09); border-radius: 12px; }
 
-.money-action-center { display: grid; gap: var(--space-4); }
+.money-action-center { display: grid; min-width: 0; gap: var(--space-4); }
 .financial-summary { display: grid; gap: 1rem; padding: 1.2rem; overflow: hidden; background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 16%, rgba(8, 14, 25, 0.9)), color-mix(in srgb, var(--accent-2) 11%, rgba(8, 14, 25, 0.9))); border: 1px solid color-mix(in srgb, var(--accent) 42%, var(--border)); border-radius: 20px; }
 .financial-summary > header { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; }.financial-summary h2 { margin: 0.05rem 0; font-size: clamp(2.25rem, 9vw, 4.5rem); letter-spacing: -0.07em; }.financial-summary p { margin: 0; }.financial-summary-loading { grid-template-columns: auto 1fr; align-items: center; }
 .financial-summary-split { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.65rem; }.financial-summary-split > div { display: grid; grid-template-columns: auto 1fr; gap: 0.25rem 0.45rem; padding: 0.7rem; background: rgba(3, 7, 15, 0.25); border-radius: 13px; }.financial-summary-split svg { color: var(--accent); }.financial-summary-split strong { grid-column: 1 / -1; font-size: 1.1rem; }.financial-summary-split span { color: var(--muted); font-size: 0.78rem; }
@@ -3273,6 +3273,17 @@ textarea {
     .app-toast { bottom: calc(5.4rem + env(safe-area-inset-bottom)); }
     .csv-import-options,
     .deposit-router-form { align-items: stretch; flex-direction: column; }
+    .money-tool-panel,
+    .benefits-radar { min-width: 0; gap: var(--space-3); padding: var(--space-3); border-radius: 14px; }
+    .money-tool-heading,
+    .benefits-total,
+    .money-tool-summary { align-items: flex-start; }
+    .money-tool-heading > div,
+    .benefit-card-top { min-width: 0; }
+    .money-tool-heading p { overflow-wrap: anywhere; }
+    .csv-drop-zone { flex-wrap: wrap; padding: 0.75rem; text-align: center; }
+    .csv-import-options > label:not(.toggle-row),
+    .csv-import-options .toggle-row { flex-basis: auto; width: 100%; }
     .home-money-details { grid-template-columns: 1fr; }
     .watched-sources-form .button { width: 100%; }
 }
