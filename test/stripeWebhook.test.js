@@ -104,6 +104,15 @@ test("test-mode events are stored as sandbox revenue", async () => {
   const response = await handleStripeWebhook(await signedRequest(event({ livemode: false })), env, { fetchImpl: store.fetch, now });
   assert.equal(response.status, 200);
   assert.equal(store.inserts[0].mode, "sandbox");
+  assert.equal(store.inserts[0].verification_status, "unverified");
+});
+
+test("live events are stored as verified live revenue", async () => {
+  const store = storageFetch(new Map());
+  const response = await handleStripeWebhook(await signedRequest(event()), env, { fetchImpl: store.fetch, now });
+  assert.equal(response.status, 200);
+  assert.equal(store.inserts[0].mode, "live");
+  assert.equal(store.inserts[0].verification_status, "verified");
 });
 
 test("oversized Stripe payloads are truncated before insertion", async () => {
