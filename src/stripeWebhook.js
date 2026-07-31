@@ -158,7 +158,7 @@ async function insertRevenueEvent(env, customer, event, details, fetchImpl) {
       visibility: "private",
       source: "stripe",
       mode: event.livemode ? "live" : "sandbox",
-      verification_status: "verified",
+      verification_status: event.livemode ? "verified" : "unverified",
       external_event_id: event.id,
       amount: details.amount,
       currency: details.currency,

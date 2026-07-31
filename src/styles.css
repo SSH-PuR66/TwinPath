@@ -220,7 +220,8 @@ small {
 
 .app-shell {
     --tp-bottom-nav-height: 66px;
-    --tp-bottom-nav-offset: calc(0.65rem + env(safe-area-inset-bottom));
+    --tp-safe-area-bottom: env(safe-area-inset-bottom, 0px);
+    --tp-bottom-nav-offset: calc(0.65rem + var(--tp-safe-area-bottom));
     min-height: 100dvh;
     background: transparent;
 }
@@ -1290,25 +1291,6 @@ small {
     border: 1px solid var(--border-strong);
     border-radius: 23px;
     box-shadow: 0 28px 90px rgba(0, 0, 0, 0.56);
-}
-
-.modal-header {
-    position: sticky;
-    top: -1rem;
-    z-index: 3;
-    display: flex;
-    margin: -1rem -1rem 1rem;
-    padding: 1rem;
-    align-items: center;
-    justify-content: space-between;
-    background: rgba(9, 14, 25, 0.94);
-    border-bottom: 1px solid var(--border);
-    backdrop-filter: blur(18px);
-}
-
-.modal-header h2 {
-    margin: 0;
-    font-size: 1.2rem;
 }
 
 .invite-code {

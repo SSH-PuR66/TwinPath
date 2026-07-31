@@ -2523,7 +2523,7 @@ textarea {
 .money-density__workspace{ grid-area:workspace; }
 .money-density__summary .tp-pane__body{ padding:0 13px 12px; }
 .app-shell.density-route .tp-pane__body{
-  padding-bottom:calc(12px + var(--tp-bottom-nav-height, 66px) + var(--tp-bottom-nav-offset, calc(0.65rem + env(safe-area-inset-bottom))));
+  padding-bottom:calc(12px + var(--tp-bottom-nav-height, 66px) + var(--tp-bottom-nav-offset, calc(0.65rem + env(safe-area-inset-bottom, 0px))));
 }
 .money-density__pulse{ min-width:0; }
 .money-density__pulse h2{ margin:.35rem 0; }
