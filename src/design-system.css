@@ -1,0 +1,557 @@
+/*
+ * TwinPath design system
+ * ----------------------
+ * Loaded after styles.css and feature-components.css, so equal-specificity rules
+ * here win. This layer supplies the scales the app never had -- type, elevation,
+ * spacing above 1.25rem, radii and motion -- rather than restyling components
+ * one at a time.
+ *
+ * The palette is deliberately kept: warm near-black with a peach accent suits a
+ * product about staying calm while preparing for twins. What was missing was the
+ * system around it.
+ */
+
+:root {
+    /* Type scale. The app previously had exactly three rendered heading sizes --
+       51px, 17px, 16px -- because h2 was clamp(1.75rem, 7vw, 3.2rem) and every
+       heading in the product used it, including modal titles. */
+    --fs-display: clamp(2.1rem, 5.4vw, 3rem);
+    --fs-title: clamp(1.6rem, 3.4vw, 2.1rem);
+    --fs-h1: 1.5rem;
+    --fs-h2: 1.375rem;
+    --fs-h3: 1.0625rem;
+    --fs-body: 1rem;
+    --fs-sm: 0.875rem;
+    --fs-xs: 0.75rem;
+
+    --lh-tight: 1.08;
+    --lh-snug: 1.28;
+    --lh-body: 1.6;
+
+    /* Spacing. styles.css stopped at --space-5 (1.25rem), so every larger gap in
+       the product was a hardcoded literal. */
+    --space-6: 1.5rem;
+    --space-7: 2rem;
+    --space-8: 2.75rem;
+    --space-9: 3.5rem;
+
+    --radius-sm: 10px;
+    --radius-md: 14px;
+    --radius-lg: 20px;
+    --radius-xl: 26px;
+
+    /* Elevation. --surface was rgba(31,25,22,.72) over a #14100e page, so cards
+       barely separated from the background. These step up in luminance instead of
+       relying on a hairline border alone. */
+    --tp-raise-1: #191413;
+    --tp-raise-2: #201a19;
+    --tp-raise-3: #2a2220;
+
+    --tp-edge: rgba(255, 240, 230, 0.1);
+    --tp-edge-strong: rgba(255, 240, 230, 0.18);
+
+    --tp-shadow-1: 0 1px 2px rgba(0, 0, 0, 0.4);
+    --tp-shadow-2: 0 6px 18px -6px rgba(0, 0, 0, 0.55);
+    --tp-shadow-3: 0 20px 48px -18px rgba(0, 0, 0, 0.72);
+
+    /* Motion. One set of durations and easings so timings stop being ad hoc. */
+    --tp-dur-fast: 130ms;
+    --tp-dur: 220ms;
+    --tp-dur-slow: 420ms;
+    --tp-ease: cubic-bezier(0.32, 0.72, 0, 1);
+    --tp-ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+
+    /* Minimum comfortable touch target. The audit found sub-44px controls on
+       /grow, /family and /settings. */
+    --tp-tap: 44px;
+}
+
+/* ---------------------------------------------------------------- type scale */
+
+h1 {
+    font-size: var(--fs-h1);
+    line-height: var(--lh-snug);
+}
+
+h2 {
+    font-size: var(--fs-h2);
+    line-height: var(--lh-snug);
+    letter-spacing: -0.02em;
+}
+
+h3 {
+    font-size: var(--fs-h3);
+    line-height: var(--lh-snug);
+}
+
+/* The hero statement is the one place a display size is earned. Everything else
+   -- card titles, modal titles, section headings -- steps down to --fs-h2. */
+.hero > h2,
+.money-density__pulse h2 {
+    font-size: var(--fs-display);
+    line-height: var(--lh-tight);
+    letter-spacing: -0.03em;
+    text-wrap: balance;
+}
+
+.page-heading h2 {
+    font-size: var(--fs-title);
+    line-height: var(--lh-snug);
+}
+
+.eyebrow {
+    font-size: var(--fs-xs);
+    font-weight: 650;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    /* Was tracked wide at low contrast, which made these labels hard to read. */
+    color: color-mix(in srgb, var(--accent) 82%, white 18%);
+}
+
+/* ------------------------------------------------------------------ surfaces */
+
+.glass-card {
+    background: var(--tp-raise-1);
+    border: 1px solid var(--tp-edge);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--tp-shadow-2);
+}
+
+.summary-card,
+.tp-pane {
+    background: var(--tp-raise-1);
+    border: 1px solid var(--tp-edge);
+    border-radius: var(--radius-lg);
+}
+
+.modal {
+    background: var(--tp-raise-3);
+    border: 1px solid var(--tp-edge-strong);
+    border-radius: var(--radius-xl);
+    box-shadow: var(--tp-shadow-3);
+}
+
+/* ------------------------------------------------------------------ controls */
+
+/* The peach-to-sage gradient read as muddy and was applied to every primary
+   action. A single confident accent reads cleaner and lets sage mean one thing
+   (positive money) rather than being decoration. */
+.button.primary {
+    color: var(--on-accent);
+    background: var(--accent);
+    border-color: transparent;
+    box-shadow:
+        0 1px 0 rgba(255, 255, 255, 0.24) inset,
+        0 8px 22px -10px color-mix(in srgb, var(--accent) 70%, transparent);
+}
+
+.button.primary:hover:not(:disabled) {
+    background: color-mix(in srgb, var(--accent) 88%, white 12%);
+}
+
+.button,
+.icon-button,
+.bottom-nav button {
+    transition:
+        transform var(--tp-dur-fast) var(--tp-ease),
+        background var(--tp-dur) var(--tp-ease),
+        border-color var(--tp-dur) var(--tp-ease),
+        box-shadow var(--tp-dur) var(--tp-ease);
+}
+
+.button:active:not(:disabled),
+.icon-button:active,
+.bottom-nav button:active {
+    transform: scale(0.97);
+}
+
+/* Touch-target floor. min-height alone is not enough for icon-only controls, so
+   width is raised too. */
+.button,
+.icon-button,
+.bottom-nav button,
+.tp-rail button,
+.grow-tabs button {
+    min-height: var(--tp-tap);
+}
+
+.icon-button {
+    min-width: var(--tp-tap);
+}
+
+/* react-day-picker's month arrows ship at 36px. They are standalone controls, so
+   unlike a checkbox inside a label they have no larger hit area to inherit. */
+.rdp-button_previous,
+.rdp-button_next,
+.rdp-nav button {
+    min-width: var(--tp-tap);
+    min-height: var(--tp-tap);
+}
+
+/* Checkboxes and radios keep their visual size -- blowing them up to 44px looks
+   broken -- and the label that wraps them carries the target instead. */
+input[type="checkbox"],
+input[type="radio"] {
+    width: 1.5rem;
+    min-width: 1.5rem;
+    height: 1.5rem;
+    min-height: 1.5rem;
+    flex: 0 0 auto;
+    accent-color: var(--accent);
+}
+
+label.toggle-row,
+label.wallet-checkbox {
+    min-height: var(--tp-tap);
+    align-items: center;
+    cursor: pointer;
+}
+
+/* Palette credits are standalone links rather than links inside a sentence, so
+   they need a real target instead of the prose exemption. */
+.theme-credits > div {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+}
+
+.theme-credits > div a {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    min-height: var(--tp-tap);
+    padding: 0 var(--space-3);
+    font-size: var(--fs-sm);
+    color: var(--text);
+    background: var(--tp-raise-2);
+    border: 1px solid var(--tp-edge);
+    border-radius: var(--radius-sm);
+    transition: border-color var(--tp-dur) var(--tp-ease),
+        background var(--tp-dur) var(--tp-ease);
+}
+
+.theme-credits > div a:hover {
+    background: var(--tp-raise-3);
+    border-color: var(--tp-edge-strong);
+}
+
+/* The same peach-to-sage gradient was also on selected tabs. Specificity here has
+   to clear `.grow-tabs.grow-workspace-tabs.tp-rail > button.active` (0,4,1). */
+.grow-tabs button.active,
+.grow-tabs.grow-workspace-tabs.tp-rail > button.active {
+    color: var(--on-accent);
+    background: var(--accent);
+    border-color: transparent;
+    box-shadow: 0 6px 18px -8px color-mix(in srgb, var(--accent) 70%, transparent);
+}
+
+/* ------------------------------------------------------------ section labels */
+
+/*
+ * Pane and card headers were set in wide-tracked grey uppercase, which is the
+ * least legible combination available. Tightening the tracking and lifting the
+ * colour makes them scannable without making them loud.
+ */
+.tp-pane__head > span:first-child,
+.tp-pane__title {
+    font-size: var(--fs-xs);
+    font-weight: 650;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: color-mix(in srgb, var(--muted) 78%, white 22%);
+}
+
+/* The pulse card sized itself to a taller grid than its content needed, leaving a
+   large empty band under the figures. */
+.money-density__pulse {
+    align-self: start;
+}
+
+.money-density__pulse p {
+    margin: 0.35rem 0 0.75rem;
+}
+
+.money-density__pulse .summary-grid {
+    margin-top: 0.75rem;
+}
+
+/* ---------------------------------------------------------- pane scroll edge */
+
+/*
+ * Bounded panes scroll their own body. Content at the boundary was sliced
+ * mid-word with nothing to signal more below, which read as a rendering fault
+ * rather than a scrollport. A mask fades the last rows out instead of cutting
+ * them, and restores full opacity once the end is reached.
+ */
+.tp-pane__body {
+    -webkit-mask-image: linear-gradient(
+        to bottom,
+        #000 0,
+        #000 calc(100% - 2.25rem),
+        transparent 100%
+    );
+    mask-image: linear-gradient(
+        to bottom,
+        #000 0,
+        #000 calc(100% - 2.25rem),
+        transparent 100%
+    );
+    scroll-behavior: smooth;
+    overscroll-behavior: contain;
+}
+
+.tp-pane__body.is-end,
+.tp-pane__body:not(.is-more) {
+    -webkit-mask-image: none;
+    mask-image: none;
+}
+
+/* ------------------------------------------------------------------- runway */
+
+/*
+ * The signature element.
+ *
+ * The product's defining fact is that twins arrive early: the OB's written due
+ * date (Jan 20 2027) and the date to actually plan against (Dec 17 2026) are a
+ * month apart. A single "N days until" number hides that month entirely. The
+ * runway draws the whole window -- weeks elapsed, the planning target, and the
+ * uncertainty band between target and due date -- so the gap is the thing you
+ * see first.
+ */
+.runway {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+}
+
+.runway__figures {
+    display: flex;
+    align-items: baseline;
+    gap: var(--space-3);
+    flex-wrap: wrap;
+}
+
+.runway__count {
+    font-size: var(--fs-display);
+    font-weight: 700;
+    line-height: var(--lh-tight);
+    letter-spacing: -0.035em;
+    font-variant-numeric: tabular-nums;
+}
+
+.runway__unit {
+    font-size: var(--fs-h2);
+    font-weight: 600;
+    color: var(--muted);
+}
+
+.runway__track {
+    position: relative;
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: 1fr;
+    gap: 3px;
+    align-items: end;
+    height: 46px;
+    padding: 0;
+    margin: 0;
+    list-style: none;
+}
+
+.runway__week {
+    height: 42%;
+    border-radius: 3px;
+    background: rgba(255, 240, 230, 0.12);
+    transition: height var(--tp-dur) var(--tp-ease-out),
+        background var(--tp-dur) var(--tp-ease-out);
+}
+
+.runway__week.is-done {
+    height: 62%;
+    background: color-mix(in srgb, var(--accent) 55%, transparent);
+}
+
+/* The month between the planning target and the written due date. */
+.runway__week.is-window {
+    height: 100%;
+    background: repeating-linear-gradient(
+        135deg,
+        color-mix(in srgb, var(--warning) 38%, transparent) 0 3px,
+        transparent 3px 6px
+    );
+}
+
+.runway__week.is-now {
+    height: 100%;
+    background: var(--accent);
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 40%, transparent),
+        0 0 16px color-mix(in srgb, var(--accent) 55%, transparent);
+}
+
+.runway__legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-4);
+    margin: 0;
+    font-size: var(--fs-sm);
+    color: var(--muted);
+}
+
+.runway__legend div {
+    display: flex;
+    align-items: baseline;
+    gap: 0.4rem;
+}
+
+.runway__legend dt {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-weight: 600;
+    color: var(--text);
+}
+
+.runway__legend dd {
+    margin: 0;
+}
+
+.runway__swatch {
+    width: 10px;
+    height: 10px;
+    border-radius: 2px;
+    background: var(--accent);
+}
+
+.runway__swatch.is-window {
+    background: repeating-linear-gradient(
+        135deg,
+        color-mix(in srgb, var(--warning) 60%, transparent) 0 3px,
+        transparent 3px 6px
+    );
+    outline: 1px solid color-mix(in srgb, var(--warning) 35%, transparent);
+}
+
+.runway__note {
+    margin: 0;
+    font-size: var(--fs-sm);
+    color: var(--subtle);
+    text-wrap: pretty;
+}
+
+/* ----------------------------------------------------------------- now path */
+
+/*
+ * The step list previously pinned itself to 31rem and absolutely positioned each
+ * step across that height so an SVG curve could weave between them: five rows of
+ * roughly 50px content spread over ~500px. The curve encoded nothing.
+ *
+ * Here the list is ordinary flow, so it is as tall as its content, and the spine
+ * carries the one thing worth encoding -- how far through the list you are.
+ */
+.now-path-map {
+    min-height: 0;
+}
+
+.now-path-steps {
+    --now-path-gutter: calc(var(--space-2) + 1.3rem);
+    position: relative;
+    display: grid;
+    gap: 2px;
+    min-height: 0;
+    padding: 0;
+    margin: 0;
+    list-style: none;
+}
+
+.now-path-steps::before {
+    content: "";
+    position: absolute;
+    top: 1.5rem;
+    bottom: 1.5rem;
+    left: var(--now-path-gutter);
+    width: 2px;
+    border-radius: 2px;
+    transform: translateX(-1px);
+    background: linear-gradient(
+        to bottom,
+        var(--accent) 0,
+        var(--accent) var(--now-path-progress, 0%),
+        var(--tp-edge-strong) var(--now-path-progress, 0%),
+        var(--tp-edge-strong) 100%
+    );
+    transition: background var(--tp-dur-slow) var(--tp-ease-out);
+}
+
+.now-path-step {
+    position: static;
+    width: 100%;
+    transform: none;
+}
+
+.now-path-step > button,
+.now-path-step > div {
+    padding: var(--space-3) var(--space-2);
+    border-radius: var(--radius-md);
+}
+
+/* Centred in its track so the spine lines up regardless of node size. */
+.now-path-node {
+    position: relative;
+    z-index: 1;
+    justify-self: center;
+}
+
+.now-path-step-copy strong {
+    font-size: var(--fs-body);
+}
+
+.now-path-step-copy small,
+.now-path-step time {
+    font-size: var(--fs-sm);
+}
+
+@media (max-width: 650px) {
+    .now-path-steps {
+        --now-path-gutter: calc(var(--space-2) + 1.125rem);
+    }
+}
+
+/* --------------------------------------------------------------- entrance */
+
+@keyframes tp-rise {
+    from {
+        opacity: 0;
+        transform: translate3d(0, 10px, 0);
+    }
+    to {
+        opacity: 1;
+        transform: none;
+    }
+}
+
+.page-stack > * {
+    animation: tp-rise var(--tp-dur-slow) var(--tp-ease-out) both;
+}
+
+.page-stack > *:nth-child(1) { animation-delay: 0ms; }
+.page-stack > *:nth-child(2) { animation-delay: 45ms; }
+.page-stack > *:nth-child(3) { animation-delay: 90ms; }
+.page-stack > *:nth-child(4) { animation-delay: 135ms; }
+.page-stack > *:nth-child(n + 5) { animation-delay: 170ms; }
+
+/* ------------------------------------------------------- reduced motion */
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+
+    .page-stack > * {
+        animation: none;
+    }
+}

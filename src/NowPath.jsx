@@ -94,7 +94,28 @@ export default function NowPath({ householdId, tasks = [], appointments = [], on
 
     const firstOpenIndex = steps.findIndex((step) => !step.done);
     const currentIndex = firstOpenIndex === -1 ? steps.length - 1 : firstOpenIndex;
-    const visiblePath = steps.length ? (currentIndex + 1) / steps.length : 1;
+
+    // The spine fills to the step you are on. Rows size to their own content, so the
+    // list is as tall as the work in it -- the previous layout pinned the map to 31rem
+    // and spread the steps across it so a decorative curve had room to weave.
+    const progress = steps.length > 1
+        ? `${(currentIndex / (steps.length - 1)) * 100}%`
+        : "0%";
+
+    // Fill from empty on the first view of a session, then hold. Returning to Home
+    // should not replay the animation.
+    const [spineProgress, setSpineProgress] = useState(
+        () => (prefersReducedMotion || !drawPath ? progress : "0%")
+    );
+
+    useEffect(() => {
+        if (prefersReducedMotion || !drawPath) {
+            setSpineProgress(progress);
+            return undefined;
+        }
+        const frame = requestAnimationFrame(() => setSpineProgress(progress));
+        return () => cancelAnimationFrame(frame);
+    }, [drawPath, prefersReducedMotion, progress]);
 
     useEffect(() => {
         if (!drawPath || prefersReducedMotion || !steps.length) return;
@@ -104,18 +125,14 @@ export default function NowPath({ householdId, tasks = [], appointments = [], on
 
     return <section className="now-path" aria-labelledby="now-path-title">
         <header><div><span className="eyebrow">NOW PATH</span><h3 id="now-path-title">What to do right now</h3></div></header>
-        {steps.length ? <div className="now-path-map">
-            <svg className="now-path-line" viewBox="0 0 120 500" preserveAspectRatio="none" aria-hidden="true">
-                <path d="M60 30 C18 80 102 100 60 140 S18 210 60 250 S102 320 60 360 S18 430 60 470" pathLength="1" />
-                <motion.path d="M60 30 C18 80 102 100 60 140 S18 210 60 250 S102 320 60 360 S18 430 60 470" pathLength="1" initial={{ pathLength: prefersReducedMotion || !drawPath ? visiblePath : 0 }} animate={{ pathLength: visiblePath }} transition={{ duration: prefersReducedMotion || !drawPath ? 0 : 0.8, ease: "easeOut" }} />
-            </svg>
-            <div className="now-path-steps">{steps.map((step, index) => {
-                const current = index === currentIndex;
-                const position = steps.length === 1 ? 50 : 6 + (index / (steps.length - 1)) * 88;
-                const node = <motion.span className={`now-path-node ${step.done ? "complete" : ""} ${current ? "current" : ""}`} initial={false} animate={current && !prefersReducedMotion ? { scale: [1, 1.15, 1] } : { scale: 1 }} transition={{ duration: 0.6, times: [0, 0.5, 1] }}>{step.done ? <Check size={15} aria-hidden="true" /> : null}</motion.span>;
-                const content = <><span className="now-path-step-copy"><strong>{step.title}</strong><small>{step.detail}</small></span>{step.date ? <time dateTime={step.date.toISOString()}>{dateDetail(step.date)}</time> : null}</>;
-                return <div className="now-path-step" key={step.id} style={{ "--now-path-position": `${position}%` }}>{step.kind === "task" ? <button type="button" onClick={() => onOpenTask?.(step.task)}>{node}{content}</button> : <div>{node}{content}</div>}</div>;
-            })}</div>
-        </div> : <p className="now-path-empty">Nothing urgent right now</p>}
+        {steps.length ? <ol
+            className="now-path-steps"
+            style={{ "--now-path-progress": spineProgress }}
+        >{steps.map((step, index) => {
+            const current = index === currentIndex;
+            const node = <motion.span className={`now-path-node ${step.done ? "complete" : ""} ${current ? "current" : ""}`} initial={false} animate={current && !prefersReducedMotion ? { scale: [1, 1.15, 1] } : { scale: 1 }} transition={{ duration: 0.6, times: [0, 0.5, 1] }}>{step.done ? <Check size={15} aria-hidden="true" /> : null}</motion.span>;
+            const content = <><span className="now-path-step-copy"><strong>{step.title}</strong><small>{step.detail}</small></span>{step.date ? <time dateTime={step.date.toISOString()}>{dateDetail(step.date)}</time> : null}</>;
+            return <li className="now-path-step" key={step.id} aria-current={current ? "step" : undefined}>{step.kind === "task" ? <button type="button" onClick={() => onOpenTask?.(step.task)}>{node}{content}</button> : <div>{node}{content}</div>}</li>;
+        })}</ol> : <p className="now-path-empty">Nothing urgent right now</p>}
     </section>;
 }
