@@ -13,6 +13,8 @@ import PwaControls from "./PwaControls";
 
 import "./styles.css";
 import "./feature-components.css";
+// Last, so its scales win equal-specificity collisions with the two files above.
+import "./design-system.css";
 
 function RoutedApplication() {
   const route = resolveApplicationRoute(

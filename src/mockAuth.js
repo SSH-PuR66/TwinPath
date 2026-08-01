@@ -94,22 +94,28 @@ function result(data) {
 
 function queryFor(table) {
   const rows = mockTables[table] || [];
-  const query = {
-    select() { return query; },
-    eq() { return query; },
-    neq() { return query; },
-    in() { return query; },
-    order() { return query; },
-    limit() { return query; },
-    range() { return query; },
-    insert() { return query; },
-    update() { return query; },
-    delete() { return query; },
-    upsert() { return query; },
-    maybeSingle() { return result(rows[0] || null); },
-    single() { return result(rows[0] || null); },
+
+  // Terminal operations: these resolve the chain rather than continue it.
+  const terminal = {
+    maybeSingle() { return result(rows[0] ?? null); },
+    single() { return result(rows[0] ?? null); },
+    csv() { return result(""); },
     then(resolve, reject) { return result(rows).then(resolve, reject); },
   };
+
+  // Every other builder method (eq, in, contains, abortSignal, filter, ...) is a no-op
+  // that keeps the chain alive. This used to be a hand-written list, which silently fell
+  // behind the real PostgREST builder: missing `contains` and `abortSignal` threw on
+  // every home render. A proxy cannot drift out of sync the same way.
+  const query = new Proxy(terminal, {
+    get(target, prop, receiver) {
+      if (prop in target) return Reflect.get(target, prop, receiver);
+      if (typeof prop === "symbol") return undefined;
+      return () => query;
+    },
+    has() { return true; },
+  });
+
   return query;
 }
 

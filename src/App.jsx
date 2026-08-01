@@ -57,6 +57,7 @@ import FinancialSummary from "./FinancialSummary";
 import WatchedSourcesPanel from "./WatchedSourcesPanel";
 import ProfileVaultPanel from "./ProfileVaultPanel";
 import NowPath from "./NowPath";
+import Runway from "./Runway";
 import DisclosureSection from "./DisclosureSection";
 
 import {
@@ -1069,7 +1070,11 @@ function TodayTab({
         <div className="page-stack">
             <section className="hero">
                 <p className="eyebrow">{memberTrack === "cyber" ? "CYBER + FAMILY RUNWAY" : memberTrack === "nursing" ? "NURSING + FAMILY RUNWAY" : "FAMILY RUNWAY · LATE DECEMBER"}</p>
-                <h2>{memberTrack === "cyber" ? `${daysUntilTwins} days to twin time — keep Iona deadlines visible.` : memberTrack === "nursing" ? "Nurse Corps, CNA, and child-care steps—one calm checklist." : `${daysUntilTwins} days until twin time.`}</h2>
+                {memberTrack === "cyber" || memberTrack === "nursing" ? (
+                    <h2>{memberTrack === "cyber" ? `${daysUntilTwins} days to twin time — keep Iona deadlines visible.` : "Nurse Corps, CNA, and child-care steps—one calm checklist."}</h2>
+                ) : (
+                    <Runway />
+                )}
                 <p>
                     {memberTrack === "cyber" ? "Household foundations first, then cyber coursework, Iona opportunities, and deadlines that compound your options." : memberTrack === "nursing" ? "Household support first, then licensure timing, the CNA option, and the programs that help pay for nursing school." : "Keep the next move small and useful: care, housing, food, rides, and reliable income first. You two are building calm, one decision at a time."}
                 </p>
