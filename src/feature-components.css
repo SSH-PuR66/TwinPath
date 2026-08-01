@@ -3545,6 +3545,41 @@ textarea {
     display: inline;
   }
 
+  /* The workspace has nine destinations.  Letting the rail items size to
+     their tiny icon/short-label content turned the controls into an
+     illegible strip on a phone.  Make it an intentional touch rail instead:
+     readable cards, a visible active state, and horizontal scrolling. */
+  .grow-tabs.grow-workspace-tabs.tp-rail {
+    --tp-rail-item: 4.9rem;
+    gap: 0.45rem;
+    padding: 0.1rem 0 0.45rem;
+    scroll-padding-inline: 0.1rem;
+  }
+
+  .grow-tabs.grow-workspace-tabs.tp-rail > button {
+    min-height: 3.8rem;
+    padding: 0.45rem 0.3rem;
+    border: 1px solid color-mix(in srgb, var(--border) 84%, transparent);
+    background: color-mix(in srgb, var(--surface-soft) 72%, transparent);
+    box-shadow: inset 0 1px rgba(255,255,255,0.035);
+  }
+
+  .grow-tabs.grow-workspace-tabs.tp-rail > button svg {
+    width: 1.1rem;
+    height: 1.1rem;
+  }
+
+  .grow-tabs.grow-workspace-tabs.tp-rail > button span {
+    font-size: 0.62rem;
+    line-height: 1.1;
+  }
+
+  .grow-tabs.grow-workspace-tabs.tp-rail > button.active {
+    border-color: transparent;
+    background: linear-gradient(135deg, var(--accent), var(--accent-2));
+    box-shadow: 0 7px 20px color-mix(in srgb, var(--accent) 24%, transparent);
+  }
+
   .profit-summary,
   .connection-status-grid,
   .profit-route-grid,
