@@ -2587,10 +2587,9 @@ textarea {
   display: none;
 }
 
+/* Colour and shadow live in design-system.css; see the note on .button.primary. */
 .grow-tabs button.active {
-  color: #071019;
-  background: linear-gradient(135deg, var(--accent), var(--accent-2));
-  box-shadow: 0 7px 22px color-mix(in srgb, var(--accent) 18%, transparent);
+  border-color: transparent;
 }
 
 .grow-tab-panel {
@@ -3576,8 +3575,6 @@ textarea {
 
   .grow-tabs.grow-workspace-tabs.tp-rail > button.active {
     border-color: transparent;
-    background: linear-gradient(135deg, var(--accent), var(--accent-2));
-    box-shadow: 0 7px 20px color-mix(in srgb, var(--accent) 24%, transparent);
   }
 
   .profit-summary,

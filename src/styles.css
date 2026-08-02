@@ -339,9 +339,10 @@ small {
     opacity: 0.48;
 }
 
+/* Fill and shadow live in design-system.css: a single accent rather than the
+   peach-to-sage gradient, which keeps sage meaning positive money. */
 .button.primary {
-    background: linear-gradient(135deg, var(--accent), var(--accent-2));
-    box-shadow: 0 10px 30px color-mix(in srgb, var(--accent) 18%, transparent);
+    border-color: transparent;
 }
 
 .button.secondary {
@@ -2990,12 +2991,10 @@ textarea {
 
 .now-path { display: grid; gap: var(--space-3); padding: var(--space-4); overflow: hidden; background: var(--surface); border: 1px solid var(--border); border-radius: 18px; }
 .now-path h3 { margin: var(--space-1) 0 0; }
-.now-path-map { position: relative; min-height: 31rem; }
-.now-path-line { position: absolute; top: var(--space-2); bottom: var(--space-2); left: 0; width: 3.3rem; height: calc(100% - var(--space-4)); overflow: visible; }
-.now-path-line path { fill: none; stroke: var(--border-strong); stroke-linecap: round; stroke-linejoin: round; stroke-width: 5; }
-.now-path-line path + path { stroke: var(--accent); }
-.now-path-steps { position: relative; min-height: 31rem; }
-.now-path-step { position: absolute; top: var(--now-path-position); left: 0; width: 100%; transform: translateY(-50%); }
+/* The step list is ordinary flow with a progress spine; see design-system.css.
+   The former layout pinned .now-path-map and .now-path-steps to 31rem and placed
+   each step absolutely at --now-path-position so a decorative SVG could weave
+   between them. The SVG, the wrapper and that custom property are all gone. */
 .now-path-step > button, .now-path-step > div { display: grid; width: 100%; min-width: 0; padding: var(--space-2); grid-template-columns: 2.6rem minmax(0, 1fr) auto; align-items: center; gap: var(--space-3); color: var(--text); text-align: left; background: transparent; border: 0; }
 .now-path-step > button { cursor: pointer; border-radius: 12px; }
 .now-path-step > button:hover { background: var(--surface-soft); }

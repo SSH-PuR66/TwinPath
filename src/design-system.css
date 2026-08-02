@@ -448,16 +448,11 @@ label.wallet-checkbox {
  * Here the list is ordinary flow, so it is as tall as its content, and the spine
  * carries the one thing worth encoding -- how far through the list you are.
  */
-.now-path-map {
-    min-height: 0;
-}
-
 .now-path-steps {
     --now-path-gutter: calc(var(--space-2) + 1.3rem);
     position: relative;
     display: grid;
     gap: 2px;
-    min-height: 0;
     padding: 0;
     margin: 0;
     list-style: none;
@@ -480,12 +475,6 @@ label.wallet-checkbox {
         var(--tp-edge-strong) 100%
     );
     transition: background var(--tp-dur-slow) var(--tp-ease-out);
-}
-
-.now-path-step {
-    position: static;
-    width: 100%;
-    transform: none;
 }
 
 .now-path-step > button,
