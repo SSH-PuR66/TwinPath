@@ -212,6 +212,19 @@ function Empty({ children }) {
     return <div className="empty">{children}</div>;
 }
 
+function PageIntro({ eyebrow, title, purpose, action = null }) {
+    return (
+        <header className="page-intro">
+            <div>
+                <p className="eyebrow">{eyebrow}</p>
+                <h2>{title}</h2>
+                <p>{purpose}</p>
+            </div>
+            {action}
+        </header>
+    );
+}
+
 function Pill({ children, tone = "neutral" }) {
     return <span className={`pill ${tone}`}>{children}</span>;
 }
@@ -1068,6 +1081,12 @@ function TodayTab({
 
     return (
         <div className="page-stack">
+            <PageIntro
+                eyebrow="HOME"
+                title="Today"
+                purpose="See the next useful step for your household."
+                action={<Button icon={Plus} onClick={() => setTaskModal(true)}>Add task</Button>}
+            />
             <section className="hero">
                 <p className="eyebrow">{memberTrack === "cyber" ? "CYBER + FAMILY RUNWAY" : memberTrack === "nursing" ? "NURSING + FAMILY RUNWAY" : "FAMILY RUNWAY · LATE DECEMBER"}</p>
                 {memberTrack === "cyber" || memberTrack === "nursing" ? (
@@ -1473,6 +1492,13 @@ function MoneyTab({
     }
 
     return (
+        <div className="page-stack">
+            <PageIntro
+                eyebrow="MONEY"
+                title="Money"
+                purpose="See what is logged, then take one next money step."
+                action={<Button icon={Plus} onClick={() => setTransactionModal(true)}>Transaction</Button>}
+            />
         <div ref={paneRootRef} className="tp-shell money-density">
             <section className="tp-pane money-density__summary">
                 <header className="tp-pane__head">
@@ -1769,6 +1795,7 @@ function MoneyTab({
                 </div>
             </section>
         </div>
+        </div>
     );
 }
 
@@ -1788,6 +1815,13 @@ function GrowTab({
     usePaneOverflow(paneRootRef);
 
     return (
+        <div className="page-stack">
+            <PageIntro
+                eyebrow="GROW"
+                title="Grow"
+                purpose="Keep one income route moving at a time."
+                action={<Button icon={Plus} onClick={() => setOpportunityModal(true)}>Add route</Button>}
+            />
         <div ref={paneRootRef} className="tp-shell grow-density">
             <section className="tp-pane grow-density__hero">
                 <header className="tp-pane__head">
@@ -1826,6 +1860,7 @@ function GrowTab({
                     </Suspense>
                 </div>
             </section>
+        </div>
         </div>
     );
 }
@@ -1952,6 +1987,12 @@ function FamilyTab({
 
     return (
         <div className="page-stack">
+            <PageIntro
+                eyebrow="FAMILY"
+                title="Family"
+                purpose="Keep the next shared care or preparation step visible."
+                action={<Button icon={CalendarDays} onClick={() => setAppointmentModal(true)}>Appointment</Button>}
+            />
             <section className="hero">
                 <p className="eyebrow">NEXT TOGETHER</p>
 
@@ -3728,4 +3769,3 @@ export default function App() {
         </div>
     );
 }
-

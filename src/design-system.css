@@ -544,3 +544,207 @@ label.wallet-checkbox {
         animation: none;
     }
 }
+
+/* ------------------------------------------------------ UX overhaul: shell */
+
+/* The final layer is intentionally small and authoritative: the app may retain
+   legacy rules underneath, but every shared surface resolves to this compact
+   scale when it reaches the screen. */
+:root {
+    --fs-display: 24px;
+    --fs-title: 20px;
+    --fs-h1: 24px;
+    --fs-h2: 20px;
+    --fs-h3: 16px;
+    --fs-body: 14px;
+    --fs-sm: 12.5px;
+    --fs-xs: 11px;
+
+    --space-1: 4px;
+    --space-2: 8px;
+    --space-3: 12px;
+    --space-4: 16px;
+    --space-5: 24px;
+    --space-6: 32px;
+    --space-7: 32px;
+    --space-8: 32px;
+    --space-9: 32px;
+
+    --radius-sm: 8px;
+    --radius-md: 12px;
+    --radius-lg: 12px;
+    --radius-xl: 12px;
+}
+
+body,
+button,
+input,
+select,
+textarea {
+    font-size: var(--fs-body);
+}
+
+p,
+.page-intro p,
+.section-title p {
+    font-size: var(--fs-sm);
+}
+
+.page-intro {
+    display: flex;
+    align-items: end;
+    justify-content: space-between;
+    gap: var(--space-3);
+    padding: var(--space-3) 0;
+}
+
+.page-intro > div {
+    min-width: 0;
+}
+
+.page-intro h2 {
+    margin: 0;
+    font-size: var(--fs-title);
+    font-weight: 700;
+    line-height: 1.2;
+}
+
+.page-intro p:last-child {
+    max-width: 42rem;
+    margin: var(--space-1) 0 0;
+    color: var(--muted);
+}
+
+.page-intro .button {
+    flex: 0 0 auto;
+}
+
+/* One calm card treatment: no glass gradients or decorative second accent. */
+.glass-card,
+.summary-card,
+.tp-pane,
+.hero,
+.disclosure-section,
+.markets-desk__item {
+    border-radius: var(--radius-md);
+    background: var(--tp-raise-1);
+    box-shadow: var(--tp-shadow-1);
+}
+
+.glass-card,
+.summary-card,
+.tp-pane,
+.hero {
+    padding: var(--space-4);
+}
+
+.glass-card h3,
+.summary-card h3,
+.tp-pane h3,
+.hero h3,
+.disclosure-title {
+    font-size: var(--fs-h3);
+    font-weight: 700;
+}
+
+.glass-card p,
+.summary-card p,
+.tp-pane p,
+.hero p,
+.disclosure-hint {
+    font-size: var(--fs-sm);
+}
+
+.button,
+.icon-button,
+.disclosure-summary,
+.markets-desk__details-toggle,
+.markets-desk__explainer-toggle {
+    border-radius: var(--radius-sm);
+}
+
+.button.primary,
+.grow-tabs button.active,
+.grow-tabs.grow-workspace-tabs.tp-rail > button.active {
+    background: var(--accent);
+    box-shadow: none;
+}
+
+.hero,
+.nav-indicator,
+.grow-hero-fill,
+.grow-hero-track,
+.now-path-steps::before {
+    background-image: none;
+}
+
+.hero {
+    background-color: var(--tp-raise-2);
+}
+
+.disclosure-summary {
+    min-height: 44px;
+    padding: var(--space-3);
+    background: var(--surface-soft);
+}
+
+.disclosure-summary::after {
+    content: "Show the numbers";
+    margin-left: auto;
+    color: var(--accent);
+    font-size: var(--fs-xs);
+    font-weight: 700;
+}
+
+.disclosure-section[data-open="yes"] .disclosure-summary::after {
+    content: "Hide the numbers";
+}
+
+.tp-rail {
+    gap: var(--space-2);
+}
+
+.tp-rail > button,
+.grow-tabs button {
+    border-radius: var(--radius-sm);
+}
+
+.bottom-nav {
+    padding: var(--space-1);
+    border-radius: var(--radius-md);
+    background: var(--tp-raise-2);
+    box-shadow: var(--tp-shadow-2);
+}
+
+.bottom-nav button {
+    border-radius: var(--radius-sm);
+}
+
+.bottom-nav button span {
+    font-size: 10px;
+    font-weight: 600;
+}
+
+.bottom-nav button.active,
+.bottom-nav button.active svg,
+.bottom-nav button.active span {
+    color: var(--accent);
+    font-weight: 700;
+    fill: none;
+    filter: none;
+}
+
+.nav-indicator {
+    background: color-mix(in srgb, var(--accent) 14%, transparent);
+}
+
+@media (max-width: 520px) {
+    .page-intro {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .page-intro .button {
+        width: 100%;
+    }
+}
