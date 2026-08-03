@@ -375,3 +375,65 @@ test("no note reads as a recommendation", () => {
     }
   }
 });
+
+// ---- v2: sparkline data, session language, and the sentence generator ----
+
+import {
+  BIG_MOVE_THRESHOLD,
+  CLOSES_30D,
+  closesFor,
+  isBigMove,
+  plainSummary,
+  sessionDayName,
+  sessionMovePct,
+} from "../src/marketsCatalog.js";
+
+test("every holding's symbol has a 22-session closes series", () => {
+  for (const holding of holdings) {
+    const closes = closesFor(holding.symbol);
+    assert.ok(Array.isArray(closes), `no closes for ${holding.symbol}`);
+    assert.equal(closes.length, 22, `${holding.symbol} has ${closes.length} sessions`);
+    for (const price of closes) {
+      assert.ok(Number.isFinite(price) && price > 0, `${holding.symbol} bad close ${price}`);
+    }
+  }
+});
+
+test("closes map carries no symbols the desk does not hold", () => {
+  const held = new Set(holdings.map((holding) => holding.symbol));
+  for (const symbol of Object.keys(CLOSES_30D)) {
+    assert.ok(held.has(symbol), `closes for ${symbol} but nothing held`);
+  }
+});
+
+test("session day name derives from the snapshot stamp", () => {
+  assert.equal(sessionDayName("2026-07-31T16:00:00-04:00"), "Friday");
+  assert.equal(sessionDayName("not a date"), "the last session");
+});
+
+test("big-move flag matches the published threshold, both directions", () => {
+  const up = { price: 106, previousClose: 100 };
+  const down = { price: 94, previousClose: 100 };
+  const quiet = { price: 101, previousClose: 100 };
+  assert.equal(isBigMove(up), true);
+  assert.equal(isBigMove(down), true);
+  assert.equal(isBigMove(quiet), false);
+  assert.ok(Math.abs(sessionMovePct(up) - 0.06) < 1e-9);
+  assert.equal(BIG_MOVE_THRESHOLD, 0.05);
+});
+
+test("the plain sentence describes and never advises, in every branch", () => {
+  const base = { name: "Test Fund", quantity: 1, avgCost: 100 };
+  const cases = [
+    { ...base, price: 110, previousClose: 105 }, // up day, up overall
+    { ...base, price: 90, previousClose: 95 },   // down day, down overall
+    { ...base, price: 100, previousClose: 100 }, // flat both
+  ];
+  const adviceShaped = /\b(should|consider|recommend|target|opportunity)\b/i;
+  for (const holding of cases) {
+    const sentence = plainSummary(holding);
+    assert.ok(sentence.includes("Test Fund"), sentence);
+    assert.ok(!adviceShaped.test(sentence), `advice-shaped word in: ${sentence}`);
+  }
+  assert.ok(plainSummary(cases[2]).includes("barely moved"));
+});

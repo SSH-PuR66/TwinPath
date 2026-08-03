@@ -5625,3 +5625,171 @@ textarea {
         transition: none;
     }
 }
+
+/* ---- MarketsDesk v2: story cards, sparklines, sort, glossary ---- */
+
+.markets-desk__list-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px;
+    flex-wrap: wrap;
+    min-width: 0;
+}
+
+.markets-desk__sort {
+    display: flex;
+    gap: 4px;
+    flex-wrap: wrap;
+}
+
+.markets-desk__sort-button {
+    padding: 4px 9px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: var(--surface);
+    color: var(--muted);
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    cursor: pointer;
+    transition: border-color 140ms ease, background 140ms ease, color 140ms ease;
+}
+
+.markets-desk__sort-button.is-active {
+    color: var(--accent);
+    border-color: var(--accent);
+    background: var(--surface-soft);
+}
+
+.markets-desk__story {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    min-width: 0;
+}
+
+.markets-desk__sentence {
+    margin: 0;
+    font-size: 12.5px;
+    line-height: 1.5;
+    color: var(--text);
+    min-width: 0;
+}
+
+.markets-desk__spark {
+    flex: 0 0 120px;
+    width: 120px;
+    height: 32px;
+    overflow: visible;
+}
+
+.markets-desk__spark-line.is-up {
+    stroke: var(--success);
+}
+
+.markets-desk__spark-line.is-down {
+    stroke: var(--danger);
+}
+
+.markets-desk__spark-line.is-flat {
+    stroke: var(--muted);
+}
+
+.markets-desk__chip.is-move {
+    color: var(--accent);
+    border-color: var(--accent);
+}
+
+.markets-desk__details-toggle,
+.markets-desk__glossary-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    align-self: flex-start;
+    padding: 3px 8px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: none;
+    color: var(--muted);
+    font-size: 10.5px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: color 140ms ease, border-color 140ms ease;
+}
+
+.markets-desk__details-toggle:hover,
+.markets-desk__glossary-toggle:hover {
+    color: var(--text);
+    border-color: var(--accent);
+}
+
+.markets-desk__details-caret {
+    transition: transform 140ms ease;
+}
+
+.markets-desk__details-caret.is-open {
+    transform: rotate(180deg);
+}
+
+.markets-desk__details {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 0;
+}
+
+.markets-desk__glossary {
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    padding: 9px 11px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--surface-soft);
+}
+
+.markets-desk__glossary-row {
+    display: flex;
+    gap: 7px;
+    min-width: 0;
+    font-size: 11px;
+    line-height: 1.45;
+}
+
+.markets-desk__glossary-row dt {
+    flex: 0 0 84px;
+    font-weight: 700;
+    color: var(--text);
+}
+
+.markets-desk__glossary-row dd {
+    margin: 0;
+    color: var(--muted);
+    min-width: 0;
+}
+
+@media (max-width: 420px) {
+    .markets-desk__story {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 6px;
+    }
+
+    .markets-desk__spark {
+        flex-basis: auto;
+        width: 100%;
+        height: 36px;
+    }
+
+    .markets-desk__glossary-row {
+        flex-direction: column;
+        gap: 1px;
+    }
+
+    .markets-desk__glossary-row dt {
+        flex-basis: auto;
+    }
+}
