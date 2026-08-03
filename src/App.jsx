@@ -59,6 +59,7 @@ import ProfileVaultPanel from "./ProfileVaultPanel";
 import NowPath from "./NowPath";
 import Runway from "./Runway";
 import DisclosureSection from "./DisclosureSection";
+import FlowRunner from "./FlowRunner";
 
 import {
     initialAllocation,
@@ -1087,6 +1088,7 @@ function TodayTab({
                 purpose="See the next useful step for your household."
                 action={<Button icon={Plus} onClick={() => setTaskModal(true)}>Add task</Button>}
             />
+            <FlowRunner householdId={householdId} />
             <section className="hero">
                 <p className="eyebrow">{memberTrack === "cyber" ? "CYBER + FAMILY RUNWAY" : memberTrack === "nursing" ? "NURSING + FAMILY RUNWAY" : "FAMILY RUNWAY · LATE DECEMBER"}</p>
                 {memberTrack === "cyber" || memberTrack === "nursing" ? (
@@ -1822,6 +1824,7 @@ function GrowTab({
                 purpose="Keep one income route moving at a time."
                 action={<Button icon={Plus} onClick={() => setOpportunityModal(true)}>Add route</Button>}
             />
+            <FlowRunner householdId={householdId} flowIds={["aid-moving"]} compact />
         <div ref={paneRootRef} className="tp-shell grow-density">
             <section className="tp-pane grow-density__hero">
                 <header className="tp-pane__head">
@@ -1931,6 +1934,7 @@ function GrowHero({ opportunities, privateMode, onAddRoute }) {
 }
 
 function FamilyTab({
+    householdId,
     appointments,
     setAppointmentModal,
 }) {
@@ -1993,6 +1997,7 @@ function FamilyTab({
                 purpose="Keep the next shared care or preparation step visible."
                 action={<Button icon={CalendarDays} onClick={() => setAppointmentModal(true)}>Appointment</Button>}
             />
+            <FlowRunner householdId={householdId} flowIds={["twins-setup"]} compact />
             <section className="hero">
                 <p className="eyebrow">NEXT TOGETHER</p>
 
@@ -3620,6 +3625,7 @@ export default function App() {
                         >
                             <div className="page-stack">
                                 <FamilyTab
+                                    householdId={household.id}
                                     appointments={appointments}
                                     setAppointmentModal={
                                         setAppointmentModal

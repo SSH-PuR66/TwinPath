@@ -748,3 +748,194 @@ p,
         width: 100%;
     }
 }
+
+/* -------------------------------------------------------- guided flows */
+
+.flow-runner {
+    display: grid;
+    gap: var(--space-3);
+    padding: var(--space-4);
+    border: 1px solid var(--tp-edge);
+    border-radius: var(--radius-md);
+    background: var(--tp-raise-1);
+}
+
+.flow-screen {
+    min-width: 0;
+}
+
+.flow-runner-heading,
+.flow-topline,
+.flow-copy-row,
+.flow-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-2);
+}
+
+.flow-runner-heading h2,
+.flow-question h2,
+.flow-review h2 {
+    margin: 0;
+    font-size: var(--fs-title);
+}
+
+.flow-runner-heading p,
+.flow-question > p,
+.flow-review > p {
+    margin: var(--space-1) 0 0;
+}
+
+.flow-entry-list {
+    display: grid;
+    gap: var(--space-2);
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.flow-entry-card {
+    display: grid;
+    gap: var(--space-2);
+    padding: var(--space-3);
+    border: 1px solid var(--tp-edge);
+    border-radius: var(--radius-md);
+    background: var(--tp-raise-2);
+}
+
+.flow-entry-card h3,
+.flow-output h3 {
+    margin: 0;
+    font-size: var(--fs-h3);
+}
+
+.flow-entry-card p {
+    margin: 0;
+    font-size: var(--fs-sm);
+}
+
+.flow-entry-card .button {
+    justify-self: start;
+}
+
+.flow-runner.is-compact {
+    padding: var(--space-3);
+}
+
+.flow-runner.is-compact .flow-entry-list {
+    grid-template-columns: 1fr;
+}
+
+.flow-runner.is-compact .flow-entry-card {
+    grid-template-columns: 1fr auto;
+    align-items: center;
+}
+
+.flow-runner.is-compact .flow-entry-card .eyebrow,
+.flow-runner.is-compact .flow-entry-card p {
+    grid-column: 1;
+}
+
+.flow-runner.is-compact .flow-entry-card .button {
+    grid-column: 2;
+    grid-row: 1 / span 3;
+}
+
+.flow-progress {
+    display: flex;
+    gap: var(--space-1);
+}
+
+.flow-progress span {
+    display: block;
+    width: 100%;
+    height: 4px;
+    border-radius: 999px;
+    background: var(--surface-soft);
+}
+
+.flow-progress span.is-complete {
+    background: var(--accent);
+}
+
+.flow-topline > span {
+    color: var(--muted);
+    font-size: var(--fs-xs);
+    font-weight: 700;
+}
+
+.flow-question,
+.flow-review {
+    display: grid;
+    gap: var(--space-3);
+    max-width: 42rem;
+}
+
+.flow-question input,
+.flow-question select {
+    min-height: 56px;
+    padding: var(--space-3);
+    font-size: var(--fs-h3);
+}
+
+.flow-review-card,
+.flow-output {
+    display: grid;
+    gap: var(--space-2);
+    padding: var(--space-3);
+    border: 1px solid var(--tp-edge);
+    border-radius: var(--radius-md);
+    background: var(--surface-soft);
+}
+
+.flow-copy-row {
+    align-items: flex-start;
+    padding: var(--space-2) 0;
+    border-bottom: 1px solid var(--tp-edge);
+}
+
+.flow-copy-row:last-child {
+    border-bottom: 0;
+}
+
+.flow-copy-row > div:first-child {
+    display: grid;
+    min-width: 0;
+    gap: var(--space-1);
+}
+
+.flow-copy-row span {
+    overflow-wrap: anywhere;
+    color: var(--muted);
+    font-size: var(--fs-sm);
+}
+
+.flow-copy-actions {
+    display: flex;
+    flex: 0 0 auto;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: var(--space-1);
+}
+
+.flow-copy-actions .button,
+.flow-copy-row .button {
+    min-height: 36px;
+    padding: var(--space-2);
+    font-size: var(--fs-xs);
+}
+
+.flow-boundary,
+.flow-message {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    margin: 0;
+    color: var(--muted);
+    font-size: var(--fs-sm);
+}
+
+@media (max-width: 680px) {
+    .flow-entry-list { grid-template-columns: 1fr; }
+    .flow-copy-row { align-items: stretch; flex-direction: column; }
+    .flow-copy-actions { justify-content: flex-start; }
+}
