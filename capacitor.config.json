@@ -3,7 +3,21 @@
   "appName": "TwinPath",
   "webDir": "dist",
   "server": {
+    "url": "https://twinpath.srodriguez46.workers.dev",
+    "iosScheme": "https",
     "androidScheme": "https",
-    "iosScheme": "https"
+    "cleartext": false,
+    "allowNavigation": [
+      "twinpath.srodriguez46.workers.dev",
+      "*.supabase.co",
+      "*.stripe.com",
+      "checkout.stripe.com"
+    ]
+  },
+  "ios": {
+    "contentInset": "always",
+    "backgroundColor": "#14100e",
+    "limitsNavigationsToAppBoundDomains": false,
+    "preferredContentMode": "mobile"
   }
 }

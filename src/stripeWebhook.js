@@ -1,5 +1,11 @@
 const SIGNATURE_TOLERANCE_SECONDS = 5 * 60;
 const MAX_REVENUE_PAYLOAD_BYTES = 32 * 1024;
+// Real Stripe events are a few KB. Anything past this is an unauthenticated
+// party trying to make us do HMAC work on their behalf. See F2 in
+// test/webhookForgeryLab.test.js.
+const MAX_WEBHOOK_BODY_BYTES = 256 * 1024;
+// new Date(ms).toISOString() throws past ±8.64e15 ms, i.e. ±8.64e12 seconds.
+const MAX_EPOCH_SECONDS = 8_640_000_000_000;
 const encoder = new TextEncoder();
 
 function jsonResponse(status, body) {
@@ -108,11 +114,18 @@ function stripeDetails(event) {
   const amount = Number(amountCents) / 100;
   const currency = typeof object.currency === "string" ? object.currency.toUpperCase() : "";
   if (!event.id || !object.customer || !Number.isFinite(amount) || amount <= 0 || !/^[A-Z]{3}$/.test(currency)) return null;
+  // `created` was previously fed straight into new Date().toISOString(), which
+  // throws a RangeError for a missing, non-numeric or out-of-range value — and
+  // that call sat outside the caller's try/catch, so a signed-but-malformed
+  // event crashed the isolate into a 5xx that Stripe then retried. Validate it
+  // here so a bad event is ignored cleanly instead. (F1)
+  const created = Number(event.created);
+  if (!Number.isSafeInteger(created) || created <= 0 || created > MAX_EPOCH_SECONDS) return null;
   return {
     customerId: String(object.customer),
     amount,
     currency,
-    occurredAt: new Date(Number(event.created) * 1000).toISOString(),
+    occurredAt: new Date(created * 1000).toISOString(),
   };
 }
 
@@ -174,7 +187,20 @@ export async function handleStripeWebhook(request, env, { fetchImpl = fetch, now
     return jsonResponse(503, { error: "service_not_configured" });
   }
 
+  // Reject oversized bodies BEFORE spending any CPU on HMAC. The endpoint URL
+  // is public, so without this an unauthenticated caller can make the worker
+  // hash megabytes on demand. Check the declared length first (cheapest), then
+  // the actual length, since content-length may be absent or lying. (F2)
+  const declaredLength = Number(request.headers.get("content-length"));
+  if (Number.isFinite(declaredLength) && declaredLength > MAX_WEBHOOK_BODY_BYTES) {
+    return jsonResponse(413, { error: "payload_too_large" });
+  }
+
   const rawBody = await request.text();
+  if (encoder.encode(rawBody).byteLength > MAX_WEBHOOK_BODY_BYTES) {
+    return jsonResponse(413, { error: "payload_too_large" });
+  }
+
   const validSignature = await verifyStripeSignature(
     rawBody,
     request.headers.get("Stripe-Signature"),

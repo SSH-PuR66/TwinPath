@@ -1,0 +1,56 @@
+name: Build unsigned iOS IPA
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  ipa:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Build web bundle
+        run: |
+          npm ci
+          npm run build
+
+      - name: Sync Capacitor iOS
+        run: npx cap sync ios
+
+      - name: Show available schemes (diagnostic)
+        run: xcodebuild -project ios/App/App.xcodeproj -list || true
+
+      - name: Archive (unsigned)
+        run: |
+          cd ios/App
+          xcodebuild \
+            -project App.xcodeproj \
+            -scheme App \
+            -configuration Release \
+            -sdk iphoneos \
+            -destination 'generic/platform=iOS' \
+            -archivePath "$PWD/build/App.xcarchive" \
+            archive \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" \
+            IPHONEOS_DEPLOYMENT_TARGET=15.0
+
+      - name: Package .ipa
+        run: |
+          cd ios/App/build
+          mkdir -p Payload
+          cp -R App.xcarchive/Products/Applications/App.app Payload/App.app
+          zip -qry TwinPath-unsigned.ipa Payload
+          ls -la TwinPath-unsigned.ipa
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: TwinPath-unsigned-ipa
+          path: ios/App/build/TwinPath-unsigned.ipa
+          if-no-files-found: error

@@ -2047,7 +2047,7 @@ function FamilyTab({
                         </div>
                         <Pill tone="blue">{safeAppointments.length}</Pill>
                     </div>
-                    <p className="family-calendar-summary">{safeAppointments.length ? `${safeAppointments.length} scheduled items are available in the calendar day sheets.` : "No appointments recorded."}</p>
+                    <p className="family-calendar-summary">{safeAppointments.length ? `${safeAppointments.length} scheduled ${safeAppointments.length === 1 ? "item is" : "items are"} available in the calendar day sheets.` : "No appointments recorded."}</p>
                 </Card>
             </DisclosureSection>
 
