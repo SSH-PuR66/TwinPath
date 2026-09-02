@@ -20,6 +20,10 @@ const FamilySavings = lazy(() =>
     import("./FamilySavings.jsx")
 );
 
+const CalendarFeedsPanel = lazy(() =>
+    import("./CalendarFeedsPanel.jsx")
+);
+
 const sections = [
     {
         id: "calendar",
@@ -50,6 +54,7 @@ export default function FamilyWorkspace({
     privateMode,
     onAddAppointment,
     onDeleteAppointment,
+    onAppointmentsChanged,
     readinessContent = null,
 }) {
     const [section, setSection] =
@@ -95,12 +100,18 @@ export default function FamilyWorkspace({
                 }
             >
                 {section === "calendar" && (
-                    <CalendarView
-                        appointments={appointments}
-                        currentUserId={currentUserId}
-                        onAdd={onAddAppointment}
-                        onDelete={onDeleteAppointment}
-                    />
+                    <>
+                        <CalendarView
+                            appointments={appointments}
+                            currentUserId={currentUserId}
+                            onAdd={onAddAppointment}
+                            onDelete={onDeleteAppointment}
+                        />
+                        <CalendarFeedsPanel
+                            householdId={householdId}
+                            onSynced={onAppointmentsChanged}
+                        />
+                    </>
                 )}
 
                 {section === "savings" && (

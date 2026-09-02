@@ -3637,6 +3637,7 @@ export default function App() {
                                     householdId={household.id}
                                     currentUserId={session.user.id}
                                     privateMode={privateMode}
+                                    onAppointmentsChanged={loadData}
                                     onAddAppointment={(
                                         selectedDate
                                     ) => {

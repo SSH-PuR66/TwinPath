@@ -3379,3 +3379,32 @@ textarea {
     .disclosure-section[data-open="yes"] .disclosure-panel { animation: none; }
     .transaction-row, .document-row { animation: none; }
 }
+
+/* Connected calendars (CalendarFeedsPanel) — reuses the watched-sources layout */
+.feed-help {
+    display: grid;
+    gap: 10px;
+    margin-top: 12px;
+    padding: 14px 16px;
+    border: 1px solid var(--border, rgba(255, 255, 255, 0.12));
+    border-radius: 12px;
+    background: var(--tp-raise-1, rgba(255, 255, 255, 0.04));
+    font-size: 13px;
+    line-height: 1.55;
+    color: var(--muted, inherit);
+}
+.feed-help p { margin: 0; }
+.feed-help strong { color: var(--text, inherit); }
+.feed-source-tag {
+    display: inline-block;
+    margin-left: 6px;
+    padding: 1px 7px;
+    border-radius: 999px;
+    border: 1px solid var(--border, rgba(255, 255, 255, 0.14));
+    font-size: 10.5px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--muted, inherit);
+    vertical-align: middle;
+}
