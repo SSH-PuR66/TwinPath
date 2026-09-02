@@ -68,7 +68,7 @@ import {
     wealthSteps,
 } from "./resources";
 
-import { motion } from "framer-motion";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import NetworkStatus from "./NetworkStatus";
 import { AnimatedMoney } from "./AnimatedMoney";
 import AnimatedPage from "./AnimatedPage";
@@ -231,14 +231,26 @@ function Pill({ children, tone = "neutral" }) {
 }
 
 function Modal({ title, children, onClose }) {
+    const reduce = useReducedMotion();
     return (
-        <div className="modal-backdrop" onMouseDown={onClose}>
-            <div
+        <motion.div
+            className="modal-backdrop"
+            onMouseDown={onClose}
+            initial={reduce ? false : { opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: reduce ? 0 : 0.16, ease: "easeOut" }}
+        >
+            <motion.div
                 className="modal"
                 onMouseDown={(event) => event.stopPropagation()}
                 role="dialog"
                 aria-modal="true"
                 aria-label={title}
+                initial={reduce ? false : { opacity: 0, y: 14, scale: 0.985 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={reduce ? { opacity: 0 } : { opacity: 0, y: 10, scale: 0.985 }}
+                transition={reduce ? { duration: 0 } : { type: "spring", stiffness: 380, damping: 32, mass: 0.7 }}
             >
                 <header className="modal-header">
                     <h2>{title}</h2>
@@ -248,8 +260,8 @@ function Modal({ title, children, onClose }) {
                 </header>
 
                 {children}
-            </div>
-        </div>
+            </motion.div>
+        </motion.div>
     );
 }
 
@@ -635,7 +647,6 @@ function HouseholdSetup({ onReady }) {
                     <HeartHandshake size={26} />
                 </div>
 
-                <p className="eyebrow">HOUSEHOLD SETUP</p>
                 <h1>Start together</h1>
 
                 <div className="segmented">
@@ -943,7 +954,6 @@ function HomeMoneySnapshot({ householdId, privateMode, proposalCount }) {
         <Card className="home-money-hero">
             <div className="section-title">
                 <div>
-                    <span className="eyebrow">LIVE MONEY SNAPSHOT</span>
                     <h3>What is safe to plan with</h3>
                 </div>
                 <WalletCards size={22} />
@@ -1000,7 +1010,7 @@ function AutomationStatus({ proposalCount }) {
     return (
         <Card className="automation-status">
             <div className="section-title">
-                <div><span className="eyebrow">AUTOMATION, WITH PERMISSION</span><h3>What TwinPath is watching</h3></div>
+                <div><h3>What TwinPath is watching</h3></div>
                 <Bell size={21} />
             </div>
             <div className="automation-list">
@@ -1156,7 +1166,6 @@ function TodayTab({
                 <Card>
                     <div className="section-title">
                         <div>
-                            <span className="eyebrow">PRIORITY</span>
                             <h3>Next actions</h3>
                         </div>
 
@@ -1278,7 +1287,6 @@ function PlanTab({
         <div className="page-stack">
             <div className="page-heading">
                 <div>
-                    <p className="eyebrow">ACTION PLAN</p>
                     <h2>Plan and verify</h2>
                 </div>
 
@@ -1359,7 +1367,6 @@ function PlanTab({
             <Card>
                 <div className="section-title">
                     <div>
-                        <span className="eyebrow">LEGAL ROUTES</span>
                         <h3>Resource navigator</h3>
                         <p>Current eligibility must be confirmed with each organization.</p>
                     </div>
@@ -1505,11 +1512,10 @@ function MoneyTab({
             <section className="tp-pane money-density__summary">
                 <header className="tp-pane__head">
                     <span>Financial pulse</span>
-                    <em>Read the last 90 days first</em>
+                    <em>Last 90 days</em>
                 </header>
                 <div className="tp-pane__body">
                     <div className="money-density__pulse">
-                        <p className="eyebrow">MONEY</p>
                         <h2>{shownMoney(balance)} available</h2>
                         <p>{shownMoney(income)} in and {shownMoney(expenses)} out across logged transactions.</p>
                         <div className="summary-grid tp-strip">
@@ -1523,7 +1529,6 @@ function MoneyTab({
             <section className="tp-pane money-density__workspace">
                 <header className="tp-pane__head">
                     <span>Money workspace</span>
-                    <em>Scroll this pane, not the page</em>
                 </header>
                 <div className="tp-pane__body">
                     <div className="page-stack">
@@ -1565,7 +1570,6 @@ function MoneyTab({
                 </Suspense>
                 <div className="page-heading">
                     <div>
-                        <p className="eyebrow">MONEY</p>
                         <h2>Protect, earn, then grow</h2>
                     </div>
 
@@ -1604,7 +1608,6 @@ function MoneyTab({
                 <Card>
                     <div className="section-title">
                         <div>
-                            <span className="eyebrow">STARTING PLAN</span>
                             <h3>A cautious \$2,000 allocation</h3>
                             <p>
                                 Adjust this to your actual essential expenses and medical needs.
@@ -1716,7 +1719,6 @@ function MoneyTab({
                 <Card>
                     <div className="section-title">
                         <div>
-                            <span className="eyebrow">INCOME PIPELINE</span>
                             <h3>Build reliable income</h3>
                         </div>
 
@@ -1773,7 +1775,6 @@ function MoneyTab({
                 <Card>
                     <div className="section-title">
                         <div>
-                            <span className="eyebrow">WEALTH ROADMAP</span>
                             <h3>The realistic path upward</h3>
                         </div>
                     </div>
@@ -1829,7 +1830,7 @@ function GrowTab({
             <section className="tp-pane grow-density__hero">
                 <header className="tp-pane__head">
                     <span>Current goal</span>
-                    <em>One next move at a time</em>
+                    <em>In order</em>
                 </header>
                 <div className="tp-pane__body">
                     <GrowHero
@@ -1843,7 +1844,6 @@ function GrowTab({
             <section className="tp-pane grow-density__workspace">
                 <header className="tp-pane__head">
                     <span>Growth workspace</span>
-                    <em>Scroll this pane, not the page</em>
                 </header>
                 <div className="tp-pane__body">
                     <Suspense fallback={<FeatureLoader label="Opening Growth Center..." />}>
@@ -2091,7 +2091,6 @@ function VaultTab({
         <div className="page-stack">
             <div className="page-heading">
                 <div>
-                    <p className="eyebrow">VAULT</p>
                     <h2>Protected documents</h2>
                 </div>
             </div>
@@ -2801,7 +2800,6 @@ function SettingsModal({
                     </div>
 
                     <section className="theme-credits" aria-labelledby="theme-credits-title">
-                        <span className="eyebrow">ABOUT THE PALETTES</span>
                         <h3 id="theme-credits-title">Community palette credits</h3>
                         <p>Catppuccin, Nord, Rosé Pine, Tokyo Night, and Everforest remain the work of their respective communities.</p>
                         <div>{communityThemeCredits.map((credit) => <a key={credit.name} href={safeExternalUrl(credit.url) || undefined} target="_blank" rel="noopener noreferrer">{credit.name}<ExternalLink size={13} /></a>)}</div>
@@ -2842,7 +2840,6 @@ function SettingsModal({
                 <ProfileVaultPanel householdId={household.id} />
 
                 <Card className="nested-card">
-                    <span className="eyebrow">ACCOUNT ACCESS</span>
                     <h3>Create or change password</h3>
 
                     <p className="muted">
@@ -3563,7 +3560,7 @@ export default function App() {
                 <main className="content">
                     {importRoute ? (
                         <section className="page-stack import-route" aria-label="Review shared CSV import">
-                            <div className="page-heading"><div><p className="eyebrow">SHARED CSV</p><h2>Review before importing</h2><p>Nothing reaches your financial records until you confirm the reviewed rows.</p></div></div>
+                            <div className="page-heading"><div><h2>Review before importing</h2><p>Nothing reaches your financial records until you confirm the reviewed rows.</p></div></div>
                             <CsvImportPanel
                                 householdId={household.id}
                                 onImported={loadData}
@@ -3719,8 +3716,10 @@ export default function App() {
                 />
             )}
 
+            <AnimatePresence>
             {selectedTask && (
                 <TaskDetailModal
+                    key="task-detail"
                     task={selectedTask}
                     onClose={() => setSelectedTask(null)}
                     onToggle={toggleTask}
@@ -3729,6 +3728,7 @@ export default function App() {
 
             {transactionModal && (
                 <TransactionModal
+                    key="transaction"
                     onClose={() => setTransactionModal(false)}
                     onSave={saveTransaction}
                 />
@@ -3736,6 +3736,7 @@ export default function App() {
 
             {appointmentModal && (
                 <AppointmentModal
+                    key="appointment"
                     initialDate={appointmentDraftDate}
                     onClose={() => {
                         setAppointmentModal(false);
@@ -3747,6 +3748,7 @@ export default function App() {
 
             {opportunityModal && (
                 <OpportunityModal
+                    key="opportunity"
                     initialRoute={opportunityDraft}
                     onClose={() => {
                         setOpportunityModal(false);
@@ -3758,6 +3760,7 @@ export default function App() {
 
             {settingsOpen && (
                 <SettingsModal
+                    key="settings"
                     household={household}
                     profile={profile}
                     themeKey={themeKey}
@@ -3773,6 +3776,7 @@ export default function App() {
                     onClose={() => setSettingsOpen(false)}
                 />
             )}
+            </AnimatePresence>
         </div>
     );
 }

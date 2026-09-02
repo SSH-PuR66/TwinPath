@@ -1641,7 +1641,7 @@ textarea {
   background-size: 220% 100%;
   border: 1px solid var(--border);
   border-radius: 20px;
-  animation: skeleton-shimmer 1.4s linear infinite;
+  animation: skeleton-shimmer 2.4s ease-in-out infinite;
 }
 
 .skeleton-hero {
