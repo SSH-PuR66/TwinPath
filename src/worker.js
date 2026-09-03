@@ -240,9 +240,22 @@ export default {
         ts: new Date().toISOString()
       });
     }
-    const res = await env.ASSETS.fetch(request);
+    // /install and /app are the phone install page; the SPA fallback would otherwise swallow them
+    let assetRequest = request;
+    if (/^\/(install|app)\/?$/.test(url.pathname)) {
+      const target = new URL(request.url);
+      target.pathname = "/app/index.html";
+      assetRequest = new Request(target.toString(), request);
+    }
+    const res = await env.ASSETS.fetch(assetRequest);
     const hardened = new Response(res.body, res);
     for (const [k, v] of Object.entries(SECURITY_HEADERS)) hardened.headers.set(k, v);
+    if (url.pathname.endsWith(".ipa")) {
+      // the unsigned shell for LiveContainer: a download, never rendered
+      hardened.headers.set("content-type", "application/octet-stream");
+      hardened.headers.set("content-disposition", `attachment; filename="${url.pathname.split("/").pop()}"`);
+      hardened.headers.set("cache-control", "public, max-age=3600");
+    }
     return hardened;
   }
 };
