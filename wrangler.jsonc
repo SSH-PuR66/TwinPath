@@ -10,6 +10,7 @@
     "directory": "./dist",
     "binding": "ASSETS",
     "html_handling": "none",
+    "run_worker_first": ["/app/*", "/install", "/install/"],
     "not_found_handling": "single-page-application"
   }
 }
