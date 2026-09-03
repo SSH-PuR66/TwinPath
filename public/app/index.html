@@ -27,7 +27,7 @@
 <body>
 <main>
   <h1>TwinPath on your phone</h1>
-  <p>Two ways. The first is the one to use every day.</p>
+  <p>Step 1 is the one to use every day. Steps 2 and 3 are only for LiveContainer.</p>
   <div class="addr"><code>twinpath.srodriguez46.workers.dev/install</code></div>
 
   <div class="card">
@@ -41,7 +41,15 @@
   </div>
 
   <div class="card">
-    <h2>2 · Install in LiveContainer</h2>
+    <h2>2 · Get LiveContainer (once)</h2>
+    <p>LiveContainer is installed through AltStore or SideStore. AltStore itself is put on the phone from the PC with AltServer and your Apple ID; that part is yours. Once AltStore is on the phone, these two taps add LiveContainer:</p>
+    <a class="btn" href="altstore://source?url=https%3A%2F%2Fgithub.com%2FLiveContainer%2FLiveContainer%2Fraw%2Fmain%2Fapps.json">Add the LiveContainer source to AltStore</a>
+    <a class="btn ghost" href="sidestore://source?url=https%3A%2F%2Fgithub.com%2FLiveContainer%2FLiveContainer%2Fraw%2Fmain%2Fapps.json">… or to SideStore</a>
+    <small>Then in AltStore → Browse → LiveContainer → Install. Sign in with the same Apple ID when it asks.</small>
+  </div>
+
+  <div class="card">
+    <h2>3 · Install TwinPath in LiveContainer</h2>
     <p>The native shell (arm64, portrait) that loads this same site inside LiveContainer. This button only works on a phone that already has LiveContainer; the camera cannot open it from a QR code, which is why the code brought you here first.</p>
     <a class="btn" id="lc" href="livecontainer://install?url=https%3A%2F%2Ftwinpath.srodriguez46.workers.dev%2Fapp%2FTwinPath.ipa">Install with LiveContainer</a>
     <a class="btn ghost" href="/app/TwinPath.ipa" download="TwinPath.ipa">Download the .ipa instead</a>
