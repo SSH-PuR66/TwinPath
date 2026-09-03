@@ -28,7 +28,7 @@ function FlowEntry({ flow, profile, onOpen }) {
     const total = activeSteps(flow, profile).length;
     return (
         <article className="flow-entry-card">
-            <span className="eyebrow">GUIDED</span>
+            
             <h3>{flow.title}</h3>
             <p>{flow.estMinutes} min in TwinPath · {answered} of {total} already filled in</p>
             <button className="button secondary" type="button" onClick={() => onOpen(flow.id)}>Open flow</button>

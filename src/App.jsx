@@ -214,10 +214,14 @@ function Empty({ children }) {
 }
 
 function PageIntro({ eyebrow, title, purpose, action = null }) {
+    // the eyebrow only survives when it says something the title does not (a track, a status);
+    // "MONEY" over "Money" carries nothing and reads as a template.
+    const showEyebrow = Boolean(eyebrow) && String(eyebrow).trim().toLowerCase() !== String(title).trim().toLowerCase()
+        && !["home", "money", "grow", "family", "settings"].includes(String(eyebrow).trim().toLowerCase());
     return (
         <header className="page-intro">
             <div>
-                <p className="eyebrow">{eyebrow}</p>
+                {showEyebrow ? <p className="eyebrow">{eyebrow}</p> : null}
                 <h2>{title}</h2>
                 <p>{purpose}</p>
             </div>
@@ -1890,7 +1894,6 @@ function GrowHero({ opportunities, privateMode, onAddRoute }) {
 
     return (
         <section className="hero">
-            <p className="eyebrow">CURRENT GOAL</p>
 
             {lead ? (
                 <>
@@ -1999,7 +2002,6 @@ function FamilyTab({
             />
             <FlowRunner householdId={householdId} flowIds={["twins-setup"]} compact />
             <section className="hero">
-                <p className="eyebrow">NEXT TOGETHER</p>
 
                 {nextShared ? (
                     <>

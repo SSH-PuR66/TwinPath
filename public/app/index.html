@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>TwinPath on your phone</title>
+<meta name="robots" content="noindex">
+<style>
+  :root{color-scheme:dark;--bg:#14100e;--card:#1d1815;--text:#f3ebe3;--muted:#b1a396;--line:#332a24;--accent:#f0a36b}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);font:16px/1.55 "IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;padding:max(24px,env(safe-area-inset-top)) 20px max(24px,env(safe-area-inset-bottom))}
+  main{max-width:520px;margin:0 auto}
+  h1{font-size:28px;line-height:1.15;margin:0 0 6px;letter-spacing:-.01em}
+  p{margin:0 0 14px;color:var(--muted)}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px;margin:18px 0}
+  .card h2{font-size:17px;margin:0 0 8px}
+  .card p{margin:0 0 10px}
+  ol{margin:0 0 6px 18px;padding:0;color:var(--muted)}
+  li{margin:6px 0}
+  a.btn{display:block;text-align:center;padding:14px 16px;border-radius:12px;background:var(--accent);color:#1a1310;font-weight:600;text-decoration:none;margin-top:10px}
+  a.btn.ghost{background:none;border:1px solid var(--line);color:var(--text)}
+  small{display:block;color:var(--muted);font-size:13px;margin-top:10px}
+  code{font-family:ui-monospace,Menlo,monospace;font-size:14px;color:var(--text)}
+</style>
+</head>
+<body>
+<main>
+  <h1>TwinPath on your phone</h1>
+  <p>Two ways. The first is the one to use every day.</p>
+
+  <div class="card">
+    <h2>1 · Add to Home Screen (recommended)</h2>
+    <p>Full-screen app, auto-updates with every deploy, notifications, share-to-import. No signing, no expiry.</p>
+    <ol>
+      <li>Open this site in <strong>Safari</strong>.</li>
+      <li>Tap <strong>Share</strong>, then <strong>Add to Home Screen</strong>, then <strong>Add</strong>.</li>
+    </ol>
+    <a class="btn" href="/">Open TwinPath</a>
+  </div>
+
+  <div class="card">
+    <h2>2 · Install in LiveContainer</h2>
+    <p>The native shell (arm64, portrait) that loads this same site inside LiveContainer. Tap the button on the phone that has LiveContainer installed.</p>
+    <a class="btn" href="livecontainer://install?url=https://twinpath.srodriguez46.workers.dev/app/TwinPath.ipa">Install with LiveContainer</a>
+    <a class="btn ghost" href="/app/TwinPath.ipa" download>Download the .ipa instead</a>
+    <small>If the button does nothing, LiveContainer is not installed on this phone, or it is an older build without the install link. Download the file, open it in Files, and choose LiveContainer.</small>
+  </div>
+
+  <small>Bundle <code>com.twinpath.app</code> · built unsigned on a macOS runner from the TwinPath repo · the shell points at this site, so it is always current.</small>
+</main>
+</body>
+</html>
