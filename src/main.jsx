@@ -15,6 +15,8 @@ import "./styles.css";
 import "./feature-components.css";
 // Last, so its scales win equal-specificity collisions with the two files above.
 import "./design-system.css";
+// Last of all: the token layer from the 2026-08-28 UI audit (type, surfaces, motion).
+import "./tokens.css";
 
 function RoutedApplication() {
   const route = resolveApplicationRoute(
