@@ -15,6 +15,7 @@ import {
     Eye,
     EyeOff,
     FileLock2,
+    GraduationCap,
     HeartHandshake,
     Home,
     Loader2,
@@ -60,6 +61,7 @@ import NowPath from "./NowPath";
 import Runway from "./Runway";
 import DisclosureSection from "./DisclosureSection";
 import FlowRunner from "./FlowRunner";
+import { saveAcademicBatch, ownPrivateRecords } from "./academicStore";
 
 import {
     initialAllocation,
@@ -85,6 +87,7 @@ const GrowWorkspace = lazy(() => import("./GrowWorkspace.jsx"));
 const FinancialConnectionsPanel = lazy(() => import("./FinancialConnectionsPanel.jsx"));
 const RetirementTracker = lazy(() => import("./RetirementTracker.jsx"));
 const MoneyFlowMap = lazy(() => import("./MoneyFlowMap.jsx"));
+const AcademicWorkspace = lazy(() => import("./AcademicWorkspace.jsx"));
 
 const moneyFormatter = new Intl.NumberFormat("en-US", {
     style: "currency",
@@ -115,14 +118,16 @@ const tabs = [
     { id: "home", label: "Home", icon: Home },
     { id: "money", label: "Money", icon: WalletCards },
     { id: "grow", label: "Grow", icon: BriefcaseBusiness },
+    { id: "study", label: "Study", icon: GraduationCap },
     { id: "family", label: "Family", icon: Baby },
     { id: "settings", label: "Settings", icon: Settings },
 ];
 
 function tabFromPathname(pathname = window.location.pathname) {
     const path = String(pathname).toLowerCase();
-    return ["money", "grow", "family"].includes(path.slice(1))
-        ? path.slice(1)
+    const route = path.replace(/\/+$/, "").slice(1);
+    return ["money", "grow", "family", "study"].includes(route)
+        ? route
         : "home";
 }
 
@@ -3364,6 +3369,35 @@ export default function App() {
         if (success) setTaskModal(false);
     }
 
+    async function saveAcademicTasks(rows) {
+        if (isE2EMockAuth) {
+            const saved = rows.map(row => ({ ...row, id: crypto.randomUUID(), completed: false, household_id: household.id, owner_user_id: session.user.id }));
+            setTasks(current => [...saved, ...current]);
+            return saved.length;
+        }
+        const saved = await saveAcademicBatch(supabase, {
+            rows, tasks, householdId: household.id, userId: session.user.id,
+        });
+        setTasks(current => [...saved, ...current.filter(task => !saved.some(item => item.id === task.id))]);
+        return saved.length;
+    }
+
+    async function completeAcademicTask(task) {
+        if (!ownPrivateRecords([task], session.user.id).length) return false;
+        if (isE2EMockAuth) {
+            setTasks(current => current.map(item => item.id === task.id ? { ...item, completed: true } : item));
+            return true;
+        }
+        const { data, error: updateError } = await supabase.from("tasks")
+            .update({ completed: true, completed_at: new Date().toISOString() })
+            .eq("id", task.id).eq("household_id", household.id)
+            .eq("owner_user_id", session.user.id).eq("visibility", "private")
+            .select("id");
+        if (updateError || data?.length !== 1) return false;
+        setTasks(current => current.map(item => item.id === task.id ? { ...item, completed: true } : item));
+        return true;
+    }
+
     async function saveTransaction(form) {
         const success = await insertRecord("transactions", form);
         if (success) setTransactionModal(false);
@@ -3415,7 +3449,7 @@ export default function App() {
 
         if (file.size > 10 * 1024 * 1024) {
             setError("Files must be 10 MB or smaller.");
-            return;
+            return false;
         }
 
         setUploading(true);
@@ -3435,7 +3469,7 @@ export default function App() {
         if (storageError) {
             setError(storageError.message);
             setUploading(false);
-            return;
+            return false;
         }
 
         const { error: metadataError } = await supabase.from("documents").insert({
@@ -3455,6 +3489,7 @@ export default function App() {
 
         setUploading(false);
         await loadData();
+        return !metadataError;
     }
 
     async function downloadDocument(document) {
@@ -3656,6 +3691,23 @@ export default function App() {
                                     }
                                 />
                             </div>
+                        </Suspense>
+                    )}
+
+                    {tab === "study" && (
+                        <Suspense fallback={<FeatureLoader label="Opening your academic workspace…" />}>
+                            <AcademicWorkspace
+                                key={session.user.id}
+                                tasks={tasks}
+                                documents={documents}
+                                onSaveTasks={saveAcademicTasks}
+                                onToggleTask={completeAcademicTask}
+                                onUploadDocument={uploadDocument}
+                                onDownloadDocument={downloadDocument}
+                                uploading={uploading}
+                                privateMode={privateMode}
+                                currentUserId={session.user.id}
+                            />
                         </Suspense>
                     )}
 

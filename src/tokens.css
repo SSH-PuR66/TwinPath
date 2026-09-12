@@ -200,7 +200,7 @@ input:focus-visible, select:focus-visible, textarea:focus-visible, .button:focus
     outline-offset: 2px;
     box-shadow: none;
 }
-.bottom-nav { background: var(--background); border-top: 1px solid var(--border); box-shadow: none; }
+.bottom-nav { background: var(--background); border-top: 1px solid var(--border); box-shadow: none; grid-template-columns: repeat(6, minmax(0, 1fr)); }
 .bottom-nav button span { font-size: var(--fs-xs); letter-spacing: 0.02em; }
 .bottom-nav button.active span, .bottom-nav button.active svg { color: var(--accent); }
 
@@ -224,7 +224,7 @@ input:focus-visible, select:focus-visible, textarea:focus-visible, .button:focus
 @media (min-width: 1024px) {
     .bottom-nav {
         border-radius: 0; left: 0; right: 0; transform: none; max-width: none;
-        grid-template-columns: repeat(5, minmax(0, 152px));
+        grid-template-columns: repeat(6, minmax(0, 152px));
         justify-content: center;
         padding: var(--space-2) var(--space-4);
     }
