@@ -25,7 +25,7 @@ test("resolves each supported top-level route explicitly", () => {
   assert.deepEqual(resolveApplicationRoute("/", productIds), {
     kind: "private-app",
   });
-  for (const path of ["/money", "/grow", "/family", "/settings"]) {
+  for (const path of ["/money", "/grow", "/family", "/study", "/settings"]) {
     assert.deepEqual(resolveApplicationRoute(path, productIds), {
       kind: "private-app",
     });

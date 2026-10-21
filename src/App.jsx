@@ -15,6 +15,7 @@ import {
     Eye,
     EyeOff,
     FileLock2,
+    GraduationCap,
     HeartHandshake,
     Home,
     Loader2,
@@ -60,6 +61,7 @@ import NowPath from "./NowPath";
 import Runway from "./Runway";
 import DisclosureSection from "./DisclosureSection";
 import FlowRunner from "./FlowRunner";
+import { saveAcademicBatch, ownPrivateRecords } from "./academicStore";
 
 import {
     initialAllocation,
@@ -68,7 +70,7 @@ import {
     wealthSteps,
 } from "./resources";
 
-import { motion } from "framer-motion";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import NetworkStatus from "./NetworkStatus";
 import { AnimatedMoney } from "./AnimatedMoney";
 import AnimatedPage from "./AnimatedPage";
@@ -85,6 +87,7 @@ const GrowWorkspace = lazy(() => import("./GrowWorkspace.jsx"));
 const FinancialConnectionsPanel = lazy(() => import("./FinancialConnectionsPanel.jsx"));
 const RetirementTracker = lazy(() => import("./RetirementTracker.jsx"));
 const MoneyFlowMap = lazy(() => import("./MoneyFlowMap.jsx"));
+const AcademicWorkspace = lazy(() => import("./AcademicWorkspace.jsx"));
 
 const moneyFormatter = new Intl.NumberFormat("en-US", {
     style: "currency",
@@ -115,14 +118,16 @@ const tabs = [
     { id: "home", label: "Home", icon: Home },
     { id: "money", label: "Money", icon: WalletCards },
     { id: "grow", label: "Grow", icon: BriefcaseBusiness },
+    { id: "study", label: "Study", icon: GraduationCap },
     { id: "family", label: "Family", icon: Baby },
     { id: "settings", label: "Settings", icon: Settings },
 ];
 
 function tabFromPathname(pathname = window.location.pathname) {
     const path = String(pathname).toLowerCase();
-    return ["money", "grow", "family"].includes(path.slice(1))
-        ? path.slice(1)
+    const route = path.replace(/\/+$/, "").slice(1);
+    return ["money", "grow", "family", "study"].includes(route)
+        ? route
         : "home";
 }
 
@@ -214,10 +219,14 @@ function Empty({ children }) {
 }
 
 function PageIntro({ eyebrow, title, purpose, action = null }) {
+    // the eyebrow only survives when it says something the title does not (a track, a status);
+    // "MONEY" over "Money" carries nothing and reads as a template.
+    const showEyebrow = Boolean(eyebrow) && String(eyebrow).trim().toLowerCase() !== String(title).trim().toLowerCase()
+        && !["home", "money", "grow", "family", "settings"].includes(String(eyebrow).trim().toLowerCase());
     return (
         <header className="page-intro">
             <div>
-                <p className="eyebrow">{eyebrow}</p>
+                {showEyebrow ? <p className="eyebrow">{eyebrow}</p> : null}
                 <h2>{title}</h2>
                 <p>{purpose}</p>
             </div>
@@ -231,14 +240,26 @@ function Pill({ children, tone = "neutral" }) {
 }
 
 function Modal({ title, children, onClose }) {
+    const reduce = useReducedMotion();
     return (
-        <div className="modal-backdrop" onMouseDown={onClose}>
-            <div
+        <motion.div
+            className="modal-backdrop"
+            onMouseDown={onClose}
+            initial={reduce ? false : { opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: reduce ? 0 : 0.16, ease: "easeOut" }}
+        >
+            <motion.div
                 className="modal"
                 onMouseDown={(event) => event.stopPropagation()}
                 role="dialog"
                 aria-modal="true"
                 aria-label={title}
+                initial={reduce ? false : { opacity: 0, y: 14, scale: 0.985 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={reduce ? { opacity: 0 } : { opacity: 0, y: 10, scale: 0.985 }}
+                transition={reduce ? { duration: 0 } : { type: "spring", stiffness: 380, damping: 32, mass: 0.7 }}
             >
                 <header className="modal-header">
                     <h2>{title}</h2>
@@ -248,8 +269,8 @@ function Modal({ title, children, onClose }) {
                 </header>
 
                 {children}
-            </div>
-        </div>
+            </motion.div>
+        </motion.div>
     );
 }
 
@@ -635,7 +656,6 @@ function HouseholdSetup({ onReady }) {
                     <HeartHandshake size={26} />
                 </div>
 
-                <p className="eyebrow">HOUSEHOLD SETUP</p>
                 <h1>Start together</h1>
 
                 <div className="segmented">
@@ -943,7 +963,6 @@ function HomeMoneySnapshot({ householdId, privateMode, proposalCount }) {
         <Card className="home-money-hero">
             <div className="section-title">
                 <div>
-                    <span className="eyebrow">LIVE MONEY SNAPSHOT</span>
                     <h3>What is safe to plan with</h3>
                 </div>
                 <WalletCards size={22} />
@@ -1000,7 +1019,7 @@ function AutomationStatus({ proposalCount }) {
     return (
         <Card className="automation-status">
             <div className="section-title">
-                <div><span className="eyebrow">AUTOMATION, WITH PERMISSION</span><h3>What TwinPath is watching</h3></div>
+                <div><h3>What TwinPath is watching</h3></div>
                 <Bell size={21} />
             </div>
             <div className="automation-list">
@@ -1156,7 +1175,6 @@ function TodayTab({
                 <Card>
                     <div className="section-title">
                         <div>
-                            <span className="eyebrow">PRIORITY</span>
                             <h3>Next actions</h3>
                         </div>
 
@@ -1278,7 +1296,6 @@ function PlanTab({
         <div className="page-stack">
             <div className="page-heading">
                 <div>
-                    <p className="eyebrow">ACTION PLAN</p>
                     <h2>Plan and verify</h2>
                 </div>
 
@@ -1359,7 +1376,6 @@ function PlanTab({
             <Card>
                 <div className="section-title">
                     <div>
-                        <span className="eyebrow">LEGAL ROUTES</span>
                         <h3>Resource navigator</h3>
                         <p>Current eligibility must be confirmed with each organization.</p>
                     </div>
@@ -1505,11 +1521,10 @@ function MoneyTab({
             <section className="tp-pane money-density__summary">
                 <header className="tp-pane__head">
                     <span>Financial pulse</span>
-                    <em>Read the last 90 days first</em>
+                    <em>Last 90 days</em>
                 </header>
                 <div className="tp-pane__body">
                     <div className="money-density__pulse">
-                        <p className="eyebrow">MONEY</p>
                         <h2>{shownMoney(balance)} available</h2>
                         <p>{shownMoney(income)} in and {shownMoney(expenses)} out across logged transactions.</p>
                         <div className="summary-grid tp-strip">
@@ -1523,7 +1538,6 @@ function MoneyTab({
             <section className="tp-pane money-density__workspace">
                 <header className="tp-pane__head">
                     <span>Money workspace</span>
-                    <em>Scroll this pane, not the page</em>
                 </header>
                 <div className="tp-pane__body">
                     <div className="page-stack">
@@ -1565,7 +1579,6 @@ function MoneyTab({
                 </Suspense>
                 <div className="page-heading">
                     <div>
-                        <p className="eyebrow">MONEY</p>
                         <h2>Protect, earn, then grow</h2>
                     </div>
 
@@ -1604,7 +1617,6 @@ function MoneyTab({
                 <Card>
                     <div className="section-title">
                         <div>
-                            <span className="eyebrow">STARTING PLAN</span>
                             <h3>A cautious \$2,000 allocation</h3>
                             <p>
                                 Adjust this to your actual essential expenses and medical needs.
@@ -1716,7 +1728,6 @@ function MoneyTab({
                 <Card>
                     <div className="section-title">
                         <div>
-                            <span className="eyebrow">INCOME PIPELINE</span>
                             <h3>Build reliable income</h3>
                         </div>
 
@@ -1773,7 +1784,6 @@ function MoneyTab({
                 <Card>
                     <div className="section-title">
                         <div>
-                            <span className="eyebrow">WEALTH ROADMAP</span>
                             <h3>The realistic path upward</h3>
                         </div>
                     </div>
@@ -1829,7 +1839,7 @@ function GrowTab({
             <section className="tp-pane grow-density__hero">
                 <header className="tp-pane__head">
                     <span>Current goal</span>
-                    <em>One next move at a time</em>
+                    <em>In order</em>
                 </header>
                 <div className="tp-pane__body">
                     <GrowHero
@@ -1843,7 +1853,6 @@ function GrowTab({
             <section className="tp-pane grow-density__workspace">
                 <header className="tp-pane__head">
                     <span>Growth workspace</span>
-                    <em>Scroll this pane, not the page</em>
                 </header>
                 <div className="tp-pane__body">
                     <Suspense fallback={<FeatureLoader label="Opening Growth Center..." />}>
@@ -1890,7 +1899,6 @@ function GrowHero({ opportunities, privateMode, onAddRoute }) {
 
     return (
         <section className="hero">
-            <p className="eyebrow">CURRENT GOAL</p>
 
             {lead ? (
                 <>
@@ -1999,7 +2007,6 @@ function FamilyTab({
             />
             <FlowRunner householdId={householdId} flowIds={["twins-setup"]} compact />
             <section className="hero">
-                <p className="eyebrow">NEXT TOGETHER</p>
 
                 {nextShared ? (
                     <>
@@ -2091,7 +2098,6 @@ function VaultTab({
         <div className="page-stack">
             <div className="page-heading">
                 <div>
-                    <p className="eyebrow">VAULT</p>
                     <h2>Protected documents</h2>
                 </div>
             </div>
@@ -2801,7 +2807,6 @@ function SettingsModal({
                     </div>
 
                     <section className="theme-credits" aria-labelledby="theme-credits-title">
-                        <span className="eyebrow">ABOUT THE PALETTES</span>
                         <h3 id="theme-credits-title">Community palette credits</h3>
                         <p>Catppuccin, Nord, Rosé Pine, Tokyo Night, and Everforest remain the work of their respective communities.</p>
                         <div>{communityThemeCredits.map((credit) => <a key={credit.name} href={safeExternalUrl(credit.url) || undefined} target="_blank" rel="noopener noreferrer">{credit.name}<ExternalLink size={13} /></a>)}</div>
@@ -2842,7 +2847,6 @@ function SettingsModal({
                 <ProfileVaultPanel householdId={household.id} />
 
                 <Card className="nested-card">
-                    <span className="eyebrow">ACCOUNT ACCESS</span>
                     <h3>Create or change password</h3>
 
                     <p className="muted">
@@ -3365,6 +3369,35 @@ export default function App() {
         if (success) setTaskModal(false);
     }
 
+    async function saveAcademicTasks(rows) {
+        if (isE2EMockAuth) {
+            const saved = rows.map(row => ({ ...row, id: crypto.randomUUID(), completed: false, household_id: household.id, owner_user_id: session.user.id }));
+            setTasks(current => [...saved, ...current]);
+            return saved.length;
+        }
+        const saved = await saveAcademicBatch(supabase, {
+            rows, tasks, householdId: household.id, userId: session.user.id,
+        });
+        setTasks(current => [...saved, ...current.filter(task => !saved.some(item => item.id === task.id))]);
+        return saved.length;
+    }
+
+    async function completeAcademicTask(task) {
+        if (!ownPrivateRecords([task], session.user.id).length) return false;
+        if (isE2EMockAuth) {
+            setTasks(current => current.map(item => item.id === task.id ? { ...item, completed: true } : item));
+            return true;
+        }
+        const { data, error: updateError } = await supabase.from("tasks")
+            .update({ completed: true, completed_at: new Date().toISOString() })
+            .eq("id", task.id).eq("household_id", household.id)
+            .eq("owner_user_id", session.user.id).eq("visibility", "private")
+            .select("id");
+        if (updateError || data?.length !== 1) return false;
+        setTasks(current => current.map(item => item.id === task.id ? { ...item, completed: true } : item));
+        return true;
+    }
+
     async function saveTransaction(form) {
         const success = await insertRecord("transactions", form);
         if (success) setTransactionModal(false);
@@ -3416,7 +3449,7 @@ export default function App() {
 
         if (file.size > 10 * 1024 * 1024) {
             setError("Files must be 10 MB or smaller.");
-            return;
+            return false;
         }
 
         setUploading(true);
@@ -3436,7 +3469,7 @@ export default function App() {
         if (storageError) {
             setError(storageError.message);
             setUploading(false);
-            return;
+            return false;
         }
 
         const { error: metadataError } = await supabase.from("documents").insert({
@@ -3456,6 +3489,7 @@ export default function App() {
 
         setUploading(false);
         await loadData();
+        return !metadataError;
     }
 
     async function downloadDocument(document) {
@@ -3563,7 +3597,7 @@ export default function App() {
                 <main className="content">
                     {importRoute ? (
                         <section className="page-stack import-route" aria-label="Review shared CSV import">
-                            <div className="page-heading"><div><p className="eyebrow">SHARED CSV</p><h2>Review before importing</h2><p>Nothing reaches your financial records until you confirm the reviewed rows.</p></div></div>
+                            <div className="page-heading"><div><h2>Review before importing</h2><p>Nothing reaches your financial records until you confirm the reviewed rows.</p></div></div>
                             <CsvImportPanel
                                 householdId={household.id}
                                 onImported={loadData}
@@ -3637,6 +3671,7 @@ export default function App() {
                                     householdId={household.id}
                                     currentUserId={session.user.id}
                                     privateMode={privateMode}
+                                    onAppointmentsChanged={loadData}
                                     onAddAppointment={(
                                         selectedDate
                                     ) => {
@@ -3656,6 +3691,23 @@ export default function App() {
                                     }
                                 />
                             </div>
+                        </Suspense>
+                    )}
+
+                    {tab === "study" && (
+                        <Suspense fallback={<FeatureLoader label="Opening your academic workspace…" />}>
+                            <AcademicWorkspace
+                                key={session.user.id}
+                                tasks={tasks}
+                                documents={documents}
+                                onSaveTasks={saveAcademicTasks}
+                                onToggleTask={completeAcademicTask}
+                                onUploadDocument={uploadDocument}
+                                onDownloadDocument={downloadDocument}
+                                uploading={uploading}
+                                privateMode={privateMode}
+                                currentUserId={session.user.id}
+                            />
                         </Suspense>
                     )}
 
@@ -3718,8 +3770,10 @@ export default function App() {
                 />
             )}
 
+            <AnimatePresence>
             {selectedTask && (
                 <TaskDetailModal
+                    key="task-detail"
                     task={selectedTask}
                     onClose={() => setSelectedTask(null)}
                     onToggle={toggleTask}
@@ -3728,6 +3782,7 @@ export default function App() {
 
             {transactionModal && (
                 <TransactionModal
+                    key="transaction"
                     onClose={() => setTransactionModal(false)}
                     onSave={saveTransaction}
                 />
@@ -3735,6 +3790,7 @@ export default function App() {
 
             {appointmentModal && (
                 <AppointmentModal
+                    key="appointment"
                     initialDate={appointmentDraftDate}
                     onClose={() => {
                         setAppointmentModal(false);
@@ -3746,6 +3802,7 @@ export default function App() {
 
             {opportunityModal && (
                 <OpportunityModal
+                    key="opportunity"
                     initialRoute={opportunityDraft}
                     onClose={() => {
                         setOpportunityModal(false);
@@ -3757,6 +3814,7 @@ export default function App() {
 
             {settingsOpen && (
                 <SettingsModal
+                    key="settings"
                     household={household}
                     profile={profile}
                     themeKey={themeKey}
@@ -3772,6 +3830,7 @@ export default function App() {
                     onClose={() => setSettingsOpen(false)}
                 />
             )}
+            </AnimatePresence>
         </div>
     );
 }

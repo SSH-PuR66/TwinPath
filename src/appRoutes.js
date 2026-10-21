@@ -1,5 +1,5 @@
 const LEGAL_PAGES = new Set(["privacy", "terms", "refunds"]);
-const PRIVATE_APP_PATHS = new Set(["/", "/import", "/money", "/grow", "/family", "/settings"]);
+const PRIVATE_APP_PATHS = new Set(["/", "/import", "/money", "/grow", "/family", "/study", "/settings"]);
 const PRODUCT_ROUTE = /^\/shop\/product\/([^/]+)$/;
 
 export function normalizeApplicationPath(pathname) {

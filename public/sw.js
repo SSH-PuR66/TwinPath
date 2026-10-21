@@ -1,4 +1,4 @@
-const CACHE = "twinpath-shell-v10";
+const CACHE = "twinpath-shell-v11";
 // The share sheet can be destroyed before React starts on iOS. Keep the
 // incoming payload in a dedicated Cache entry first, then let /import read it.
 const SHARE_CACHE = "twinpath-share-inbox-v2";
@@ -176,6 +176,8 @@ self.addEventListener("fetch", (event) => {
         url.pathname.startsWith("/api/")
         || url.pathname.startsWith("/v1/")
         || url.pathname.startsWith("/webhooks")
+        || url.pathname.startsWith("/app")       // the phone install page and the .ipa: network only, never the shell
+        || url.pathname.startsWith("/install")
     ) {
         return;
     }

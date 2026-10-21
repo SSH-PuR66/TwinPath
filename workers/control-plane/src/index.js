@@ -48,6 +48,13 @@ import {
   deactivateWatcher,
   listWatchers,
 } from "./watchers.js";
+import {
+  addFeed,
+  listFeeds,
+  removeFeed,
+  syncCalendarFeeds,
+  syncFeedNow,
+} from "./calendar-feeds.js";
 import { financialSummary, importCsvTransactions } from "./imports.js";
 import {
   createProposal,
@@ -352,6 +359,29 @@ async function handleAuthenticated(request, env, pathname) {
     return json(request, env, { watcher: await deactivateWatcher(env, auth, watcherOff[0]) });
   }
 
+  // calendar feeds: Outlook / Blackboard ICS links, read-only, synced on the cron
+  if (request.method === "GET" && pathname === "/v1/calendar/feeds") {
+    return json(request, env, { feeds: await listFeeds(env, auth) });
+  }
+
+  if (request.method === "POST" && pathname === "/v1/calendar/feeds") {
+    const body = assertObject(await readJson(request));
+    const feed = await addFeed(env, auth, body);
+    // first sync right away so the calendar fills in before the cron comes round
+    const first = await syncFeedNow(env, auth, feed.id).catch(() => null);
+    return json(request, env, { feed, sync: first }, { status: 201 });
+  }
+
+  const feedSync = routeMatch(pathname, /^\/v1\/calendar\/feeds\/([^/]+)\/sync$/);
+  if (request.method === "POST" && feedSync) {
+    return json(request, env, { sync: await syncFeedNow(env, auth, feedSync[0]) });
+  }
+
+  const feedRemove = routeMatch(pathname, /^\/v1\/calendar\/feeds\/([^/]+)$/);
+  if (request.method === "DELETE" && feedRemove) {
+    return json(request, env, await removeFeed(env, auth, feedRemove[0]));
+  }
+
   if (request.method === "GET" && pathname === "/v1/profile") {
     return json(request, env, await getProfile(env, auth));
   }
@@ -446,6 +476,7 @@ export default {
       runAutonomousPlaidSync(event, env),
       watchDeposits(event, env),
       checkWatchedSources(event, env),
+      syncCalendarFeeds(event, env),
     ]);
   },
 };
