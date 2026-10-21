@@ -1,5 +1,11 @@
 # TwinPath
 
+**Created and maintained by [Sergio Rodriguez (SSH-PuR66)](https://github.com/SSH-PuR66).**
+
+**Shared state creates an authorization problem.** TwinPath is a household-planning PWA; its most useful security review starts with [tenant isolation](TENANT-ISOLATION-LAB.md) and [webhook forgery](WEBHOOK-FORGERY-LAB.md). These studies trace who can write a record and which signed event can change the ledger.
+
+Run the local forgery suite with `npm run test:forgery-lab` after installing the [manifest dependencies](package.json). The lab documents its recorded results and controls separately from live integrations.
+
 TwinPath is a private, shared family-planning PWA for two adults.
 
 It provides:
